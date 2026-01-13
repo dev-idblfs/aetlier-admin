@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@config "../hero.ts";
+
+:root {
+  --primary-50: #fdf4f3;
+  --primary-100: #fce8e6;
+  --primary-200: #f9d5d1;
+  --primary-300: #f4b6ae;
+  --primary-400: #ec8c7e;
+  --primary-500: #e06652;
+  --primary-600: #c94a34;
+  --primary-700: #a83c29;
+  --primary-800: #8c3525;
+  --primary-900: #753124;
+}
+
+body {
+  background-color: #f9fafb;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
