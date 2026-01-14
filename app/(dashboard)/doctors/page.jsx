@@ -5,85 +5,72 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     Plus,
     Search,
-    MoreVertical,
     Edit,
     Trash2,
     Eye,
-    Calendar,
-    Phone,
     Mail,
-    X,
+    Phone,
 } from 'lucide-react';
 import {
     Button,
-    Input,
     useDisclosure,
     Avatar,
-    Textarea,
-    Switch,
+    Pagination,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import {
     PageHeader,
     StatusBadge,
-    Card,
-    SearchInput,
     ResponsiveTable,
     MobileCard,
     ConfirmModal,
-    FormModal,
     DetailModal,
     DetailRow,
-    FormRow,
-    FormSwitchRow,
+    SearchInput,
 } from '@/components/ui';
 import {
     useGetDoctorsQuery,
-    useCreateDoctorMutation,
-    useUpdateDoctorMutation,
     useDeleteDoctorMutation,
 } from '@/redux/services/api';
-import { motion } from 'framer-motion';
-
-const INITIAL_FORM = {
-    name: '',
-    specialty: '',
-    email: '',
-    phone: '',
-    bio: '',
-    image_url: '',
-    is_active: true,
-};
 
 export default function DoctorsPage() {
+    const router = useRouter();
     const [search, setSearch] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const [formData, setFormData] = useState(INITIAL_FORM);
-    const [isEditing, setIsEditing] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
-    const { isOpen: isFormOpen, onOpen: onFormOpen, onOpenChange: onFormOpenChange } = useDisclosure();
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
 
     const { data, isLoading, refetch } = useGetDoctorsQuery({});
 
-    const [createDoctor, { isLoading: isCreating }] = useCreateDoctorMutation();
-    const [updateDoctor, { isLoading: isUpdating }] = useUpdateDoctorMutation();
     const [deleteDoctor, { isLoading: isDeleting }] = useDeleteDoctorMutation();
+
+    // Reset page when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
 
     // Client-side filtering since backend doesn't support search
     const allDoctors = data?.doctors || data || [];
-    const doctors = allDoctors.filter(doctor => {
+    const filteredDoctors = allDoctors.filter(doctor => {
         if (!search) return true;
         const searchLower = search.toLowerCase();
         return doctor.name?.toLowerCase().includes(searchLower) ||
             doctor.specialty?.toLowerCase().includes(searchLower) ||
             doctor.email?.toLowerCase().includes(searchLower);
     });
+
+    // Pagination
+    const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const doctors = filteredDoctors.slice(startIndex, startIndex + itemsPerPage);
 
     const columns = [
         {
@@ -163,40 +150,15 @@ export default function DoctorsPage() {
     };
 
     const handleAdd = () => {
-        setIsEditing(false);
-        setFormData(INITIAL_FORM);
-        onFormOpen();
+        router.push('/doctors/new');
     };
 
     const handleEdit = (doctor) => {
-        setIsEditing(true);
-        setSelectedDoctor(doctor);
-        setFormData({
-            name: doctor.name || '',
-            specialty: doctor.specialty || '',
-            email: doctor.email || '',
-            phone: doctor.phone || '',
-            bio: doctor.bio || '',
-            image_url: doctor.image_url || '',
-            is_active: doctor.is_active !== false,
-        });
-        onFormOpen();
-    };
-
-    const handleFormChange = (key, value) => {
-        setFormData(prev => ({ ...prev, [key]: value }));
+        router.push(`/doctors/${doctor.id}/edit`);
     };
 
     const handleFormSubmit = async () => {
         try {
-            if (isEditing) {
-                await updateDoctor({ id: selectedDoctor.id, ...formData }).unwrap();
-                toast.success('Doctor updated successfully');
-            } else {
-                await createDoctor(formData).unwrap();
-                toast.success('Doctor created successfully');
-            }
-            onFormOpenChange(false);
             refetch();
         } catch (error) {
             toast.error(error.data?.detail || `Failed to ${isEditing ? 'update' : 'create'} doctor`);
@@ -264,7 +226,9 @@ export default function DoctorsPage() {
 
             {/* Results count */}
             <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>{doctors.length} doctor{doctors.length !== 1 ? 's' : ''}</span>
+                <span>
+                    Showing {filteredDoctors.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredDoctors.length)} of {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''}
+                </span>
             </div>
 
             {/* Responsive Table/Cards */}
@@ -306,75 +270,26 @@ export default function DoctorsPage() {
                 )}
             />
 
-            {/* Add/Edit Modal */}
-            <FormModal
-                isOpen={isFormOpen}
-                onOpenChange={onFormOpenChange}
-                title={isEditing ? 'Edit Doctor' : 'Add Doctor'}
-                submitLabel={isEditing ? 'Update' : 'Create'}
-                onSubmit={handleFormSubmit}
-                isLoading={isCreating || isUpdating}
-            >
-                <div className="space-y-4">
-                    <FormRow>
-                        <Input
-                            label="Name"
-                            labelPlacement="outside"
-                            placeholder="Dr. John Doe"
-                            value={formData.name}
-                            onChange={(e) => handleFormChange('name', e.target.value)}
-                            isRequired
-                        />
-                        <Input
-                            label="Specialty"
-                            labelPlacement="outside"
-                            placeholder="Dermatology"
-                            value={formData.specialty}
-                            onChange={(e) => handleFormChange('specialty', e.target.value)}
-                            isRequired
-                        />
-                    </FormRow>
-                    <FormRow>
-                        <Input
-                            label="Email"
-                            labelPlacement="outside"
-                            type="email"
-                            placeholder="doctor@example.com"
-                            value={formData.email}
-                            onChange={(e) => handleFormChange('email', e.target.value)}
-                            isRequired
-                        />
-                        <Input
-                            label="Phone"
-                            labelPlacement="outside"
-                            placeholder="+1 234 567 890"
-                            value={formData.phone}
-                            onChange={(e) => handleFormChange('phone', e.target.value)}
-                        />
-                    </FormRow>
-                    <Input
-                        label="Image URL"
-                        labelPlacement="outside"
-                        value={formData.image_url}
-                        onChange={(e) => handleFormChange('image_url', e.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                    />
-                    <Textarea
-                        label="Bio"
-                        labelPlacement="outside"
-                        value={formData.bio}
-                        onChange={(e) => handleFormChange('bio', e.target.value)}
-                        placeholder="Doctor's biography..."
-                        minRows={3}
-                    />
-                    <FormSwitchRow
-                        label="Active Status"
-                        description="Doctor is available for appointments"
-                        isSelected={formData.is_active}
-                        onValueChange={(value) => handleFormChange('is_active', value)}
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center mt-6">
+                    <Pagination
+                        total={totalPages}
+                        page={currentPage}
+                        onChange={(page) => {
+                            setCurrentPage(page);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        showControls
+                        classNames={{
+                            wrapper: "gap-2",
+                            item: "w-8 h-8 text-sm",
+                        }}
                     />
                 </div>
-            </FormModal>
+            )}
+
+            {/* Add/Edit Modal - REMOVED, using dedicated pages now */}
 
             {/* Detail Modal */}
             <DetailModal

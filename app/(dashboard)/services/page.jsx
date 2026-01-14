@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     Plus,
     Search,
@@ -25,6 +26,7 @@ import {
     useDisclosure,
     Textarea,
     Switch,
+    Pagination,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { PageHeader, StatusBadge, Card, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, DetailModal } from '@/components/ui';
@@ -54,31 +56,39 @@ const CATEGORY_OPTIONS = [
 ];
 
 export default function ServicesPage() {
+    const router = useRouter();
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [selectedService, setSelectedService] = useState(null);
-    const [formData, setFormData] = useState(INITIAL_FORM);
-    const [isEditing, setIsEditing] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
-    const { isOpen: isFormOpen, onOpen: onFormOpen, onOpenChange: onFormOpenChange } = useDisclosure();
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
 
     const { data, isLoading, refetch } = useGetServicesQuery();
 
-    const [createService, { isLoading: isCreating }] = useCreateServiceMutation();
-    const [updateService, { isLoading: isUpdating }] = useUpdateServiceMutation();
     const [deleteService, { isLoading: isDeleting }] = useDeleteServiceMutation();
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, categoryFilter]);
 
     // Client-side filtering since backend returns all services
     const allServices = data?.services || data || [];
-    const services = allServices.filter(service => {
+    const filteredServices = allServices.filter(service => {
         const matchesSearch = !search ||
             service.name?.toLowerCase().includes(search.toLowerCase()) ||
             service.description?.toLowerCase().includes(search.toLowerCase());
         const matchesCategory = !categoryFilter || service.category === categoryFilter;
         return matchesSearch && matchesCategory;
     });
+
+    // Pagination
+    const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const services = filteredServices.slice(startIndex, startIndex + itemsPerPage);
 
     const columns = [
         {
@@ -168,45 +178,15 @@ export default function ServicesPage() {
     };
 
     const handleAdd = () => {
-        setIsEditing(false);
-        setFormData(INITIAL_FORM);
-        onFormOpen();
+        router.push('/services/new');
     };
 
     const handleEdit = (service) => {
-        setIsEditing(true);
-        setSelectedService(service);
-        setFormData({
-            name: service.name || '',
-            description: service.description || '',
-            category: service.category || '',
-            price: service.price?.toString() || '',
-            duration: service.duration?.toString() || '',
-            is_active: service.is_active !== false,
-        });
-        onFormOpen();
-    };
-
-    const handleFormChange = (key, value) => {
-        setFormData(prev => ({ ...prev, [key]: value }));
+        router.push(`/services/${service.id}/edit`);
     };
 
     const handleFormSubmit = async () => {
-        const payload = {
-            ...formData,
-            price: formData.price ? parseFloat(formData.price) : null,
-            duration: formData.duration ? parseInt(formData.duration) : null,
-        };
-
         try {
-            if (isEditing) {
-                await updateService({ id: selectedService.id, ...payload }).unwrap();
-                toast.success('Service updated successfully');
-            } else {
-                await createService(payload).unwrap();
-                toast.success('Service created successfully');
-            }
-            onFormOpenChange(false);
             refetch();
         } catch (error) {
             toast.error(error.data?.detail || `Failed to ${isEditing ? 'update' : 'create'} service`);
@@ -310,7 +290,9 @@ export default function ServicesPage() {
 
             {/* Results count */}
             <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>{services.length} service{services.length !== 1 ? 's' : ''}</span>
+                <span>
+                    Showing {filteredServices.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredServices.length)} of {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
+                </span>
             </div>
 
             {/* Responsive Table/Cards */}
@@ -352,70 +334,26 @@ export default function ServicesPage() {
                 )}
             />
 
-            {/* Add/Edit Modal */}
-            <FormModal
-                isOpen={isFormOpen}
-                onOpenChange={onFormOpenChange}
-                onSubmit={handleFormSubmit}
-                title={isEditing ? 'Edit Service' : 'Add Service'}
-                submitLabel={isEditing ? 'Update' : 'Create'}
-                isLoading={isCreating || isUpdating}
-            >
-                <div className="space-y-4">
-                    <Input
-                        label="Name"
-                        value={formData.name}
-                        onChange={(e) => handleFormChange('name', e.target.value)}
-                        isRequired
-                        size="sm"
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center mt-6">
+                    <Pagination
+                        total={totalPages}
+                        page={currentPage}
+                        onChange={(page) => {
+                            setCurrentPage(page);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        showControls
+                        classNames={{
+                            wrapper: "gap-2",
+                            item: "w-8 h-8 text-sm",
+                        }}
                     />
-                    <Textarea
-                        label="Description"
-                        value={formData.description}
-                        onChange={(e) => handleFormChange('description', e.target.value)}
-                        placeholder="Service description..."
-                        minRows={3}
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Select
-                            label="Category"
-                            selectedKeys={formData.category ? [formData.category] : []}
-                            onSelectionChange={(keys) => handleFormChange('category', Array.from(keys)[0] || '')}
-                            size="sm"
-                        >
-                            <SelectItem key="consultation" value="consultation">Consultation</SelectItem>
-                            <SelectItem key="treatment" value="treatment">Treatment</SelectItem>
-                            <SelectItem key="surgery" value="surgery">Surgery</SelectItem>
-                            <SelectItem key="therapy" value="therapy">Therapy</SelectItem>
-                        </Select>
-                        <Input
-                            label="Price ($)"
-                            type="number"
-                            value={formData.price}
-                            onChange={(e) => handleFormChange('price', e.target.value)}
-                            startContent={<DollarSign className="w-4 h-4 text-gray-400" />}
-                            size="sm"
-                        />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input
-                            label="Duration (minutes)"
-                            type="number"
-                            value={formData.duration}
-                            onChange={(e) => handleFormChange('duration', e.target.value)}
-                            startContent={<Clock className="w-4 h-4 text-gray-400" />}
-                            size="sm"
-                        />
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg sm:mt-6">
-                            <span className="text-sm font-medium text-gray-700">Active Status</span>
-                            <Switch
-                                isSelected={formData.is_active}
-                                onValueChange={(val) => handleFormChange('is_active', val)}
-                            />
-                        </div>
-                    </div>
                 </div>
-            </FormModal>
+            )}
+
+            {/* Add/Edit Modal - REMOVED, using dedicated pages now */}
 
             {/* Detail Modal */}
             <DetailModal

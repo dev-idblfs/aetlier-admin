@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     Users as UsersIcon,
     Search,
@@ -32,6 +33,7 @@ import {
     Chip,
     Input,
     Switch,
+    Pagination,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import {
@@ -62,35 +64,30 @@ import { formatDate } from '@/utils/dateFormatters';
 import { motion } from 'framer-motion';
 
 export default function UsersPage() {
+    const router = useRouter();
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedRoleId, setSelectedRoleId] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Modals
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange, onClose: onDetailClose } = useDisclosure();
     const { isOpen: isRoleOpen, onOpen: onRoleOpen, onOpenChange: onRoleOpenChange } = useDisclosure();
-    const { isOpen: isFormOpen, onOpen: onFormOpen, onOpenChange: onFormOpenChange, onClose: onFormClose } = useDisclosure();
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange, onClose: onDeleteClose } = useDisclosure();
-
-    // Form state
-    const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
-    const [formData, setFormData] = useState({
-        email: '',
-        name: '',
-        phone: '',
-        password: '',
-        is_active: true,
-    });
 
     // API hooks
     const { data: usersData, isLoading, refetch } = useGetUsersQuery({});
     const { data: rolesData } = useGetRolesQuery();
-    const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
-    const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
     const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
     const [assignRole, { isLoading: isAssigning }] = useAssignUserRoleMutation();
     const [revokeRole, { isLoading: isRevoking }] = useRevokeUserRoleMutation();
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, roleFilter]);
 
     const roles = useMemo(() => rolesData || [], [rolesData]);
 
@@ -102,7 +99,7 @@ export default function UsersPage() {
     }, [usersData]);
 
     // Filter users
-    const users = useMemo(() => {
+    const filteredUsers = useMemo(() => {
         let filtered = usersArray;
         if (search) {
             const searchLower = search.toLowerCase();
@@ -120,6 +117,13 @@ export default function UsersPage() {
         return filtered;
     }, [usersArray, search, roleFilter]);
 
+    // Pagination
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const users = useMemo(() => {
+        return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredUsers, startIndex, itemsPerPage]);
+
     // Role filter options
     const roleOptions = useMemo(() => {
         const uniqueRoles = new Set();
@@ -134,22 +138,11 @@ export default function UsersPage() {
 
     // Handlers
     const handleAddUser = () => {
-        setFormMode('create');
-        setFormData({ email: '', name: '', phone: '', password: '', is_active: true });
-        onFormOpen();
+        router.push('/users/new');
     };
 
     const handleEditUser = (user) => {
-        setFormMode('edit');
-        setSelectedUser(user);
-        setFormData({
-            email: user.email || '',
-            name: user.name || '',
-            phone: user.phone || '',
-            password: '',
-            is_active: user.is_active !== false,
-        });
-        onFormOpen();
+        router.push(`/users/${user.id}/edit`);
     };
 
     const handleViewDetails = (user) => {
@@ -398,7 +391,7 @@ export default function UsersPage() {
 
             {/* Results count */}
             <div className="text-sm text-gray-500">
-                {users.length} user{users.length !== 1 ? 's' : ''}
+                Showing {filteredUsers.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredUsers.length)} of {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
             </div>
 
             {/* Table/Cards */}
@@ -422,60 +415,26 @@ export default function UsersPage() {
                 )}
             />
 
-            {/* Create/Edit User Modal */}
-            <FormModal
-                isOpen={isFormOpen}
-                onOpenChange={onFormOpenChange}
-                title={formMode === 'create' ? 'Add New User' : 'Edit User'}
-                submitLabel={formMode === 'create' ? 'Create User' : 'Save Changes'}
-                onSubmit={handleFormSubmit}
-                isLoading={isCreating || isUpdating}
-            >
-                <div className="space-y-4">
-                    <Input
-                        label="Email"
-                        labelPlacement="outside"
-                        placeholder="user@example.com"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        isRequired
-                        isDisabled={formMode === 'edit'}
-                    />
-                    <Input
-                        label="Name"
-                        labelPlacement="outside"
-                        placeholder="Full name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        isRequired
-                    />
-                    <Input
-                        label="Phone"
-                        labelPlacement="outside"
-                        placeholder="+1 234 567 890"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                    {formMode === 'create' && (
-                        <Input
-                            label="Password"
-                            labelPlacement="outside"
-                            placeholder="Leave empty to send invite"
-                            type="password"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            description="If left empty, user can set password via email"
-                        />
-                    )}
-                    <FormSwitchRow
-                        label="Active Status"
-                        description="User can log in when active"
-                        isSelected={formData.is_active}
-                        onValueChange={(val) => setFormData({ ...formData, is_active: val })}
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center mt-6">
+                    <Pagination
+                        total={totalPages}
+                        page={currentPage}
+                        onChange={(page) => {
+                            setCurrentPage(page);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        showControls
+                        classNames={{
+                            wrapper: "gap-2",
+                            item: "w-8 h-8 text-sm",
+                        }}
                     />
                 </div>
-            </FormModal>
+            )}
+
+            {/* Create/Edit User Modal - REMOVED, using dedicated pages now */}
 
             {/* Detail Modal */}
             <DetailModal

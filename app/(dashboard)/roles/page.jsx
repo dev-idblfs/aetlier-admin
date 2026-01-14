@@ -19,6 +19,7 @@ import {
     Tab,
     Checkbox,
     Avatar,
+    Pagination,
 } from '@heroui/react';
 import {
     Shield,
@@ -119,6 +120,8 @@ function RolesTab() {
     const [selectedRole, setSelectedRole] = useState(null);
     const [roleToDelete, setRoleToDelete] = useState(null);
     const [formData, setFormData] = useState({ name: '', description: '' });
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const handleCreate = () => {
         setEditingRole(null);
@@ -229,10 +232,17 @@ function RolesTab() {
     // System roles that cannot be deleted
     const systemRoles = ['super_admin', 'admin', 'doctor', 'patient'];
 
+    // Pagination
+    const totalPages = Math.ceil(roles.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedRoles = roles.slice(startIndex, startIndex + itemsPerPage);
+
     return (
         <div className="space-y-4 mt-4">
             <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">{roles.length} role{roles.length !== 1 ? 's' : ''}</span>
+                <span className="text-sm text-gray-500">
+                    Showing {roles.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, roles.length)} of {roles.length} role{roles.length !== 1 ? 's' : ''}
+                </span>
                 <Button
                     color="primary"
                     startContent={<Plus className="w-4 h-4" />}
@@ -258,7 +268,7 @@ function RolesTab() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {roles.map((role) => (
+                                {paginatedRoles.map((role) => (
                                     <tr key={role.id} className="hover:bg-gray-50">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
@@ -311,7 +321,7 @@ function RolesTab() {
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
-                {roles.length === 0 ? (
+                {paginatedRoles.length === 0 ? (
                     <EmptyState
                         icon="file"
                         title="No roles"
@@ -320,7 +330,7 @@ function RolesTab() {
                         onAction={handleCreate}
                     />
                 ) : (
-                    roles.map((role) => (
+                    paginatedRoles.map((role) => (
                         <RoleMobileCard
                             key={role.id}
                             role={role}
@@ -332,6 +342,25 @@ function RolesTab() {
                     ))
                 )}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center mt-6">
+                    <Pagination
+                        total={totalPages}
+                        page={currentPage}
+                        onChange={(page) => {
+                            setCurrentPage(page);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        showControls
+                        classNames={{
+                            wrapper: "gap-2",
+                            item: "w-8 h-8 text-sm",
+                        }}
+                    />
+                </div>
+            )}
 
             {/* Create/Edit Role Modal */}
             <FormModal

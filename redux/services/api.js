@@ -232,6 +232,32 @@ export const api = createApi({
       invalidatesTags: ["User"],
     }),
 
+    // =========================================================================
+    // USER PREFERENCES ENDPOINTS
+    // =========================================================================
+
+    // GET /users/:userId/preferences - Get user preferences
+    getUserPreferences: builder.query({
+      query: (userId) => `/users/${userId}/preferences`,
+      providesTags: (result, error, userId) => [{ type: "User", id: userId }],
+    }),
+
+    // PATCH /users/:userId/preferences - Update user preferences
+    updateUserPreferences: builder.mutation({
+      query: ({ userId, ...data }) => ({
+        url: `/users/${userId}/preferences`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { userId }) => [
+        { type: "User", id: userId },
+      ],
+    }),
+
+    // =========================================================================
+    // ROLE & PERMISSION ENDPOINTS
+    // =========================================================================
+
     // GET /admin/roles - List all roles
     getRoles: builder.query({
       query: () => "/admin/roles",
@@ -880,6 +906,8 @@ export const {
   useLazyGetUserPermissionsQuery,
   useAssignUserRoleMutation,
   useRevokeUserRoleMutation,
+  useGetUserPreferencesQuery,
+  useUpdateUserPreferencesMutation,
   useGetRolesQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
