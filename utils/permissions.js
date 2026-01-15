@@ -91,9 +91,11 @@ export function isAdmin(user) {
 
 // Permission constants for easy reference
 export const PERMISSIONS = {
+  // === SYSTEM ===
   // Dashboard
   DASHBOARD_VIEW: "dashboard.view.any",
 
+  // === CLINICAL ===
   // Appointments
   APPOINTMENT_READ_ANY: "appointment.read.any",
   APPOINTMENT_READ_OWN: "appointment.read.own",
@@ -104,15 +106,6 @@ export const PERMISSIONS = {
   APPOINTMENT_APPROVE: "appointment.approve.any",
   APPOINTMENT_CANCEL: "appointment.cancel.any",
   APPOINTMENT_RESCHEDULE: "appointment.reschedule.any",
-
-  // Users
-  USER_READ_ANY: "user.read.any",
-  USER_READ_OWN: "user.read.own",
-  USER_CREATE: "user.create.any",
-  USER_UPDATE_ANY: "user.update.any",
-  USER_UPDATE_OWN: "user.update.own",
-  USER_DELETE: "user.delete.any",
-  USER_ROLE_MANAGE: "user.role.manage",
 
   // Doctors
   DOCTOR_READ_ANY: "doctor.read.any",
@@ -126,6 +119,16 @@ export const PERMISSIONS = {
   SERVICE_UPDATE: "service.update.any",
   SERVICE_DELETE: "service.delete.any",
 
+  // === USER MANAGEMENT ===
+  // Users
+  USER_READ_ANY: "user.read.any",
+  USER_READ_OWN: "user.read.own",
+  USER_CREATE: "user.create.any",
+  USER_UPDATE_ANY: "user.update.any",
+  USER_UPDATE_OWN: "user.update.own",
+  USER_DELETE: "user.delete.any",
+  USER_ROLE_MANAGE: "user.role.manage",
+
   // Roles & Permissions (Admin only)
   ROLE_READ: "role.read.any",
   ROLE_CREATE: "role.create.any",
@@ -136,7 +139,10 @@ export const PERMISSIONS = {
   PERMISSION_CREATE: "permission.create.any",
   PERMISSION_UPDATE: "permission.update.any",
   PERMISSION_DELETE: "permission.delete.any",
+  PERMISSION_ASSIGN: "permission.assign.any",
+  PERMISSION_REVOKE: "permission.revoke.any",
 
+  // === SYSTEM ===
   // Settings
   SETTINGS_READ: "settings.read.any",
   SETTINGS_UPDATE: "settings.update.any",
@@ -145,26 +151,27 @@ export const PERMISSIONS = {
   REPORTS_VIEW: "reports.view.any",
   REPORTS_EXPORT: "reports.export.any",
 
-  // Finance - Invoices
+  // === FINANCE ===
+  // Invoices
   INVOICE_READ_ANY: "invoice.read.any",
   INVOICE_CREATE: "invoice.create.any",
   INVOICE_UPDATE: "invoice.update.any",
   INVOICE_DELETE: "invoice.delete.any",
   INVOICE_SEND: "invoice.send.any",
 
-  // Finance - Expenses
+  // Expenses
   EXPENSE_READ_ANY: "expense.read.any",
   EXPENSE_CREATE: "expense.create.any",
   EXPENSE_UPDATE: "expense.update.any",
   EXPENSE_DELETE: "expense.delete.any",
 
-  // Finance - Customers
+  // Customers
   CUSTOMER_READ_ANY: "customer.read.any",
   CUSTOMER_CREATE: "customer.create.any",
   CUSTOMER_UPDATE: "customer.update.any",
   CUSTOMER_DELETE: "customer.delete.any",
 
-  // Finance - Dashboard & Reports
+  // Finance Dashboard & Reports
   FINANCE_DASHBOARD_VIEW: "finance.dashboard.view",
   FINANCE_REPORTS_VIEW: "finance.reports.view",
 };

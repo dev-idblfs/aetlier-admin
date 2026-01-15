@@ -34,6 +34,7 @@ function AuthCallbackContent() {
         const handleCallback = async () => {
             const token = searchParams.get('token');
             const returnUrl = searchParams.get('returnUrl') || '/';
+            console.log('admin tokem', token, returnUrl);
 
             if (!token) {
                 setError('No authentication token provided');
@@ -52,7 +53,11 @@ function AuthCallbackContent() {
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
 
-                if (!response.ok) throw new Error('Invalid token');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Token verification failed:', response.status, errorData);
+                    throw new Error(`Invalid token: ${response.status} - ${errorData.detail || 'Unknown error'}`);
+                }
 
                 const user = await response.json();
 
