@@ -312,7 +312,7 @@ export const api = createApi({
     // POST /admin/roles/:id/permissions - Add permission to role
     addPermissionToRole: builder.mutation({
       query: ({ roleId, permissionId }) => ({
-        url: `/admin/roles/${roleId}/permissions?permission_id=${permissionId}`,
+        url: `/admin/roles/${roleId}/permissions/${permissionId}`,
         method: "POST",
       }),
       invalidatesTags: ["Role"],
