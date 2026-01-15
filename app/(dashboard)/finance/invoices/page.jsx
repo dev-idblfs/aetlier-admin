@@ -105,9 +105,14 @@ export default function InvoicesPage() {
     const handleSendConfirm = async () => {
         if (!selectedInvoice) return;
         try {
-            await sendInvoice({ id: selectedInvoice.id }).unwrap();
+            await sendInvoice({
+                id: selectedInvoice.id,
+                send_via: 'email',
+                recipient_email: selectedInvoice.customer_email
+            }).unwrap();
             toast.success('Invoice sent successfully');
             onSendClose();
+            refetch();
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to send invoice');
         }
@@ -153,8 +158,8 @@ export default function InvoicesPage() {
             label: 'Amount',
             render: (row) => (
                 <div className="text-right">
-                    <p className="font-medium text-gray-900">{formatCurrency(row.total_amount)}</p>
-                    {row.amount_paid > 0 && row.amount_paid < row.total_amount && (
+                    <p className="font-medium text-gray-900">{formatCurrency(row.grand_total)}</p>
+                    {row.amount_paid > 0 && row.amount_paid < row.grand_total && (
                         <p className="text-sm text-green-600">Paid: {formatCurrency(row.amount_paid)}</p>
                     )}
                 </div>

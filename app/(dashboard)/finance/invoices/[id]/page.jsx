@@ -146,7 +146,11 @@ export default function InvoiceDetailPage({ params }) {
 
     const handleSendEmail = async () => {
         try {
-            await sendInvoice(invoice.id).unwrap();
+            await sendInvoice({
+                id: invoice.id,
+                send_via: 'email',
+                recipient_email: invoice.customer_email
+            }).unwrap();
             toast.success('Invoice sent successfully');
             refetch();
         } catch (error) {
@@ -185,7 +189,7 @@ export default function InvoiceDetailPage({ params }) {
         }
     };
 
-    const remainingBalance = invoice.total_amount - (invoice.amount_paid || 0);
+    const remainingBalance = invoice.grand_total - (invoice.amount_paid || 0);
 
     return (
         <div className="space-y-6">
@@ -374,10 +378,10 @@ export default function InvoiceDetailPage({ params }) {
                                                 </TableCell>
                                                 <TableCell className="text-center">{item.quantity}</TableCell>
                                                 <TableCell className="text-right">
-                                                    {formatCurrency(item.rate)}
+                                                    {formatCurrency(item.unit_price)}
                                                 </TableCell>
                                                 <TableCell className="text-right font-semibold">
-                                                    {formatCurrency(item.amount)}
+                                                    {formatCurrency(item.line_total)}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -391,7 +395,7 @@ export default function InvoiceDetailPage({ params }) {
                             <div className="p-4 space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600">Subtotal</span>
-                                    <span className="font-medium">{formatCurrency(invoice.sub_total)}</span>
+                                    <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
                                 </div>
                                 {invoice.discount_amount > 0 && (
                                     <div className="flex justify-between text-sm text-success-600">
@@ -399,18 +403,18 @@ export default function InvoiceDetailPage({ params }) {
                                         <span>-{formatCurrency(invoice.discount_amount)}</span>
                                     </div>
                                 )}
-                                {invoice.tax_amount > 0 && (
+                                {invoice.tax_total > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">
-                                            Tax {invoice.tax_rate > 0 ? `(${invoice.tax_rate}%)` : ''}
+                                            Tax
                                         </span>
-                                        <span className="font-medium">{formatCurrency(invoice.tax_amount)}</span>
+                                        <span className="font-medium">{formatCurrency(invoice.tax_total)}</span>
                                     </div>
                                 )}
                                 <Divider />
                                 <div className="flex justify-between text-lg font-bold">
                                     <span>Total</span>
-                                    <span>{formatCurrency(invoice.total_amount)}</span>
+                                    <span>{formatCurrency(invoice.grand_total)}</span>
                                 </div>
                                 {invoice.amount_paid > 0 && (
                                     <>
@@ -470,7 +474,7 @@ export default function InvoiceDetailPage({ params }) {
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Total Amount</span>
                                 <span className="font-bold text-lg">
-                                    {formatCurrency(invoice.total_amount)}
+                                    {formatCurrency(invoice.grand_total)}
                                 </span>
                             </div>
                             {invoice.amount_paid > 0 && (

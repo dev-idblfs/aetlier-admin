@@ -87,7 +87,7 @@ export default function EditInvoicePage({ params }) {
     });
 
     const [lineItems, setLineItems] = useState([
-        { id: 1, description: '', quantity: 1, unit_price: 0, tax_rate: 18 }
+        { id: 1, service_id: null, description: '', quantity: 1, unit_price: 0, tax_rate: 18 }
     ]);
 
     // Initialize form with invoice data
@@ -111,9 +111,10 @@ export default function EditInvoicePage({ params }) {
                 setLineItems(
                     invoice.line_items.map((item, index) => ({
                         id: Date.now() + index,
+                        service_id: item.service_id || null,
                         description: item.description || item.item_name || '',
                         quantity: item.quantity || 1,
-                        unit_price: item.rate || 0,
+                        unit_price: item.unit_price || 0,
                         tax_rate: item.tax_rate || 18,
                     }))
                 );
@@ -154,7 +155,7 @@ export default function EditInvoicePage({ params }) {
     const addLineItem = () => {
         setLineItems([
             ...lineItems,
-            { id: Date.now(), description: '', quantity: 1, unit_price: 0, tax_rate: 18 }
+            { id: Date.now(), service_id: null, description: '', quantity: 1, unit_price: 0, tax_rate: 18 }
         ]);
     };
 
@@ -176,8 +177,16 @@ export default function EditInvoicePage({ params }) {
     const handleServiceSelect = (itemId, serviceId) => {
         const service = services.find(s => s.id === serviceId);
         if (service) {
-            updateLineItem(itemId, 'description', service.name);
-            updateLineItem(itemId, 'unit_price', service.price || 0);
+            setLineItems(lineItems.map(item =>
+                item.id === itemId
+                    ? {
+                        ...item,
+                        service_id: serviceId,
+                        description: service.name,
+                        unit_price: service.price || 0
+                    }
+                    : item
+            ));
         }
     };
 
@@ -426,7 +435,13 @@ export default function EditInvoicePage({ params }) {
                                         label="Service (Optional)"
                                         labelPlacement="outside"
                                         placeholder="Select a service"
-                                        onChange={(e) => handleServiceSelect(item.id, e.target.value)}
+                                        selectedKeys={item.service_id ? [String(item.service_id)] : []}
+                                        onSelectionChange={(keys) => {
+                                            const selectedKey = Array.from(keys)[0];
+                                            if (selectedKey) {
+                                                handleServiceSelect(item.id, selectedKey);
+                                            }
+                                        }}
                                         size="sm"
                                     >
                                         {services.map((service) => (
