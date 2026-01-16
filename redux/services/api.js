@@ -48,6 +48,7 @@ export const api = createApi({
     "Customer",
     "Report",
     "Navigation",
+    "Wallet",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -785,6 +786,16 @@ export const api = createApi({
     }),
 
     // =========================================================================
+    // WALLET / REFERRAL ENDPOINTS
+    // =========================================================================
+
+    // GET /wallet/:user_id - Get user's coin wallet (admin only)
+    getUserWallet: builder.query({
+      query: (userId) => `/wallet/${userId}`,
+      providesTags: (result, error, userId) => [{ type: "Wallet", id: userId }],
+    }),
+
+    // =========================================================================
     // FINANCIAL REPORTS ENDPOINTS
     // =========================================================================
 
@@ -985,6 +996,8 @@ export const {
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,
+  // Wallet
+  useGetUserWalletQuery,
   // Financial Reports
   useGetFinancialDashboardQuery,
   useGetRevenueReportQuery,

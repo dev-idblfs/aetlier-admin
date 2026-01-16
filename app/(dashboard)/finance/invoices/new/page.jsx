@@ -148,10 +148,14 @@ export default function NewInvoicePage() {
         }
     }, [appointmentId, createFromAppointment, router]);
 
-    // Customer search
+    // Customer search with debouncing (500ms delay)
     useEffect(() => {
         if (customerSearch.length >= 2) {
-            searchCustomers({ q: customerSearch, limit: 10 });
+            const debounceTimer = setTimeout(() => {
+                searchCustomers({ q: customerSearch, limit: 10 });
+            }, 500);
+
+            return () => clearTimeout(debounceTimer);
         }
     }, [customerSearch, searchCustomers]);
 

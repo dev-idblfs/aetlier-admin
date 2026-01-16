@@ -13,6 +13,8 @@ import {
     Save,
     Calculator,
     AlertCircle,
+    Coins,
+    Zap,
 } from 'lucide-react';
 import {
     Button,
@@ -35,6 +37,7 @@ import {
     useGetInvoiceQuery,
     useUpdateInvoiceMutation,
     useGetServicesQuery,
+    useGetUserWalletQuery,
 } from '@/redux/services/api';
 import { formatCurrency } from '@/utils/dateFormatters';
 import { parseDate } from '@internationalized/date';
@@ -71,6 +74,12 @@ export default function EditInvoicePage({ params }) {
     const { data: servicesData } = useGetServicesQuery();
     const services = servicesData || [];
 
+    // Fetch wallet data if invoice has a user
+    const { data: walletData, isLoading: isLoadingWallet } = useGetUserWalletQuery(
+        invoice?.user_id,
+        { skip: !invoice?.user_id }
+    );
+
     // Form State
     const [formData, setFormData] = useState({
         customer_name: '',
@@ -84,6 +93,7 @@ export default function EditInvoicePage({ params }) {
         terms_conditions: '',
         discount_type: 'PERCENTAGE',
         discount_value: 0,
+        coins_redeemed: 0,
     });
 
     const [lineItems, setLineItems] = useState([
@@ -105,6 +115,7 @@ export default function EditInvoicePage({ params }) {
                 terms_conditions: invoice.terms_conditions || '',
                 discount_type: invoice.discount_type || 'PERCENTAGE',
                 discount_value: invoice.discount_value || 0,
+                coins_redeemed: invoice.coins_redeemed || 0,
             });
 
             if (invoice.line_items && invoice.line_items.length > 0) {
@@ -141,15 +152,17 @@ export default function EditInvoicePage({ params }) {
             discount = formData.discount_value || 0;
         }
 
-        const total = subtotal + totalTax - discount;
+        const coinsRedeemed = formData.coins_redeemed || 0;
+        const total = subtotal + totalTax - discount - coinsRedeemed;
 
         return {
             subtotal,
             totalTax,
             discount,
+            coinsRedeemed,
             total: Math.max(0, total),
         };
-    }, [lineItems, formData.discount_type, formData.discount_value]);
+    }, [lineItems, formData.discount_type, formData.discount_value, formData.coins_redeemed]);
 
     // Line item handlers
     const addLineItem = () => {
@@ -200,6 +213,26 @@ export default function EditInvoicePage({ params }) {
         });
     };
 
+    // Auto-apply coins with 50% policy
+    const handleApplyCoins = () => {
+        if (!walletData?.balance) {
+            toast.error('No coins available');
+            return;
+        }
+
+        const availableCoins = walletData.balance;
+        const afterDiscount = calculations.subtotal - calculations.discount;
+        const maxRedeemable = Math.min(availableCoins, Math.floor(afterDiscount * 0.5));
+
+        if (maxRedeemable <= 0) {
+            toast.error('Cannot apply coins. Check subtotal and discount.');
+            return;
+        }
+
+        setFormData({ ...formData, coins_redeemed: maxRedeemable });
+        toast.success(`Applied ${maxRedeemable} coins (50% max policy)`);
+    };
+
     // Submit handler
     const handleSubmit = async (asDraft = false) => {
         // Validation
@@ -236,6 +269,7 @@ export default function EditInvoicePage({ params }) {
                 terms_conditions: formData.terms_conditions || undefined,
                 discount_type: formData.discount_type,
                 discount_value: formData.discount_value,
+                coins_redeemed: formData.coins_redeemed || 0,
                 status: asDraft ? 'DRAFT' : invoice?.status || 'PENDING',
                 line_items: lineItems.map(item => ({
                     description: item.description,
@@ -547,6 +581,55 @@ export default function EditInvoicePage({ params }) {
                             onChange={(e) => setFormData({ ...formData, discount_value: parseFloat(e.target.value) || 0 })}
                             endContent={formData.discount_type === 'PERCENTAGE' ? '%' : '₹'}
                         />
+                        <div className="space-y-2">
+                            <Input
+                                label="Coins to Redeem"
+                                labelPlacement="outside"
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={formData.coins_redeemed}
+                                onChange={(e) => {
+                                    const value = parseFloat(e.target.value) || 0;
+                                    const maxAllowed = walletData?.balance ? Math.min(
+                                        walletData.balance,
+                                        Math.floor((calculations.subtotal - calculations.discount) * 0.5)
+                                    ) : 0;
+                                    if (value > maxAllowed) {
+                                        toast.error(`Maximum ${maxAllowed} coins allowed (50% policy)`);
+                                        return;
+                                    }
+                                    setFormData({ ...formData, coins_redeemed: value });
+                                }}
+                                endContent="coins"
+                                description={walletData ? `Available: ${walletData.balance} coins` : "Enter coins manually"}
+                                isDisabled={isLoadingWallet}
+                            />
+                            {invoice?.user_id && walletData && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <Coins className="w-4 h-4 text-warning" />
+                                        <span>
+                                            Available: <strong>{walletData.balance} coins</strong>
+                                        </span>
+                                        <span className="text-gray-400">•</span>
+                                        <span>
+                                            Max redeemable: <strong>{Math.min(walletData.balance, Math.floor((calculations.subtotal - calculations.discount) * 0.5))} coins</strong>
+                                        </span>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        color="warning"
+                                        variant="flat"
+                                        startContent={<Zap className="w-4 h-4" />}
+                                        onPress={handleApplyCoins}
+                                        isDisabled={!walletData.balance || isLoadingWallet}
+                                    >
+                                        Apply Max Coins (50% Policy)
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <Divider />
@@ -561,6 +644,12 @@ export default function EditInvoicePage({ params }) {
                             <div className="flex justify-between text-sm text-success-600">
                                 <span>Discount:</span>
                                 <span>-{formatCurrency(calculations.discount)}</span>
+                            </div>
+                        )}
+                        {calculations.coinsRedeemed > 0 && (
+                            <div className="flex justify-between text-sm text-warning-600">
+                                <span>Coins Redeemed:</span>
+                                <span>-{formatCurrency(calculations.coinsRedeemed)}</span>
                             </div>
                         )}
                         <div className="flex justify-between text-sm">
