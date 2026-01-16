@@ -130,7 +130,8 @@ export default function InvoiceDetailPage({ params }) {
     const isOverdue = invoice.status === 'OVERDUE';
     const canEdit = ['DRAFT', 'PENDING'].includes(invoice.status);
     const canCancel = !['PAID', 'CANCELLED'].includes(invoice.status);
-    const canRecordPayment = ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status);
+    const canRecordPayment = ['DRAFT', 'PENDING', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status);
+    console.log(invoice, 'dddddd');
 
     const handleDownloadPdf = async () => {
         try {

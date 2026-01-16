@@ -8,12 +8,16 @@ import { toast } from 'react-hot-toast';
 import { useCreateServiceMutation } from '@/redux/services/api';
 
 const SERVICE_CATEGORIES = [
-    { key: 'consultation', label: 'Consultation' },
-    { key: 'treatment', label: 'Treatment' },
-    { key: 'surgery', label: 'Surgery' },
-    { key: 'diagnostic', label: 'Diagnostic' },
+    { key: 'medi-care', label: 'Medi Care' },
+    { key: 'skin-treatment', label: 'Skin Treatment' },
+    { key: 'laser-treatments', label: 'Laser Treatments' },
+    { key: 'semi-permanent-makeup', label: 'Semi Permanent Makeup' },
+    { key: 'hair-treatments', label: 'Hair Treatments' },
+    { key: 'gynae-care', label: 'Gynae Care' },
+    { key: 'skincare', label: 'Skincare' },
+    { key: 'wellness', label: 'Wellness' },
+    { key: 'cosmetic', label: 'Cosmetic' },
     { key: 'therapy', label: 'Therapy' },
-    { key: 'other', label: 'Other' },
 ];
 
 export default function NewServicePage() {
@@ -23,7 +27,7 @@ export default function NewServicePage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        category: 'consultation',
+        category: 'medi-care',
         duration: '',
         price: '',
         is_active: true,

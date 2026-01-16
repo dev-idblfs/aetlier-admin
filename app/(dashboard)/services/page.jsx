@@ -17,6 +17,7 @@ import {
     Clock,
     X,
     Briefcase,
+    IndianRupee,
 } from 'lucide-react';
 import {
     Button,
@@ -113,7 +114,7 @@ export default function ServicesPage() {
             label: 'Price',
             render: (row) => (
                 <div className="flex items-center gap-1 text-gray-900">
-                    <DollarSign className="w-4 h-4" />
+                    <IndianRupee className="w-4 h-4" />
                     <span>{row.price || 'N/A'}</span>
                 </div>
             ),

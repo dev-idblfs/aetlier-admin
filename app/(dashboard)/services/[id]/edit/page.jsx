@@ -8,12 +8,16 @@ import { toast } from 'react-hot-toast';
 import { useGetServiceQuery, useUpdateServiceMutation } from '@/redux/services/api';
 
 const SERVICE_CATEGORIES = [
-    { key: 'consultation', label: 'Consultation' },
-    { key: 'treatment', label: 'Treatment' },
-    { key: 'surgery', label: 'Surgery' },
-    { key: 'diagnostic', label: 'Diagnostic' },
+    { key: 'medi-care', label: 'Medi Care' },
+    { key: 'skin-treatment', label: 'Skin Treatment' },
+    { key: 'laser-treatments', label: 'Laser Treatments' },
+    { key: 'semi-permanent-makeup', label: 'Semi Permanent Makeup' },
+    { key: 'hair-treatments', label: 'Hair Treatments' },
+    { key: 'gynae-care', label: 'Gynae Care' },
+    { key: 'skincare', label: 'Skincare' },
+    { key: 'wellness', label: 'Wellness' },
+    { key: 'cosmetic', label: 'Cosmetic' },
     { key: 'therapy', label: 'Therapy' },
-    { key: 'other', label: 'Other' },
 ];
 
 export default function EditServicePage() {
@@ -27,7 +31,7 @@ export default function EditServicePage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        category: 'consultation',
+        category: 'medi-care',
         duration: '',
         price: '',
         is_active: true,
@@ -38,7 +42,7 @@ export default function EditServicePage() {
             setFormData({
                 name: service.name || '',
                 description: service.description || '',
-                category: service.category || 'consultation',
+                category: service.category || 'medi-care',
                 duration: service.duration?.toString() || '',
                 price: service.price?.toString() || '',
                 is_active: service.is_active ?? true,
