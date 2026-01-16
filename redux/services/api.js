@@ -86,7 +86,7 @@ export const api = createApi({
     getAppointments: builder.query({
       query: ({
         page = 1,
-        size = 10,
+        page_size = 10,
         status,
         date_from,
         date_to,
@@ -94,7 +94,7 @@ export const api = createApi({
       } = {}) => {
         const params = new URLSearchParams({
           page: page.toString(),
-          size: size.toString(),
+          page_size: page_size.toString(),
         });
         if (status) params.append("status", status);
         if (date_from) params.append("date_from", date_from);
@@ -244,10 +244,10 @@ export const api = createApi({
 
     // PATCH /users/:userId/preferences - Update user preferences
     updateUserPreferences: builder.mutation({
-      query: ({ userId, ...data }) => ({
+      query: ({ userId, preferences }) => ({
         url: `/users/${userId}/preferences`,
         method: "PATCH",
-        body: data,
+        body: preferences,
       }),
       invalidatesTags: (result, error, { userId }) => [
         { type: "User", id: userId },
@@ -502,10 +502,28 @@ export const api = createApi({
       providesTags: (result, error, id) => [{ type: "Invoice", id }],
     }),
 
+    // POST /invoices/check-duplicates - Check for duplicate invoices
+    checkDuplicateInvoices: builder.mutation({
+      query: ({ user_id, grand_total, invoice_date, exclude_invoice_id }) => {
+        const params = new URLSearchParams({
+          user_id: user_id,
+          grand_total: grand_total.toString(),
+          invoice_date: invoice_date,
+        });
+        if (exclude_invoice_id) {
+          params.append("exclude_invoice_id", exclude_invoice_id);
+        }
+        return {
+          url: `/invoices/check-duplicates?${params.toString()}`,
+          method: "POST",
+        };
+      },
+    }),
+
     // POST /invoices - Create invoice
     createInvoice: builder.mutation({
-      query: (data) => ({
-        url: "/invoices",
+      query: ({ force_create = false, ...data }) => ({
+        url: `/invoices?force_create=${force_create}`,
         method: "POST",
         body: data,
       }),
@@ -938,6 +956,7 @@ export const {
   useGetInvoicesQuery,
   useGetInvoiceQuery,
   useLazyGetInvoiceQuery,
+  useCheckDuplicateInvoicesMutation,
   useCreateInvoiceMutation,
   useUpdateInvoiceMutation,
   useCancelInvoiceMutation,
@@ -980,4 +999,9 @@ export const {
   useDeleteNavigationItemMutation,
   useUpdateNavigationPermissionsMutation,
   useReorderNavigationMutation,
+  // App Settings
+  useGetAppSettingsQuery,
+  useGetAppSettingQuery,
+  useUpdateAppSettingMutation,
+  useSeedAppSettingsMutation,
 } = api;
