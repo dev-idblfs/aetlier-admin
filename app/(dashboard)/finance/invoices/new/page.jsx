@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Save } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -65,6 +65,28 @@ export default function NewInvoicePage() {
         tax_rate: 0,
     }]);
 
+    // Stable callback for line items changes
+    const handleLineItemsChange = useCallback((updatedItems) => {
+        setLineItems(updatedItems);
+    }, []);
+
+    // Memoized handlers for inline callbacks
+    const handleNotesChange = useCallback((value) => {
+        setFormData(prev => ({ ...prev, notes: value }));
+    }, []);
+
+    const handleTermsChange = useCallback((value) => {
+        setFormData(prev => ({ ...prev, terms_conditions: value }));
+    }, []);
+
+    const handleDiscountTypeChange = useCallback((type) => {
+        setFormData(prev => ({ ...prev, discount_type: type }));
+    }, []);
+
+    const handleDiscountValueChange = useCallback((value) => {
+        setFormData(prev => ({ ...prev, discount_value: value }));
+    }, []);
+
     // Handle appointment-based creation
     useEffect(() => {
         if (appointmentId) {
@@ -93,17 +115,17 @@ export default function NewInvoicePage() {
     }, [lineItems, formData.discount_type, formData.discount_value, formData.coins_redeemed]);
 
     // Handle payment terms change
-    const handlePaymentTermsChange = (term) => {
+    const handlePaymentTermsChange = useCallback((term) => {
         const dueDate = getDefaultDueDate(term);
-        setFormData({
-            ...formData,
+        setFormData(prev => ({
+            ...prev,
             payment_terms: term,
             due_date: dueDate.toISOString().split('T')[0],
-        });
-    };
+        }));
+    }, []);
 
     // Wrapper for searchCustomers to return data directly
-    const handleSearchCustomers = async (term) => {
+    const handleSearchCustomers = useCallback(async (term) => {
         try {
             if (!term || term.trim() === '') {
                 return [];
@@ -114,20 +136,20 @@ export default function NewInvoicePage() {
             console.error('Search error:', error);
             return [];
         }
-    };
+    }, [searchCustomers]);
 
     // Wrapper for createCustomer
-    const handleCreateCustomer = async (data) => {
+    const handleCreateCustomer = useCallback(async (data) => {
         try {
             const result = await createCustomer(data).unwrap();
             return result;
         } catch (error) {
             throw error;
         }
-    };
+    }, [createCustomer]);
 
     // Submit handler
-    const handleSubmit = async (asDraft = false) => {
+    const handleSubmit = useCallback(async (asDraft = false) => {
         // Validation
         if (!selectedCustomer && !selectedCustomer?.display_name) {
             toast.error('Customer is required');
@@ -169,7 +191,7 @@ export default function NewInvoicePage() {
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to create invoice');
         }
-    };
+    }, [selectedCustomer, lineItems, formData, createInvoice, router]);
 
     if (appointmentId) {
         return (
@@ -226,7 +248,7 @@ export default function NewInvoicePage() {
             <InvoiceSection title="Line Items">
                 <LineItemsTable
                     items={lineItems}
-                    onChange={setLineItems}
+                    onChange={handleLineItemsChange}
                     services={services}
                 />
             </InvoiceSection>
@@ -238,8 +260,8 @@ export default function NewInvoicePage() {
                     <InvoiceNotesFields
                         notes={formData.notes}
                         terms={formData.terms_conditions}
-                        onNotesChange={(value) => setFormData({ ...formData, notes: value })}
-                        onTermsChange={(value) => setFormData({ ...formData, terms_conditions: value })}
+                        onNotesChange={handleNotesChange}
+                        onTermsChange={handleTermsChange}
                     />
                 </InvoiceSection>
 
@@ -249,8 +271,8 @@ export default function NewInvoicePage() {
                     discountType={formData.discount_type}
                     discountValue={formData.discount_value}
                     coinsRedeemed={formData.coins_redeemed}
-                    onDiscountTypeChange={(type) => setFormData({ ...formData, discount_type: type })}
-                    onDiscountValueChange={(value) => setFormData({ ...formData, discount_value: value })}
+                    onDiscountTypeChange={handleDiscountTypeChange}
+                    onDiscountValueChange={handleDiscountValueChange}
                 />
             </div>
         </InvoiceLayout>
