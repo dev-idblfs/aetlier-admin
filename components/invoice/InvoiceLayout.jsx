@@ -50,7 +50,7 @@ export default function InvoiceLayout({
     return (
         <div className={`min-h-screen bg-gray-50 ${className}`}>
             {/* Header Section */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 mb-2">
                 <div className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8`}>
                     {/* Breadcrumbs */}
                     {breadcrumbs.length > 0 && (
@@ -66,7 +66,7 @@ export default function InvoiceLayout({
                     )}
 
                     {/* Header Bar */}
-                    <div className="py-4 flex items-center justify-between">
+                    <div className="py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         {/* Left: Title and Back Button */}
                         <div className="flex items-center gap-4">
                             {showBackButton && (
@@ -80,7 +80,7 @@ export default function InvoiceLayout({
                                 </Button>
                             )}
                             <div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 flex-wrap">
                                     <h1 className="text-2xl font-bold text-gray-900">
                                         {title}
                                     </h1>
@@ -104,7 +104,7 @@ export default function InvoiceLayout({
 
                         {/* Right: Action Buttons */}
                         {actions.length > 0 && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 {actions.map((action, index) => (
                                     <Button
                                         key={index}
@@ -114,7 +114,8 @@ export default function InvoiceLayout({
                                         onPress={action.onClick}
                                         isDisabled={action.disabled}
                                         isLoading={action.loading}
-                                        className={action.className}
+                                        className={`text-sm ${action.className || ''}`}
+                                        size="sm"
                                     >
                                         {action.label}
                                     </Button>
@@ -126,7 +127,7 @@ export default function InvoiceLayout({
             </div>
 
             {/* Main Content */}
-            <div className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8 py-8`}>
+            <div className={`${maxWidth} mx-auto`}>
                 {children}
             </div>
         </div>

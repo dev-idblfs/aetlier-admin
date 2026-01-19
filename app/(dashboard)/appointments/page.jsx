@@ -144,6 +144,20 @@ export default function AppointmentsPage() {
         router.push(`/finance/invoices/new?appointment_id=${appointment.id}`);
     };
 
+    // View Invoice handler
+    const handleViewInvoice = (appointment) => {
+        if (appointment.invoice_id) {
+            router.push(`/finance/invoices/${appointment.invoice_id}`);
+        }
+    };
+
+    // Row click handler for table
+    const handleRowClick = (row) => {
+        if (row.status === 'invoiced' && row.invoice_id) {
+            handleViewInvoice(row);
+        }
+    };
+
     // Table columns with permission-based actions
     const columns = [
         {
@@ -188,8 +202,14 @@ export default function AppointmentsPage() {
                     size="sm"
                     color={STATUS_COLORS[row.status] || 'default'}
                     variant="flat"
-                    className={`capitalize ${canChangeStatus ? 'cursor-pointer' : ''}`}
-                    onClick={() => canChangeStatus && handleStatusClick(row)}
+                    className={`capitalize ${(canChangeStatus || (row.status === 'invoiced' && row.invoice_id)) ? 'cursor-pointer' : ''}`}
+                    onClick={() => {
+                        if (row.status === 'invoiced' && row.invoice_id) {
+                            handleViewInvoice(row);
+                        } else if (canChangeStatus) {
+                            handleStatusClick(row);
+                        }
+                    }}
                 >
                     {row.status?.replace('_', ' ')}
                 </Chip>
@@ -516,6 +536,8 @@ export default function AppointmentsPage() {
                         totalPages={totalPages}
                         onPageChange={setPage}
                         emptyMessage="No appointments found"
+                        onRowClick={handleRowClick}
+                        rowClassName={(row) => row.status === 'invoiced' && row.invoice_id ? 'cursor-pointer hover:bg-gray-50' : ''}
                     />
                 </Card>
             </div>
@@ -894,6 +916,11 @@ function AppointmentCard({
                             {canEdit && (
                                 <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onPress={onEdit}>
                                     Edit
+                                </DropdownItem>
+                            )}
+                            {apt.status === 'invoiced' && apt.invoice_id && (
+                                <DropdownItem key="view-invoice" startContent={<FileText className="w-4 h-4" />} color="primary" onPress={() => handleViewInvoice(apt)}>
+                                    View Invoice
                                 </DropdownItem>
                             )}
                             {canGenerateInvoice && apt.status === 'completed' && (
