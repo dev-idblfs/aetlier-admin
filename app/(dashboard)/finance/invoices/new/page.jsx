@@ -247,6 +247,7 @@ export default function NewInvoicePage() {
             {/* Line Items */}
             <InvoiceSection title="Line Items">
                 <LineItemsTable
+                    key="new-invoice-line-items"
                     items={lineItems}
                     onChange={handleLineItemsChange}
                     services={services}

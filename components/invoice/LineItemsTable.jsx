@@ -117,11 +117,9 @@ export default function LineItemsTable({
                             <p className="text-xs mt-1">Click &quot;Add Line Item&quot; to start adding services</p>
                         </div>
                     }>
-                        {(item) => {
-                            const index = items.indexOf(item);
-
+                        {(item, rowIndex) => {
                             return (
-                                <TableRow key={item.id || index}>
+                                <TableRow key={item.id || rowIndex}>
                                     {columns.filter(Boolean).map((column) => {
                                         // Service column
                                         if (column.key === 'service') {
@@ -133,7 +131,7 @@ export default function LineItemsTable({
                                                             placeholder="Select servicessss"
                                                             selectedKeys={item.service_id ? [item.service_id] : []}
                                                             onChange={(e) =>
-                                                                handleItemChange(index, 'service_id', e.target.value)
+                                                                handleItemChange(rowIndex, 'service_id', e.target.value)
                                                             }
                                                             isDisabled={isLoadingServices}
                                                             startContent={<Search className="w-3 h-3" />}
@@ -162,7 +160,7 @@ export default function LineItemsTable({
                                                             size="sm"
                                                             value={item.description}
                                                             onChange={(e) =>
-                                                                handleItemChange(index, 'description', e.target.value)
+                                                                handleItemChange(rowIndex, 'description', e.target.value)
                                                             }
                                                             placeholder="Item description"
                                                             isRequired
@@ -184,7 +182,7 @@ export default function LineItemsTable({
                                                             size="sm"
                                                             value={item.quantity}
                                                             onChange={(e) =>
-                                                                handleItemChange(index, 'quantity', parseFloat(e.target.value) || 1)
+                                                                handleItemChange(rowIndex, 'quantity', parseFloat(e.target.value) || 1)
                                                             }
                                                             min="1"
                                                             step="1"
@@ -206,7 +204,7 @@ export default function LineItemsTable({
                                                             size="sm"
                                                             value={item.unit_price}
                                                             onChange={(e) =>
-                                                                handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)
+                                                                handleItemChange(rowIndex, 'unit_price', parseFloat(e.target.value) || 0)
                                                             }
                                                             min="0"
                                                             step="0.01"
@@ -229,7 +227,7 @@ export default function LineItemsTable({
                                                             size="sm"
                                                             value={item.tax_rate}
                                                             onChange={(e) =>
-                                                                handleItemChange(index, 'tax_rate', parseFloat(e.target.value) || 0)
+                                                                handleItemChange(rowIndex, 'tax_rate', parseFloat(e.target.value) || 0)
                                                             }
                                                             min="0"
                                                             max="100"
@@ -264,7 +262,7 @@ export default function LineItemsTable({
                                                             size="sm"
                                                             variant="light"
                                                             color="danger"
-                                                            onPress={() => handleRemoveItem(index)}
+                                                            onPress={() => handleRemoveItem(rowIndex)}
                                                             isDisabled={items.length === 1}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
