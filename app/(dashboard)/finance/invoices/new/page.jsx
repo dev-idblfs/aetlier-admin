@@ -57,7 +57,7 @@ export default function NewInvoicePage() {
     });
 
     const [lineItems, setLineItems] = useState([{
-        id: Date.now(),
+        id: crypto.randomUUID(),
         service_id: null,
         description: '',
         quantity: 1,
@@ -195,7 +195,7 @@ export default function NewInvoicePage() {
 
     if (appointmentId) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex items-center justify-center min-h-100">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">Creating invoice from appointment...</p>
