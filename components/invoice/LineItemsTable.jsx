@@ -128,7 +128,7 @@ export default function LineItemsTable({
                                                     {!readonly ? (
                                                         <Select
                                                             size="sm"
-                                                            placeholder="Select servicessss"
+                                                            placeholder="Select service"
                                                             selectedKeys={item.service_id ? [item.service_id] : []}
                                                             onChange={(e) =>
                                                                 handleItemChange(rowIndex, 'service_id', e.target.value)
