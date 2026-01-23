@@ -34,7 +34,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { PageHeader, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal } from '@/components/ui';
+import { PageHeader, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton } from '@/components/ui';
 import {
     useGetExpensesQuery,
     useGetExpenseCategoriesQuery,
@@ -75,7 +75,7 @@ export default function ExpensesPage() {
     const [createCategory, { isLoading: isCreatingCategory }] = useCreateExpenseCategoryMutation();
     const [seedCategories, { isLoading: isSeeding }] = useSeedExpenseCategoriesMutation();
 
-    const expenses = data?.items || [];
+    const expenses = data?.expenses || [];
     const totalPages = data?.total_pages || 1;
 
     const categoryOptions = useMemo(() => {
@@ -132,7 +132,7 @@ export default function ExpensesPage() {
             render: (row) => (
                 <div>
                     <p className="font-medium text-gray-900">{row.description}</p>
-                    <p className="text-sm text-gray-500">{row.vendor_name || 'No vendor'}</p>
+                    <p className="text-sm text-gray-500">{row.vendor || 'No vendor'}</p>
                 </div>
             ),
         },
@@ -210,11 +210,13 @@ export default function ExpensesPage() {
                         <Button variant="flat" startContent={<Tag className="w-4 h-4" />} onPress={onCategoryOpen}>
                             Categories
                         </Button>
-                        <Link href="/finance/expenses/new">
-                            <Button color="primary" startContent={<Plus className="w-4 h-4" />}>
-                                New Expense
-                            </Button>
-                        </Link>
+                        <LinkButton
+                            href="/finance/expenses/new"
+                            color="primary"
+                            startContent={<Plus className="w-4 h-4" />}
+                        >
+                            New Expense
+                        </LinkButton>
                     </div>
                 }
             />
@@ -279,11 +281,13 @@ export default function ExpensesPage() {
                     title: 'No expenses found',
                     description: search || categoryFilter || statusFilter ? 'Try adjusting your filters' : 'Record your first expense',
                     action: (
-                        <Link href="/finance/expenses/new">
-                            <Button color="primary" startContent={<Plus className="w-4 h-4" />}>
-                                New Expense
-                            </Button>
-                        </Link>
+                        <LinkButton
+                            href="/finance/expenses/new"
+                            color="primary"
+                            startContent={<Plus className="w-4 h-4" />}
+                        >
+                            New Expense
+                        </LinkButton>
                     ),
                 }}
                 actions={[
@@ -374,7 +378,7 @@ function ExpenseMobileCard({ expense, actions, onClick }) {
             <MobileCard.Header>
                 <div className="flex-1 min-w-0">
                     <MobileCard.Title>{expense.description}</MobileCard.Title>
-                    <MobileCard.Subtitle>{expense.vendor_name || 'No vendor'}</MobileCard.Subtitle>
+                    <MobileCard.Subtitle>{expense.vendor || 'No vendor'}</MobileCard.Subtitle>
                 </div>
                 <div className="text-right">
                     <p className="font-semibold text-red-600">-{formatCurrency(expense.amount)}</p>

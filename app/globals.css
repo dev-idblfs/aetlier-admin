@@ -38,7 +38,9 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* Compact view styles */
@@ -98,4 +100,104 @@ body {
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* ============================================= */
+/* View Transitions API - Smooth Page Navigation */
+/* ============================================= */
+
+/* Enable smooth transitions when navigating between pages */
+@view-transition {
+  navigation: auto;
+}
+
+/* Fade animation for page transitions */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(root) {
+  animation-name: fade-out;
+}
+
+::view-transition-new(root) {
+  animation-name: fade-in;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Disable transitions when user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* ============================================= */
+/* Loading Progress Bar for Navigation */
+/* ============================================= */
+
+/* Show progress bar at top during navigation */
+.navigation-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-600));
+  transform-origin: left;
+  animation: progress 2s ease-in-out;
+  z-index: 9999;
+}
+
+@keyframes progress {
+  0% {
+    transform: scaleX(0);
+  }
+  50% {
+    transform: scaleX(0.5);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+/* ============================================= */
+/* Link Hover Effects - Better Visual Feedback */
+/* ============================================= */
+
+/* Smooth hover transitions for all links */
+a {
+  transition:
+    color 150ms ease,
+    opacity 150ms ease;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* Active link indicator */
+a:active {
+  transform: scale(0.98);
+  transition: transform 100ms ease;
 }

@@ -9,12 +9,14 @@ import { store } from '@/redux/store';
 import { HeroUIProvider } from '@heroui/react';
 import { Toaster } from 'react-hot-toast';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import NavigationProgress from './NavigationProgress';
 
 export default function Providers({ children }) {
     return (
         <Provider store={store}>
             <PreferencesProvider>
                 <HeroUIProvider>
+                    <NavigationProgress />
                     {children}
                     <Toaster
                         position="top-right"

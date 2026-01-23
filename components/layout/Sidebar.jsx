@@ -353,7 +353,7 @@ export default function Sidebar() {
             <motion.aside
                 initial={false}
                 animate={{ width: isCollapsed ? 80 : 280 }}
-                className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col"
+                className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col "
             >
                 {sidebarContent}
             </motion.aside>

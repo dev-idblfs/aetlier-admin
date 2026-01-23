@@ -34,10 +34,9 @@ import {
     Input,
     Pagination,
 } from '@heroui/react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { PageHeader, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal } from '@/components/ui';
+import { PageHeader, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, LinkButton } from '@/components/ui';
 import {
     useGetInvoicesQuery,
     useCancelInvoiceMutation,
@@ -217,11 +216,14 @@ export default function InvoicesPage() {
                 title="Invoices"
                 description="Manage customer invoices and payments"
                 actions={
-                    <Link href="/finance/invoices/new">
-                        <Button color="primary" startContent={<Plus className="w-4 h-4" />} className="w-full sm:w-auto">
-                            New Invoice
-                        </Button>
-                    </Link>
+                    <LinkButton
+                        href="/finance/invoices/new"
+                        color="primary"
+                        startContent={<Plus className="w-4 h-4" />}
+                        className="w-full sm:w-auto"
+                    >
+                        New Invoice
+                    </LinkButton>
                 }
             />
 
@@ -271,11 +273,13 @@ export default function InvoicesPage() {
                     title: 'No invoices found',
                     description: search || statusFilter ? 'Try adjusting your filters' : 'Create your first invoice',
                     action: (
-                        <Link href="/finance/invoices/new">
-                            <Button color="primary" startContent={<Plus className="w-4 h-4" />}>
-                                New Invoice
-                            </Button>
-                        </Link>
+                        <LinkButton
+                            href="/finance/invoices/new"
+                            color="primary"
+                            startContent={<Plus className="w-4 h-4" />}
+                        >
+                            New Invoice
+                        </LinkButton>
                     ),
                 }}
                 actions={[

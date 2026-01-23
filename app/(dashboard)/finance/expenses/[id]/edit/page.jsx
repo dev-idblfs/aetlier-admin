@@ -59,14 +59,14 @@ export default function EditExpensePage({ params }) {
 
     const [formData, setFormData] = useState({
         category_id: '',
-        vendor_name: '',
+        vendor: '',
         description: '',
         amount: '',
         tax_amount: '',
         expense_date: new Date().toISOString().split('T')[0],
         payment_method: 'CASH',
         payment_status: 'PAID',
-        reference_number: '',
+        payment_reference: '',
         notes: '',
         is_recurring: false,
     });
@@ -80,14 +80,14 @@ export default function EditExpensePage({ params }) {
         if (expense) {
             setFormData({
                 category_id: expense.category_id || '',
-                vendor_name: expense.vendor_name || '',
+                vendor: expense.vendor || '',
                 description: expense.description || '',
                 amount: expense.amount?.toString() || '',
                 tax_amount: expense.tax_amount?.toString() || '',
                 expense_date: expense.expense_date || new Date().toISOString().split('T')[0],
                 payment_method: expense.payment_method || 'CASH',
                 payment_status: expense.payment_status || 'PAID',
-                reference_number: expense.reference_number || '',
+                payment_reference: expense.payment_reference || '',
                 notes: expense.notes || '',
                 is_recurring: expense.is_recurring || false,
             });
@@ -151,14 +151,14 @@ export default function EditExpensePage({ params }) {
         try {
             const payload = {
                 category_id: formData.category_id,
-                vendor_name: formData.vendor_name || undefined,
+                vendor: formData.vendor || undefined,
                 description: formData.description,
                 amount: parseFloat(formData.amount),
                 tax_amount: formData.tax_amount ? parseFloat(formData.tax_amount) : undefined,
                 expense_date: formData.expense_date,
                 payment_method: formData.payment_method,
                 payment_status: formData.payment_status,
-                reference_number: formData.reference_number || undefined,
+                payment_reference: formData.payment_reference || undefined,
                 notes: formData.notes || undefined,
                 is_recurring: formData.is_recurring,
             };
@@ -245,8 +245,8 @@ export default function EditExpensePage({ params }) {
                             label="Vendor/Payee"
                             labelPlacement="outside"
                             placeholder="Who was paid?"
-                            value={formData.vendor_name}
-                            onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
+                            value={formData.vendor}
+                            onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                         />
 
                         <div className="md:col-span-2">
@@ -318,8 +318,8 @@ export default function EditExpensePage({ params }) {
                             label="Reference Number (Optional)"
                             labelPlacement="outside"
                             placeholder="Receipt/Transaction #"
-                            value={formData.reference_number}
-                            onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                            value={formData.payment_reference}
+                            onChange={(e) => setFormData({ ...formData, payment_reference: e.target.value })}
                         />
                     </div>
 

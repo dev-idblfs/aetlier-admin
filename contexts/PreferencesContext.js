@@ -153,7 +153,7 @@ export const PreferencesProvider = ({ children }) => {
         await loadPreferences();
       }
     },
-    [user?.id, updatePreferences, loadPreferences]
+    [user?.id, updatePreferences, loadPreferences],
   );
 
   /**
@@ -183,7 +183,7 @@ export const PreferencesProvider = ({ children }) => {
         await loadPreferences();
       }
     },
-    [user?.id, updatePreferences, loadPreferences]
+    [user?.id, updatePreferences, loadPreferences],
   );
 
   /**

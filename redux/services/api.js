@@ -35,6 +35,8 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
+  // Optimize cache behavior for smooth navigation without refetching
+  refetchOnReconnect: true, // Refetch when internet connection is restored
   tagTypes: [
     "Appointment",
     "User",

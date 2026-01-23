@@ -32,7 +32,7 @@ import {
 } from '@heroui/react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { PageHeader, StatusBadge } from '@/components/ui';
+import { PageHeader, StatusBadge, LinkButton } from '@/components/ui';
 import { useGetFinancialDashboardQuery, useGetInvoicesQuery, useGetExpensesQuery } from '@/redux/services/api';
 import { formatDate, formatCurrency } from '@/utils/dateFormatters';
 
@@ -221,11 +221,14 @@ export default function FinanceDashboardPage() {
                 <Card>
                     <CardHeader className="flex justify-between items-center">
                         <h3 className="font-semibold text-gray-900">Recent Invoices</h3>
-                        <Link href="/finance/invoices">
-                            <Button variant="light" size="sm" endContent={<ArrowRight className="w-4 h-4" />}>
-                                View All
-                            </Button>
-                        </Link>
+                        <LinkButton
+                            href="/finance/invoices"
+                            variant="light"
+                            size="sm"
+                            endContent={<ArrowRight className="w-4 h-4" />}
+                        >
+                            View All
+                        </LinkButton>
                     </CardHeader>
                     <CardBody className="p-0">
                         <div className="divide-y">
@@ -257,11 +260,14 @@ export default function FinanceDashboardPage() {
                 <Card>
                     <CardHeader className="flex justify-between items-center">
                         <h3 className="font-semibold text-gray-900">Recent Expenses</h3>
-                        <Link href="/finance/expenses">
-                            <Button variant="light" size="sm" endContent={<ArrowRight className="w-4 h-4" />}>
-                                View All
-                            </Button>
-                        </Link>
+                        <LinkButton
+                            href="/finance/expenses"
+                            variant="light"
+                            size="sm"
+                            endContent={<ArrowRight className="w-4 h-4" />}
+                        >
+                            View All
+                        </LinkButton>
                     </CardHeader>
                     <CardBody className="p-0">
                         <div className="divide-y">

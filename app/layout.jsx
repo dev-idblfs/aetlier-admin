@@ -12,6 +12,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="en">
+            <head>
+                {/* Enable View Transitions API for smoother page transitions */}
+                <meta name="view-transition" content="same-origin" />
+            </head>
             <body className={inter.className}>
                 <Providers>
                     {children}

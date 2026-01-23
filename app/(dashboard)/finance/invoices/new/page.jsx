@@ -207,7 +207,6 @@ export default function NewInvoicePage() {
     return (
         <InvoiceLayout
             title="New Invoice"
-            onBack={() => router.push('/finance/invoices')}
             actions={[
                 {
                     label: 'Save as Draft',

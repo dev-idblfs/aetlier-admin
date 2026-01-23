@@ -107,7 +107,7 @@ export default function ExpenseDetailPage({ params }) {
             {/* Header */}
             <PageHeader
                 title="Expense Details"
-                subtitle={`${expense.category_name || 'Uncategorized'} - ${expense.vendor_name || 'N/A'}`}
+                subtitle={`${expense.category_name || 'Uncategorized'} - ${expense.vendor || 'N/A'}`}
                 actions={
                     <div className="flex flex-wrap gap-2">
                         <Button
@@ -165,7 +165,7 @@ export default function ExpenseDetailPage({ params }) {
                                             {paymentStatusConfig[expense.payment_status]?.label}
                                         </Chip>
                                     </div>
-                                    <h2 className="text-2xl font-bold">{expense.vendor_name || 'N/A'}</h2>
+                                    <h2 className="text-2xl font-bold">{expense.vendor || 'N/A'}</h2>
                                     {expense.description && (
                                         <p className="text-gray-600 mt-2">{expense.description}</p>
                                     )}
@@ -173,10 +173,10 @@ export default function ExpenseDetailPage({ params }) {
                                 <div className="text-right">
                                     <p className="text-sm text-gray-600">Expense Date</p>
                                     <p className="font-semibold">{formatDate(expense.expense_date)}</p>
-                                    {expense.reference_number && (
+                                    {expense.payment_reference && (
                                         <>
                                             <p className="text-sm text-gray-600 mt-2">Reference #</p>
-                                            <p className="font-mono text-sm">{expense.reference_number}</p>
+                                            <p className="font-mono text-sm">{expense.payment_reference}</p>
                                         </>
                                     )}
                                 </div>
@@ -318,13 +318,13 @@ export default function ExpenseDetailPage({ params }) {
                                     {paymentMethodLabels[expense.payment_method] || expense.payment_method}
                                 </span>
                             </div>
-                            {expense.reference_number && (
+                            {expense.payment_reference && (
                                 <>
                                     <Divider />
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Reference</span>
                                         <span className="font-mono text-sm font-medium">
-                                            {expense.reference_number}
+                                            {expense.payment_reference}
                                         </span>
                                     </div>
                                 </>

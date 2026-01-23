@@ -103,8 +103,7 @@ export default function AdminLayout({ children }) {
                 {/* Main content - responsive margin */}
                 <div className={`
                     min-h-screen flex flex-col transition-all duration-300
-                    md:ml-70
-                    ${isCollapsed ? 'md:ml-20' : 'md:ml-70'}
+                    ${isCollapsed ? 'md:ml-[80px]' : 'md:ml-[280px]'}
                 `}>
                     <Header />
                     <main className="flex-1 p-4 md:p-6">
