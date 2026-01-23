@@ -80,9 +80,12 @@ export default function CustomerSelector({
     }, [debouncedSearchTerm, searchCustomers]);
 
     const handleSelectionChange = (key) => {
-        const customer = customers.find((c) => c.id === parseInt(key));
+        if (!key) return;
+
+        const customer = customers.find((c) => c.id?.toString() === key.toString());
         if (customer) {
             setSelectedCustomer(customer);
+            setSearchTerm(customer.display_name || '');
             onChange(customer);
             if (onCustomerSelect) {
                 onCustomerSelect(customer);
@@ -151,10 +154,10 @@ export default function CustomerSelector({
                 {!readonly ? (
                     <div className="flex gap-2">
                         <Autocomplete
-                            label="Customer"
+                            // label="Customer"
                             placeholder={placeholder}
                             startContent={<Search className="w-4 h-4 text-gray-400" />}
-                            value={searchTerm}
+                            inputValue={searchTerm}
                             onInputChange={setSearchTerm}
                             selectedKey={selectedCustomer?.id?.toString()}
                             onSelectionChange={handleSelectionChange}
