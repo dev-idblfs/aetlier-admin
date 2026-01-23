@@ -5,6 +5,9 @@
 
 'use client';
 
+// Force dynamic rendering - no SSR/static optimization needed for admin
+export const dynamic = 'force-dynamic';
+
 import { use, useState } from 'react';
 import { Download, Send, Trash2, DollarSign, AlertCircle, Edit } from 'lucide-react';
 import {

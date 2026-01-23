@@ -2,6 +2,9 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
 
+// Force dynamic rendering globally - admin panel is fully client-side, no SSR/static optimization needed
+export const dynamic = 'force-dynamic';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {

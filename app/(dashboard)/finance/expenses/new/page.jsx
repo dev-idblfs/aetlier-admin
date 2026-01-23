@@ -4,7 +4,8 @@
  */
 
 'use client';
-
+// Force dynamic rendering - no SSR/static optimization needed for admin
+export const dynamic = 'force-dynamic';
 import { useState, useRef } from 'react';
 import {
     ArrowLeft,

@@ -5,6 +5,9 @@
 
 'use client';
 
+// Force dynamic rendering - no SSR/static optimization needed for admin
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Save } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
