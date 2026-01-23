@@ -94,191 +94,326 @@ export default function LineItemsTable({
 
     return (
         <div className="space-y-4">
-            {/* Table */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <Table
-                    aria-label="Invoice line items"
-                    removeWrapper
-                    classNames={{
-                        th: 'bg-gray-50 text-gray-700 font-semibold border-b border-gray-200',
-                        td: 'py-2',
-                    }}
-                >
-                    <TableHeader>
-                        {columns.filter(Boolean).map((column) => (
-                            <TableColumn key={column.key} width={column.width}>
-                                {column.label}
-                            </TableColumn>
-                        ))}
-                    </TableHeader>
-                    <TableBody items={items} emptyContent={
-                        <div className="text-center py-8 text-gray-500">
-                            <p className="text-sm">No items added yet</p>
-                            <p className="text-xs mt-1">Click &quot;Add Line Item&quot; to start adding services</p>
+            {/* Mobile cards */}
+            <div className="space-y-3 md:hidden">
+                {items.map((item, index) => (
+                    <div
+                        key={item.id || index}
+                        className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative"
+                    >
+                        {!readonly && (
+                            <button
+                                type="button"
+                                onClick={() => handleRemoveItem(index)}
+                                className="absolute right-2 top-2 p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                                disabled={items.length === 1}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
+
+                        <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-semibold text-gray-600">Service</span>
+                                {!readonly ? (
+                                    <Select
+                                        size="sm"
+                                        placeholder="Select service"
+                                        selectedKeys={item.service_id ? [item.service_id] : []}
+                                        onChange={(e) => handleItemChange(index, 'service_id', e.target.value)}
+                                        isDisabled={isLoadingServices}
+                                        startContent={<Search className="w-3 h-3" />}
+                                    >
+                                        {services.map((service) => (
+                                            <SelectItem key={service.id} value={service.id}>
+                                                {service.name}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <span className="text-sm text-gray-700">
+                                        {item.service_name || services.find((s) => s.id === item.service_id)?.service_name || '-'}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-semibold text-gray-600">Description</span>
+                                {!readonly ? (
+                                    <Input
+                                        size="sm"
+                                        value={item.description}
+                                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                        placeholder="Item description"
+                                        isRequired
+                                    />
+                                ) : (
+                                    <span className="text-sm text-gray-800">{item.description}</span>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-semibold text-gray-600">Quantity</span>
+                                    {!readonly ? (
+                                        <Input
+                                            type="number"
+                                            size="sm"
+                                            value={item.quantity}
+                                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 1)}
+                                            min="1"
+                                            step="1"
+                                        />
+                                    ) : (
+                                        <span className="text-sm text-gray-800">{item.quantity}</span>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-semibold text-gray-600">Unit Price</span>
+                                    {!readonly ? (
+                                        <Input
+                                            type="number"
+                                            size="sm"
+                                            value={item.unit_price}
+                                            onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                                            min="0"
+                                            step="0.01"
+                                            startContent="₹"
+                                        />
+                                    ) : (
+                                        <span className="text-sm text-gray-800">₹{item.unit_price}</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {showTax && (
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-semibold text-gray-600">Tax %</span>
+                                    {!readonly ? (
+                                        <Input
+                                            type="number"
+                                            size="sm"
+                                            value={item.tax_rate}
+                                            onChange={(e) => handleItemChange(index, 'tax_rate', parseFloat(e.target.value) || 0)}
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                            endContent="%"
+                                        />
+                                    ) : (
+                                        <span className="text-sm text-gray-800">{item.tax_rate}%</span>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-gray-600">Line total</span>
+                                <span className="text-sm font-semibold text-gray-900">
+                                    ₹{(calculateLineItemTotal(item) + calculateLineItemTax(item)).toFixed(2)}
+                                </span>
+                            </div>
                         </div>
-                    }>
-                        {(item, rowIndex) => {
-                            return (
-                                <TableRow key={item.id || rowIndex}>
-                                    {columns.filter(Boolean).map((column) => {
-                                        // Service column
-                                        if (column.key === 'service') {
-                                            return (
-                                                <TableCell key={column.key}>
-                                                    {!readonly ? (
-                                                        <Select
-                                                            size="sm"
-                                                            placeholder="Select service"
-                                                            selectedKeys={item.service_id ? [item.service_id] : []}
-                                                            onChange={(e) =>
-                                                                handleItemChange(rowIndex, 'service_id', e.target.value)
-                                                            }
-                                                            isDisabled={isLoadingServices}
-                                                            startContent={<Search className="w-3 h-3" />}
-                                                        >
-                                                            {services.map((service) => (
-                                                                <SelectItem key={service.id} value={service.id}>
-                                                                    {service.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </Select>
-                                                    ) : (
-                                                        <span className="text-sm text-gray-600">
-                                                            {item.service_name || services.find((s) => s.id === item.service_id)?.service_name || '-'}
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        }
+                    </div>
+                ))}
 
-                                        // Description column
-                                        if (column.key === 'description') {
-                                            return (
-                                                <TableCell key={column.key}>
-                                                    {!readonly ? (
-                                                        <Input
-                                                            size="sm"
-                                                            value={item.description}
-                                                            onChange={(e) =>
-                                                                handleItemChange(rowIndex, 'description', e.target.value)
-                                                            }
-                                                            placeholder="Item description"
-                                                            isRequired
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm">{item.description}</span>
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        }
+                {items.length === 0 && (
+                    <div className="text-center py-6 text-gray-500 border border-dashed border-gray-200 rounded-lg">
+                        <p className="text-sm">No items added yet</p>
+                        <p className="text-xs mt-1">Tap &quot;Add Line Item&quot; to start adding services</p>
+                    </div>
+                )}
+            </div>
 
-                                        // Quantity column
-                                        if (column.key === 'quantity') {
-                                            return (
-                                                <TableCell key={column.key}>
-                                                    {!readonly ? (
-                                                        <Input
-                                                            type="number"
-                                                            size="sm"
-                                                            value={item.quantity}
-                                                            onChange={(e) =>
-                                                                handleItemChange(rowIndex, 'quantity', parseFloat(e.target.value) || 1)
-                                                            }
-                                                            min="1"
-                                                            step="1"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm">{item.quantity}</span>
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        }
+            {/* Table */}
+            <div className="hidden md:block border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                    <div className="min-w-[720px]">
+                        <Table
+                            aria-label="Invoice line items"
+                            removeWrapper
+                            classNames={{
+                                th: 'bg-gray-50 text-gray-700 font-semibold border-b border-gray-200',
+                                td: 'py-2',
+                            }}
+                        >
+                            <TableHeader>
+                                {columns.filter(Boolean).map((column) => (
+                                    <TableColumn key={column.key} width={column.width}>
+                                        {column.label}
+                                    </TableColumn>
+                                ))}
+                            </TableHeader>
+                            <TableBody items={items} emptyContent={
+                                <div className="text-center py-8 text-gray-500">
+                                    <p className="text-sm">No items added yet</p>
+                                    <p className="text-xs mt-1">Click &quot;Add Line Item&quot; to start adding services</p>
+                                </div>
+                            }>
+                                {(item, rowIndex) => {
+                                    return (
+                                        <TableRow key={item.id || rowIndex}>
+                                            {columns.filter(Boolean).map((column) => {
+                                                // Service column
+                                                if (column.key === 'service') {
+                                                    return (
+                                                        <TableCell key={column.key}>
+                                                            {!readonly ? (
+                                                                <Select
+                                                                    size="sm"
+                                                                    placeholder="Select service"
+                                                                    selectedKeys={item.service_id ? [item.service_id] : []}
+                                                                    onChange={(e) =>
+                                                                        handleItemChange(rowIndex, 'service_id', e.target.value)
+                                                                    }
+                                                                    isDisabled={isLoadingServices}
+                                                                    startContent={<Search className="w-3 h-3" />}
+                                                                >
+                                                                    {services.map((service) => (
+                                                                        <SelectItem key={service.id} value={service.id}>
+                                                                            {service.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </Select>
+                                                            ) : (
+                                                                <span className="text-sm text-gray-600">
+                                                                    {item.service_name || services.find((s) => s.id === item.service_id)?.service_name || '-'}
+                                                                </span>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                }
 
-                                        // Unit Price column
-                                        if (column.key === 'unit_price') {
-                                            return (
-                                                <TableCell key={column.key}>
-                                                    {!readonly ? (
-                                                        <Input
-                                                            type="number"
-                                                            size="sm"
-                                                            value={item.unit_price}
-                                                            onChange={(e) =>
-                                                                handleItemChange(rowIndex, 'unit_price', parseFloat(e.target.value) || 0)
-                                                            }
-                                                            min="0"
-                                                            step="0.01"
-                                                            startContent="₹"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm">₹{item.unit_price}</span>
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        }
+                                                // Description column
+                                                if (column.key === 'description') {
+                                                    return (
+                                                        <TableCell key={column.key}>
+                                                            {!readonly ? (
+                                                                <Input
+                                                                    size="sm"
+                                                                    value={item.description}
+                                                                    onChange={(e) =>
+                                                                        handleItemChange(rowIndex, 'description', e.target.value)
+                                                                    }
+                                                                    placeholder="Item description"
+                                                                    isRequired
+                                                                />
+                                                            ) : (
+                                                                <span className="text-sm">{item.description}</span>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                }
 
-                                        // Tax Rate column
-                                        if (column.key === 'tax_rate') {
-                                            return (
-                                                <TableCell key={column.key}>
-                                                    {!readonly ? (
-                                                        <Input
-                                                            type="number"
-                                                            size="sm"
-                                                            value={item.tax_rate}
-                                                            onChange={(e) =>
-                                                                handleItemChange(rowIndex, 'tax_rate', parseFloat(e.target.value) || 0)
-                                                            }
-                                                            min="0"
-                                                            max="100"
-                                                            step="0.01"
-                                                            endContent="%"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm">{item.tax_rate}%</span>
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        }
+                                                // Quantity column
+                                                if (column.key === 'quantity') {
+                                                    return (
+                                                        <TableCell key={column.key}>
+                                                            {!readonly ? (
+                                                                <Input
+                                                                    type="number"
+                                                                    size="sm"
+                                                                    value={item.quantity}
+                                                                    onChange={(e) =>
+                                                                        handleItemChange(rowIndex, 'quantity', parseFloat(e.target.value) || 1)
+                                                                    }
+                                                                    min="1"
+                                                                    step="1"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-sm">{item.quantity}</span>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                }
 
-                                        // Total column
-                                        if (column.key === 'total') {
-                                            return (
-                                                <TableCell key={column.key}>
-                                                    <div className="text-sm font-semibold">
-                                                        ₹{(calculateLineItemTotal(item) + calculateLineItemTax(item)).toFixed(2)}
-                                                    </div>
-                                                </TableCell>
-                                            );
-                                        }
+                                                // Unit Price column
+                                                if (column.key === 'unit_price') {
+                                                    return (
+                                                        <TableCell key={column.key}>
+                                                            {!readonly ? (
+                                                                <Input
+                                                                    type="number"
+                                                                    size="sm"
+                                                                    value={item.unit_price}
+                                                                    onChange={(e) =>
+                                                                        handleItemChange(rowIndex, 'unit_price', parseFloat(e.target.value) || 0)
+                                                                    }
+                                                                    min="0"
+                                                                    step="0.01"
+                                                                    startContent="₹"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-sm">₹{item.unit_price}</span>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                }
 
-                                        // Actions column
-                                        if (column.key === 'actions') {
-                                            return (
-                                                <TableCell key={column.key}>
-                                                    <Tooltip content="Remove item" color="danger">
-                                                        <Button
-                                                            isIconOnly
-                                                            size="sm"
-                                                            variant="light"
-                                                            color="danger"
-                                                            onPress={() => handleRemoveItem(rowIndex)}
-                                                            isDisabled={items.length === 1}
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
-                                                    </Tooltip>
-                                                </TableCell>
-                                            );
-                                        }
+                                                // Tax Rate column
+                                                if (column.key === 'tax_rate') {
+                                                    return (
+                                                        <TableCell key={column.key}>
+                                                            {!readonly ? (
+                                                                <Input
+                                                                    type="number"
+                                                                    size="sm"
+                                                                    value={item.tax_rate}
+                                                                    onChange={(e) =>
+                                                                        handleItemChange(rowIndex, 'tax_rate', parseFloat(e.target.value) || 0)
+                                                                    }
+                                                                    min="0"
+                                                                    max="100"
+                                                                    step="0.01"
+                                                                    endContent="%"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-sm">{item.tax_rate}%</span>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                }
 
-                                        return null;
-                                    })}
-                                </TableRow>
-                            );
-                        }}
-                    </TableBody>
-                </Table>
+                                                // Total column
+                                                if (column.key === 'total') {
+                                                    return (
+                                                        <TableCell key={column.key}>
+                                                            <div className="text-sm font-semibold">
+                                                                ₹{(calculateLineItemTotal(item) + calculateLineItemTax(item)).toFixed(2)}
+                                                            </div>
+                                                        </TableCell>
+                                                    );
+                                                }
+
+                                                // Actions column
+                                                if (column.key === 'actions') {
+                                                    return (
+                                                        <TableCell key={column.key}>
+                                                            <Tooltip content="Remove item" color="danger">
+                                                                <Button
+                                                                    isIconOnly
+                                                                    size="sm"
+                                                                    variant="light"
+                                                                    color="danger"
+                                                                    onPress={() => handleRemoveItem(rowIndex)}
+                                                                    isDisabled={items.length === 1}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </Button>
+                                                            </Tooltip>
+                                                        </TableCell>
+                                                    );
+                                                }
+
+                                                return null;
+                                            })}
+                                        </TableRow>
+                                    );
+                                }}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
             </div>
 
             {/* Add Item Button */}

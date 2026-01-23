@@ -363,7 +363,7 @@ export default function Sidebar() {
                 initial={{ x: '-100%' }}
                 animate={{ x: isMobileOpen ? 0 : '-100%' }}
                 transition={{ type: 'tween', duration: 0.3 }}
-                className="md:hidden fixed left-0 top-0 h-screen w-70 bg-white border-r border-gray-100 z-50 flex flex-col"
+                className="md:hidden fixed left-0 top-0 h-screen w-screen max-w-[420px] bg-white border-r border-gray-100 z-50 flex flex-col"
             >
                 {sidebarContent}
             </motion.aside>
