@@ -98,7 +98,25 @@ export default function CustomerSelector({
         }
 
         try {
-            const created = await createCustomer(newCustomer);
+            // Prepare data - remove empty strings for optional fields
+            const customerData = {
+                display_name: newCustomer.display_name.trim(),
+                customer_type: newCustomer.customer_type,
+            };
+
+            // Only include optional fields if they have values
+            if (newCustomer.email && newCustomer.email.trim()) {
+                customerData.email = newCustomer.email.trim();
+            }
+            if (newCustomer.phone && newCustomer.phone.trim()) {
+                customerData.phone = newCustomer.phone.trim();
+            }
+            if (newCustomer.billing_address && newCustomer.billing_address.trim()) {
+                customerData.billing_address = newCustomer.billing_address.trim();
+            }
+
+            console.log('Creating customer with data:', customerData);
+            const created = await createCustomer(customerData);
             toast.success('Customer created successfully');
             setSelectedCustomer(created);
             onChange(created);
@@ -116,7 +134,8 @@ export default function CustomerSelector({
             });
         } catch (error) {
             console.error('Create customer error:', error);
-            toast.error(error.message || 'Failed to create customer');
+            const errorMessage = error?.data?.detail || error?.message || 'Failed to create customer';
+            toast.error(errorMessage);
         }
     };
 
