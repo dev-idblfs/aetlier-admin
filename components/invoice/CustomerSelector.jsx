@@ -44,7 +44,11 @@ export default function CustomerSelector({
         display_name: '',
         email: '',
         phone: '',
-        billing_address: '',
+        billing_address_line1: '',
+        billing_address_line2: '',
+        billing_city: '',
+        billing_state: '',
+        billing_pincode: '',
         customer_type: 'individual',
     });
 
@@ -114,8 +118,20 @@ export default function CustomerSelector({
             if (newCustomer.phone && newCustomer.phone.trim()) {
                 customerData.phone = newCustomer.phone.trim();
             }
-            if (newCustomer.billing_address && newCustomer.billing_address.trim()) {
-                customerData.billing_address = newCustomer.billing_address.trim();
+            if (newCustomer.billing_address_line1 && newCustomer.billing_address_line1.trim()) {
+                customerData.billing_address_line1 = newCustomer.billing_address_line1.trim();
+            }
+            if (newCustomer.billing_address_line2 && newCustomer.billing_address_line2.trim()) {
+                customerData.billing_address_line2 = newCustomer.billing_address_line2.trim();
+            }
+            if (newCustomer.billing_city && newCustomer.billing_city.trim()) {
+                customerData.billing_city = newCustomer.billing_city.trim();
+            }
+            if (newCustomer.billing_state && newCustomer.billing_state.trim()) {
+                customerData.billing_state = newCustomer.billing_state.trim();
+            }
+            if (newCustomer.billing_pincode && newCustomer.billing_pincode.trim()) {
+                customerData.billing_pincode = newCustomer.billing_pincode.trim();
             }
 
             console.log('Creating customer with data:', customerData);
@@ -132,7 +148,11 @@ export default function CustomerSelector({
                 display_name: '',
                 email: '',
                 phone: '',
-                billing_address: '',
+                billing_address_line1: '',
+                billing_address_line2: '',
+                billing_city: '',
+                billing_state: '',
+                billing_pincode: '',
                 customer_type: 'individual',
             });
         } catch (error) {
@@ -328,15 +348,51 @@ export default function CustomerSelector({
                             />
 
                             {/* Billing Address */}
-                            <Textarea
-                                label="Billing Address"
-                                placeholder="Enter billing address"
-                                value={newCustomer.billing_address}
+                            <Input
+                                label="Address Line 1"
+                                placeholder="Street address"
+                                value={newCustomer.billing_address_line1}
                                 onChange={(e) =>
-                                    setNewCustomer({ ...newCustomer, billing_address: e.target.value })
+                                    setNewCustomer({ ...newCustomer, billing_address_line1: e.target.value })
                                 }
-                                minRows={3}
-                                startContent={<MapPin className="w-4 h-4 mt-2" />}
+                                startContent={<MapPin className="w-4 h-4" />}
+                            />
+
+                            <Input
+                                label="Address Line 2"
+                                placeholder="Apartment, suite, etc. (optional)"
+                                value={newCustomer.billing_address_line2}
+                                onChange={(e) =>
+                                    setNewCustomer({ ...newCustomer, billing_address_line2: e.target.value })
+                                }
+                            />
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input
+                                    label="City"
+                                    placeholder="City"
+                                    value={newCustomer.billing_city}
+                                    onChange={(e) =>
+                                        setNewCustomer({ ...newCustomer, billing_city: e.target.value })
+                                    }
+                                />
+                                <Input
+                                    label="State"
+                                    placeholder="State"
+                                    value={newCustomer.billing_state}
+                                    onChange={(e) =>
+                                        setNewCustomer({ ...newCustomer, billing_state: e.target.value })
+                                    }
+                                />
+                            </div>
+
+                            <Input
+                                label="Pincode"
+                                placeholder="123456"
+                                value={newCustomer.billing_pincode}
+                                onChange={(e) =>
+                                    setNewCustomer({ ...newCustomer, billing_pincode: e.target.value })
+                                }
                             />
                         </div>
                     </ModalBody>
