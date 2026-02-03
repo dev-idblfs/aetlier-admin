@@ -35,14 +35,15 @@ import { getDefaultDueDate } from '@/utils/invoice/paymentTerms';
 export default function NewInvoicePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const appointmentId = searchParams.get('appointment_id');
+    const appointmentId = searchParams.get('appointment');
 
     // API Hooks
     const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceMutation();
     const [createFromAppointment, { isLoading: isCreatingFromAppointment }] = useCreateInvoiceFromAppointmentMutation();
     const [searchCustomers, { data: customerResults }] = useLazySearchCustomersQuery();
     const { data: servicesData, isLoading: isLoadingServices } = useGetServicesQuery(undefined, {
-        refetchOnMountOrArgChange: true,
+        refetchOnMountOrArgChange: 600, // Cache for 10 minutes instead of always refetching
+        keepUnusedDataFor: 600, // Keep cached data for 10 minutes
     });
     const { data: settings } = useGetInvoiceSettingsQuery();
     const [createCustomer, { isLoading: isCreatingCustomer }] = useCreateCustomerMutation();

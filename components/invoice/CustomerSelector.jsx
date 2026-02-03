@@ -63,7 +63,6 @@ export default function CustomerSelector({
                 if (mounted) setCustomers([]);
                 return;
             }
-            console.log(debouncedSearchTerm, 'debouncedSearchTerm');
 
             if (searchCustomers) {
                 try {

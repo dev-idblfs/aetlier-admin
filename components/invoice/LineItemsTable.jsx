@@ -51,8 +51,6 @@ function LineItemsTable({
     }, [items, onChange]);
 
     const handleItemChange = useCallback((index, field, value) => {
-        console.log('handleItemChange called:', { index, field, value, type: typeof value });
-
         onChange(prevItems => {
             const updated = [...prevItems];
 
@@ -61,11 +59,7 @@ function LineItemsTable({
 
             // Auto-fill from service if selected
             if (field === 'service_id' && value) {
-                console.log('Looking for service with id:', value);
-                console.log('Available services:', services.map(s => ({ id: s.id, name: s.name })));
-
                 const service = services.find((s) => s.id === value);
-                console.log('Found service:', service);
 
                 if (service) {
                     updated[index] = {
@@ -73,7 +67,6 @@ function LineItemsTable({
                         description: service.name,
                         unit_price: parseFloat(service.price) || 0,
                     };
-                    console.log('Auto-filled item:', updated[index]);
                 }
             }
 
