@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback, memo } from 'react';
 import {
     Table,
     TableHeader,
@@ -22,7 +22,7 @@ import { Plus, Trash2, Search } from 'lucide-react';
 import { calculateLineItemTotal, calculateLineItemTax } from '@/utils/invoice/calculations';
 import { toast } from 'react-hot-toast';
 
-export default function LineItemsTable({
+function LineItemsTable({
     items = [],
     onChange,
     services = [],
@@ -30,9 +30,7 @@ export default function LineItemsTable({
     readonly = false,
     showTax = true,
 }) {
-    console.log('services', services);
-
-    const handleAddItem = () => {
+    const handleAddItem = useCallback(() => {
         const newItem = {
             id: Date.now(),
             service_id: null,
@@ -42,34 +40,46 @@ export default function LineItemsTable({
             tax_rate: 0,
         };
         onChange([...items, newItem]);
-    };
+    }, [items, onChange]);
 
-    const handleRemoveItem = (index) => {
+    const handleRemoveItem = useCallback((index) => {
         if (items.length === 1) {
             toast.error('At least one line item is required');
             return;
         }
         onChange(items.filter((_, i) => i !== index));
-    };
+    }, [items, onChange]);
 
-    const handleItemChange = (index, field, value) => {
-        const updated = [...items];
-        updated[index] = { ...updated[index], [field]: value };
+    const handleItemChange = useCallback((index, field, value) => {
+        console.log('handleItemChange called:', { index, field, value, type: typeof value });
 
-        // Auto-fill from service if selected
-        if (field === 'service_id' && value) {
-            const service = services.find((s) => s.id === value);
-            if (service) {
-                updated[index] = {
-                    ...updated[index],
-                    description: service.name,
-                    unit_price: parseFloat(service.price) || 0,
-                };
+        onChange(prevItems => {
+            const updated = [...prevItems];
+
+            // Service IDs are UUIDs (strings), not numbers - no conversion needed
+            updated[index] = { ...updated[index], [field]: value };
+
+            // Auto-fill from service if selected
+            if (field === 'service_id' && value) {
+                console.log('Looking for service with id:', value);
+                console.log('Available services:', services.map(s => ({ id: s.id, name: s.name })));
+
+                const service = services.find((s) => s.id === value);
+                console.log('Found service:', service);
+
+                if (service) {
+                    updated[index] = {
+                        ...updated[index],
+                        description: service.name,
+                        unit_price: parseFloat(service.price) || 0,
+                    };
+                    console.log('Auto-filled item:', updated[index]);
+                }
             }
-        }
 
-        onChange(updated);
-    };
+            return updated;
+        });
+    }, [services, onChange]);
 
     const columns = useMemo(() => {
         const cols = [
@@ -88,7 +98,6 @@ export default function LineItemsTable({
             cols.push({ key: 'actions', label: '', width: '5%' });
         }
 
-        // Ensure all columns are valid objects
         return cols.filter(col => col && col.key && col.label !== undefined);
     }, [showTax, readonly]);
 
@@ -119,20 +128,25 @@ export default function LineItemsTable({
                                     <Select
                                         size="sm"
                                         placeholder="Select service"
-                                        selectedKeys={item.service_id ? [item.service_id] : []}
-                                        onChange={(e) => handleItemChange(index, 'service_id', e.target.value)}
+                                        selectedKeys={item.service_id ? [String(item.service_id)] : []}
+                                        onSelectionChange={(keys) => {
+                                            const selectedKey = Array.from(keys)[0];
+                                            if (selectedKey) {
+                                                handleItemChange(index, 'service_id', selectedKey);
+                                            }
+                                        }}
                                         isDisabled={isLoadingServices}
                                         startContent={<Search className="w-3 h-3" />}
                                     >
                                         {services.map((service) => (
-                                            <SelectItem key={service.id} value={service.id}>
+                                            <SelectItem key={String(service.id)} value={String(service.id)}>
                                                 {service.name}
                                             </SelectItem>
                                         ))}
                                     </Select>
                                 ) : (
                                     <span className="text-sm text-gray-700">
-                                        {item.service_name || services.find((s) => s.id === item.service_id)?.service_name || '-'}
+                                        {item.service_name || services.find((s) => s.id === item.service_id)?.name || '-'}
                                     </span>
                                 )}
                             </div>
@@ -143,7 +157,7 @@ export default function LineItemsTable({
                                     <Input
                                         size="sm"
                                         value={item.description}
-                                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                        onValueChange={(value) => handleItemChange(index, 'description', value)}
                                         placeholder="Item description"
                                         isRequired
                                     />
@@ -159,8 +173,8 @@ export default function LineItemsTable({
                                         <Input
                                             type="number"
                                             size="sm"
-                                            value={item.quantity}
-                                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 1)}
+                                            value={String(item.quantity)}
+                                            onValueChange={(value) => handleItemChange(index, 'quantity', parseFloat(value) || 1)}
                                             min="1"
                                             step="1"
                                         />
@@ -175,8 +189,8 @@ export default function LineItemsTable({
                                         <Input
                                             type="number"
                                             size="sm"
-                                            value={item.unit_price}
-                                            onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                                            value={String(item.unit_price)}
+                                            onValueChange={(value) => handleItemChange(index, 'unit_price', parseFloat(value) || 0)}
                                             min="0"
                                             step="0.01"
                                             startContent="₹"
@@ -194,8 +208,8 @@ export default function LineItemsTable({
                                         <Input
                                             type="number"
                                             size="sm"
-                                            value={item.tax_rate}
-                                            onChange={(e) => handleItemChange(index, 'tax_rate', parseFloat(e.target.value) || 0)}
+                                            value={String(item.tax_rate)}
+                                            onValueChange={(value) => handleItemChange(index, 'tax_rate', parseFloat(value) || 0)}
                                             min="0"
                                             max="100"
                                             step="0.01"
@@ -225,7 +239,7 @@ export default function LineItemsTable({
                 )}
             </div>
 
-            {/* Table */}
+            {/* Desktop Table */}
             <div className="hidden md:block border border-gray-200 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <div className="min-w-[720px]">
@@ -244,14 +258,18 @@ export default function LineItemsTable({
                                     </TableColumn>
                                 ))}
                             </TableHeader>
-                            <TableBody items={items} emptyContent={
-                                <div className="text-center py-8 text-gray-500">
-                                    <p className="text-sm">No items added yet</p>
-                                    <p className="text-xs mt-1">Click &quot;Add Line Item&quot; to start adding services</p>
-                                </div>
-                            }>
-                                {(item, rowIndex) => {
-                                    return (
+                            <TableBody>
+                                {items.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length}>
+                                            <div className="text-center py-8 text-gray-500">
+                                                <p className="text-sm">No items added yet</p>
+                                                <p className="text-xs mt-1">Click &quot;Add Line Item&quot; to start adding services</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    items.map((item, rowIndex) => (
                                         <TableRow key={item.id || rowIndex}>
                                             {columns.filter(Boolean).map((column) => {
                                                 // Service column
@@ -262,22 +280,25 @@ export default function LineItemsTable({
                                                                 <Select
                                                                     size="sm"
                                                                     placeholder="Select service"
-                                                                    selectedKeys={item.service_id ? [item.service_id] : []}
-                                                                    onChange={(e) =>
-                                                                        handleItemChange(rowIndex, 'service_id', e.target.value)
-                                                                    }
+                                                                    selectedKeys={item.service_id ? [String(item.service_id)] : []}
+                                                                    onSelectionChange={(keys) => {
+                                                                        const selectedKey = Array.from(keys)[0];
+                                                                        if (selectedKey) {
+                                                                            handleItemChange(rowIndex, 'service_id', selectedKey);
+                                                                        }
+                                                                    }}
                                                                     isDisabled={isLoadingServices}
                                                                     startContent={<Search className="w-3 h-3" />}
                                                                 >
                                                                     {services.map((service) => (
-                                                                        <SelectItem key={service.id} value={service.id}>
+                                                                        <SelectItem key={String(service.id)} value={String(service.id)}>
                                                                             {service.name}
                                                                         </SelectItem>
                                                                     ))}
                                                                 </Select>
                                                             ) : (
                                                                 <span className="text-sm text-gray-600">
-                                                                    {item.service_name || services.find((s) => s.id === item.service_id)?.service_name || '-'}
+                                                                    {item.service_name || services.find((s) => s.id === item.service_id)?.name || '-'}
                                                                 </span>
                                                             )}
                                                         </TableCell>
@@ -292,9 +313,7 @@ export default function LineItemsTable({
                                                                 <Input
                                                                     size="sm"
                                                                     value={item.description}
-                                                                    onChange={(e) =>
-                                                                        handleItemChange(rowIndex, 'description', e.target.value)
-                                                                    }
+                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'description', value)}
                                                                     placeholder="Item description"
                                                                     isRequired
                                                                 />
@@ -313,10 +332,8 @@ export default function LineItemsTable({
                                                                 <Input
                                                                     type="number"
                                                                     size="sm"
-                                                                    value={item.quantity}
-                                                                    onChange={(e) =>
-                                                                        handleItemChange(rowIndex, 'quantity', parseFloat(e.target.value) || 1)
-                                                                    }
+                                                                    value={String(item.quantity)}
+                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'quantity', parseFloat(value) || 1)}
                                                                     min="1"
                                                                     step="1"
                                                                 />
@@ -335,10 +352,8 @@ export default function LineItemsTable({
                                                                 <Input
                                                                     type="number"
                                                                     size="sm"
-                                                                    value={item.unit_price}
-                                                                    onChange={(e) =>
-                                                                        handleItemChange(rowIndex, 'unit_price', parseFloat(e.target.value) || 0)
-                                                                    }
+                                                                    value={String(item.unit_price)}
+                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'unit_price', parseFloat(value) || 0)}
                                                                     min="0"
                                                                     step="0.01"
                                                                     startContent="₹"
@@ -358,10 +373,8 @@ export default function LineItemsTable({
                                                                 <Input
                                                                     type="number"
                                                                     size="sm"
-                                                                    value={item.tax_rate}
-                                                                    onChange={(e) =>
-                                                                        handleItemChange(rowIndex, 'tax_rate', parseFloat(e.target.value) || 0)
-                                                                    }
+                                                                    value={String(item.tax_rate)}
+                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'tax_rate', parseFloat(value) || 0)}
                                                                     min="0"
                                                                     max="100"
                                                                     step="0.01"
@@ -408,8 +421,8 @@ export default function LineItemsTable({
                                                 return null;
                                             })}
                                         </TableRow>
-                                    );
-                                }}
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -417,19 +430,19 @@ export default function LineItemsTable({
             </div>
 
             {/* Add Item Button */}
-            {
-                !readonly && (
-                    <Button
-                        color="primary"
-                        variant="flat"
-                        startContent={<Plus className="w-4 h-4" />}
-                        onPress={handleAddItem}
-                        fullWidth
-                    >
-                        Add Line Item
-                    </Button>
-                )
-            }
-        </div >
+            {!readonly && (
+                <Button
+                    color="primary"
+                    variant="flat"
+                    startContent={<Plus className="w-4 h-4" />}
+                    onPress={handleAddItem}
+                    fullWidth
+                >
+                    Add Line Item
+                </Button>
+            )}
+        </div>
     );
 }
+
+export default memo(LineItemsTable);

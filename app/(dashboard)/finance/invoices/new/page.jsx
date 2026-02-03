@@ -41,7 +41,9 @@ export default function NewInvoicePage() {
     const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceMutation();
     const [createFromAppointment, { isLoading: isCreatingFromAppointment }] = useCreateInvoiceFromAppointmentMutation();
     const [searchCustomers, { data: customerResults }] = useLazySearchCustomersQuery();
-    const { data: servicesData } = useGetServicesQuery();
+    const { data: servicesData, isLoading: isLoadingServices } = useGetServicesQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
     const { data: settings } = useGetInvoiceSettingsQuery();
     const [createCustomer, { isLoading: isCreatingCustomer }] = useCreateCustomerMutation();
 
@@ -68,9 +70,14 @@ export default function NewInvoicePage() {
         tax_rate: 0,
     }]);
 
-    // Stable callback for line items changes
+    // Stable callback for line items changes - no dependencies needed
     const handleLineItemsChange = useCallback((updatedItems) => {
-        setLineItems(updatedItems);
+        // If updatedItems is a function, it's a functional update from the child
+        if (typeof updatedItems === 'function') {
+            setLineItems(updatedItems);
+        } else {
+            setLineItems(updatedItems);
+        }
     }, []);
 
     // Memoized handlers for inline callbacks
@@ -253,6 +260,7 @@ export default function NewInvoicePage() {
                     items={lineItems}
                     onChange={handleLineItemsChange}
                     services={services}
+                    isLoadingServices={isLoadingServices}
                 />
             </InvoiceSection>
 
