@@ -61,6 +61,10 @@ import {
 } from '@/redux/services/api';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
 import { hasPermission, hasAnyPermission, PERMISSIONS } from '@/utils/permissions';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { appointmentSchema, appointmentUpdateSchema } from '@/lib/validation';
+import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
@@ -98,19 +102,41 @@ export default function AppointmentsPage() {
     const { isOpen: isStatusOpen, onOpen: onStatusOpen, onOpenChange: onStatusOpenChange } = useDisclosure();
 
     const [selectedAppointment, setSelectedAppointment] = useState(null);
-    const [editForm, setEditForm] = useState({});
     const [cancelReason, setCancelReason] = useState('');
     const [newStatus, setNewStatus] = useState('');
-    const [createForm, setCreateForm] = useState({
-        patient_name: '',
-        patient_email: '',
-        patient_phone: '',
-        service_id: '',
-        doctor_id: '',
-        preferred_date: '',
-        preferred_time: '',
-        special_notes: '',
+
+    const createMethods = useForm({
+        resolver: zodResolver(appointmentSchema),
+        defaultValues: {
+            patient_name: '',
+            patient_email: '',
+            patient_phone: '',
+            service_id: '',
+            doctor_id: '',
+            preferred_date: '',
+            preferred_time: '',
+            special_notes: '',
+        },
     });
+
+    const editMethods = useForm({
+        resolver: zodResolver(appointmentUpdateSchema),
+        defaultValues: {
+            preferred_date: '',
+            preferred_time: '',
+            special_notes: '',
+        },
+    });
+
+    const {
+        reset: resetCreate,
+        handleSubmit: handleCreateHookSubmit,
+    } = createMethods;
+
+    const {
+        reset: resetEdit,
+        handleSubmit: handleEditHookSubmit,
+    } = editMethods;
 
     // API hooks
     const { data, isLoading, refetch, isFetching } = useGetAppointmentsQuery({
@@ -285,7 +311,7 @@ export default function AppointmentsPage() {
 
     // Handlers
     const handleCreateClick = () => {
-        setCreateForm({
+        resetCreate({
             patient_name: '',
             patient_email: '',
             patient_phone: '',
@@ -298,30 +324,25 @@ export default function AppointmentsPage() {
         onCreateOpen();
     };
 
-    const handleCreateSubmit = async () => {
-        if (!createForm.patient_name || !createForm.patient_email || !createForm.preferred_date || !createForm.preferred_time) {
-            toast.error('Please fill in all required fields');
-            return;
-        }
-
+    const onCreateSubmit = async (data) => {
         try {
             await createAppointment({
                 patient_info: {
-                    full_name: createForm.patient_name,
-                    email: createForm.patient_email,
-                    phone: createForm.patient_phone,
+                    full_name: data.patient_name,
+                    email: data.patient_email,
+                    phone: data.patient_phone,
                 },
-                service_id: createForm.service_id || undefined,
-                doctor_id: createForm.doctor_id || undefined,
-                preferred_date: createForm.preferred_date,
-                preferred_time: createForm.preferred_time,
-                special_notes: createForm.special_notes,
+                service_id: data.service_id || undefined,
+                doctor_id: data.doctor_id || undefined,
+                preferred_date: data.preferred_date,
+                preferred_time: data.preferred_time,
+                special_notes: data.special_notes,
             }).unwrap();
             toast.success('Appointment created successfully');
             onCreateOpenChange(false);
             refetch();
         } catch (error) {
-            toast.error(error.data?.detail || 'Failed to create appointment');
+            toast.error(error?.data?.detail || 'Failed to create appointment');
         }
     };
 
@@ -332,7 +353,7 @@ export default function AppointmentsPage() {
 
     const handleEditClick = (appointment) => {
         setSelectedAppointment(appointment);
-        setEditForm({
+        resetEdit({
             preferred_date: appointment.preferred_date || appointment.appointment_date || '',
             preferred_time: appointment.preferred_time || appointment.appointment_time || '',
             special_notes: appointment.special_notes || '',
@@ -340,18 +361,18 @@ export default function AppointmentsPage() {
         onEditOpen();
     };
 
-    const handleEditSubmit = async () => {
+    const onEditSubmit = async (data) => {
         if (!selectedAppointment) return;
         try {
             await updateAppointment({
                 id: selectedAppointment.id,
-                ...editForm,
+                ...data,
             }).unwrap();
             toast.success('Appointment updated successfully');
             onEditOpenChange(false);
             refetch();
         } catch (error) {
-            toast.error(error.data?.detail || 'Failed to update appointment');
+            toast.error(error?.data?.detail || 'Failed to update appointment');
         }
     };
 
@@ -597,92 +618,86 @@ export default function AppointmentsPage() {
             <FormModal
                 isOpen={isCreateOpen}
                 onOpenChange={onCreateOpenChange}
-                onSubmit={handleCreateSubmit}
+                onSubmit={handleCreateHookSubmit(onCreateSubmit)}
                 title="Add Appointment"
                 submitLabel="Create Appointment"
                 isLoading={isCreating}
             >
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input
-                            label="Patient Name"
+                <FormProvider {...createMethods}>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormInput
+                                name="patient_name"
+                                label="Patient Name"
+                                labelPlacement="outside"
+                                placeholder="Enter patient name"
+                                isRequired
+                            />
+                            <FormInput
+                                name="patient_email"
+                                label="Patient Email"
+                                labelPlacement="outside"
+                                type="email"
+                                placeholder="Enter email"
+                                isRequired
+                            />
+                        </div>
+                        <FormInput
+                            name="patient_phone"
+                            label="Phone Number"
                             labelPlacement="outside"
-                            placeholder="Enter patient name"
-                            value={createForm.patient_name}
-                            onChange={(e) => setCreateForm((prev) => ({ ...prev, patient_name: e.target.value }))}
-                            isRequired
+                            placeholder="Enter phone number"
                         />
-                        <Input
-                            label="Patient Email"
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormSelect
+                                name="service_id"
+                                label="Service"
+                                labelPlacement="outside"
+                                placeholder="Select service"
+                            >
+                                {services.map((service) => (
+                                    <SelectItem key={service.id} value={service.id}>
+                                        {service.name}
+                                    </SelectItem>
+                                ))}
+                            </FormSelect>
+                            <FormSelect
+                                name="doctor_id"
+                                label="Doctor"
+                                labelPlacement="outside"
+                                placeholder="Select doctor"
+                            >
+                                {doctors.map((doctor) => (
+                                    <SelectItem key={doctor.id} value={doctor.id}>
+                                        {doctor.name}
+                                    </SelectItem>
+                                ))}
+                            </FormSelect>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormInput
+                                name="preferred_date"
+                                type="date"
+                                label="Preferred Date"
+                                labelPlacement="outside"
+                                isRequired
+                            />
+                            <FormInput
+                                name="preferred_time"
+                                type="time"
+                                label="Preferred Time"
+                                labelPlacement="outside"
+                                isRequired
+                            />
+                        </div>
+                        <FormTextarea
+                            name="special_notes"
+                            label="Special Notes"
                             labelPlacement="outside"
-                            type="email"
-                            placeholder="Enter email"
-                            value={createForm.patient_email}
-                            onChange={(e) => setCreateForm((prev) => ({ ...prev, patient_email: e.target.value }))}
-                            isRequired
+                            placeholder="Any special instructions..."
                         />
                     </div>
-                    <Input
-                        label="Phone Number"
-                        labelPlacement="outside"
-                        placeholder="Enter phone number"
-                        value={createForm.patient_phone}
-                        onChange={(e) => setCreateForm((prev) => ({ ...prev, patient_phone: e.target.value }))}
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Select
-                            label="Service"
-                            labelPlacement="outside"
-                            placeholder="Select service"
-                            selectedKeys={createForm.service_id ? [createForm.service_id] : []}
-                            onSelectionChange={(keys) => setCreateForm((prev) => ({ ...prev, service_id: Array.from(keys)[0] || '' }))}
-                        >
-                            {services.map((service) => (
-                                <SelectItem key={service.id} value={service.id}>
-                                    {service.name}
-                                </SelectItem>
-                            ))}
-                        </Select>
-                        <Select
-                            label="Doctor"
-                            labelPlacement="outside"
-                            placeholder="Select doctor"
-                            selectedKeys={createForm.doctor_id ? [createForm.doctor_id] : []}
-                            onSelectionChange={(keys) => setCreateForm((prev) => ({ ...prev, doctor_id: Array.from(keys)[0] || '' }))}
-                        >
-                            {doctors.map((doctor) => (
-                                <SelectItem key={doctor.id} value={doctor.id}>
-                                    {doctor.name}
-                                </SelectItem>
-                            ))}
-                        </Select>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input
-                            type="date"
-                            label="Preferred Date"
-                            labelPlacement="outside"
-                            value={createForm.preferred_date}
-                            onChange={(e) => setCreateForm((prev) => ({ ...prev, preferred_date: e.target.value }))}
-                            isRequired
-                        />
-                        <Input
-                            type="time"
-                            label="Preferred Time"
-                            labelPlacement="outside"
-                            value={createForm.preferred_time}
-                            onChange={(e) => setCreateForm((prev) => ({ ...prev, preferred_time: e.target.value }))}
-                            isRequired
-                        />
-                    </div>
-                    <Textarea
-                        label="Special Notes"
-                        labelPlacement="outside"
-                        placeholder="Any special instructions..."
-                        value={createForm.special_notes}
-                        onChange={(e) => setCreateForm((prev) => ({ ...prev, special_notes: e.target.value }))}
-                    />
-                </div>
+                </FormProvider>
             </FormModal>
 
             {/* Detail Modal */}
@@ -782,38 +797,39 @@ export default function AppointmentsPage() {
             <FormModal
                 isOpen={isEditOpen}
                 onOpenChange={onEditOpenChange}
-                onSubmit={handleEditSubmit}
+                onSubmit={handleEditHookSubmit(onEditSubmit)}
                 title="Edit Appointment"
                 submitLabel="Save Changes"
                 isLoading={isUpdating}
             >
-                <div className="space-y-4">
-                    <Input
-                        type="date"
-                        label="Preferred Date"
-                        labelPlacement="outside"
-                        value={editForm.preferred_date}
-                        onChange={(e) => setEditForm((prev) => ({ ...prev, preferred_date: e.target.value }))}
-                    />
-                    <Input
-                        type="time"
-                        label="Preferred Time"
-                        labelPlacement="outside"
-                        value={editForm.preferred_time}
-                        onChange={(e) => setEditForm((prev) => ({ ...prev, preferred_time: e.target.value }))}
-                    />
-                    <Textarea
-                        label="Special Notes"
-                        labelPlacement="outside"
-                        placeholder="Any special instructions..."
-                        value={editForm.special_notes}
-                        onChange={(e) => setEditForm((prev) => ({ ...prev, special_notes: e.target.value }))}
-                    />
-                </div>
+                <FormProvider {...editMethods}>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormInput
+                                name="preferred_date"
+                                type="date"
+                                label="Preferred Date"
+                                labelPlacement="outside"
+                            />
+                            <FormInput
+                                name="preferred_time"
+                                type="time"
+                                label="Preferred Time"
+                                labelPlacement="outside"
+                            />
+                        </div>
+                        <FormTextarea
+                            name="special_notes"
+                            label="Special Notes"
+                            labelPlacement="outside"
+                            placeholder="Any special instructions..."
+                        />
+                    </div>
+                </FormProvider>
             </FormModal>
 
             {/* Cancel Modal */}
-            <FormModal
+            < FormModal
                 isOpen={isCancelOpen}
                 onOpenChange={onCancelOpenChange}
                 onSubmit={handleCancelConfirm}
@@ -836,10 +852,10 @@ export default function AppointmentsPage() {
                         onChange={(e) => setCancelReason(e.target.value)}
                     />
                 </div>
-            </FormModal>
+            </FormModal >
 
             {/* Status Change Modal */}
-            <FormModal
+            < FormModal
                 isOpen={isStatusOpen}
                 onOpenChange={onStatusOpenChange}
                 onSubmit={handleStatusChange}
@@ -860,8 +876,8 @@ export default function AppointmentsPage() {
                     <SelectItem key="cancelled" value="cancelled">Cancelled</SelectItem>
                     <SelectItem key="no_show" value="no_show">No Show</SelectItem>
                 </Select>
-            </FormModal>
-        </div>
+            </FormModal >
+        </div >
     );
 }
 

@@ -14,6 +14,8 @@ import {
     Button,
 } from '@heroui/react';
 
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+
 export default function FormModal({
     isOpen,
     onOpenChange,
@@ -30,6 +32,8 @@ export default function FormModal({
     submitColor = 'primary',
     scrollBehavior = 'inside',
 }) {
+    const isMobile = useMediaQuery('(max-width: 768px)');
+
     const handleClose = () => {
         onClose?.();
         onOpenChange?.(false);
@@ -39,7 +43,7 @@ export default function FormModal({
         <Modal
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            size={size}
+            size={isMobile ? 'full' : size}
             scrollBehavior={scrollBehavior}
             placement="center"
             backdrop="opaque"

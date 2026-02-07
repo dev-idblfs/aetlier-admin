@@ -36,8 +36,10 @@ import {
     useCreateServiceMutation,
     useUpdateServiceMutation,
     useDeleteServiceMutation,
+    useGetCategoriesQuery,
 } from '@/redux/services/api';
 import { motion } from 'framer-motion';
+import { LinkButton } from '@/components/ui';
 
 const INITIAL_FORM = {
     name: '',
@@ -47,14 +49,6 @@ const INITIAL_FORM = {
     duration: '',
     is_active: true,
 };
-
-const CATEGORY_OPTIONS = [
-    { value: '', label: 'All Categories' },
-    { value: 'consultation', label: 'Consultation' },
-    { value: 'treatment', label: 'Treatment' },
-    { value: 'surgery', label: 'Surgery' },
-    { value: 'therapy', label: 'Therapy' },
-];
 
 export default function ServicesPage() {
     const router = useRouter();
@@ -68,8 +62,14 @@ export default function ServicesPage() {
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
 
     const { data, isLoading, refetch } = useGetServicesQuery();
+    const { data: categories } = useGetCategoriesQuery({ type: 'SERVICE' });
 
     const [deleteService, { isLoading: isDeleting }] = useDeleteServiceMutation();
+
+    const categoryOptions = [
+        { value: '', label: 'All Categories' },
+        ...(categories || []).map(cat => ({ value: cat.name, label: cat.name }))
+    ];
 
     // Reset page when filters change
     useEffect(() => {
@@ -220,15 +220,25 @@ export default function ServicesPage() {
                     { label: 'Services' },
                 ]}
                 actions={
-                    <Button
-                        color="primary"
-                        startContent={<Plus className="w-4 h-4" />}
-                        onPress={handleAdd}
-                        className="w-full sm:w-auto"
-                    >
-                        <span className="hidden sm:inline">Add Service</span>
-                        <span className="sm:hidden">Add</span>
-                    </Button>
+                    <div className="flex gap-2">
+                        <LinkButton
+                            href="/services/categories"
+                            variant="flat"
+                            startContent={<Briefcase className="w-4 h-4" />}
+                            className="hidden sm:flex"
+                        >
+                            Categories
+                        </LinkButton>
+                        <Button
+                            color="primary"
+                            startContent={<Plus className="w-4 h-4" />}
+                            onPress={handleAdd}
+                            className="w-full sm:w-auto"
+                        >
+                            <span className="hidden sm:inline">Add Service</span>
+                            <span className="sm:hidden">Add</span>
+                        </Button>
+                    </div>
                 }
             />
 
@@ -252,7 +262,7 @@ export default function ServicesPage() {
                             trigger: 'bg-white',
                         }}
                     >
-                        {CATEGORY_OPTIONS.map((option) => (
+                        {categoryOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                             </SelectItem>
@@ -336,23 +346,25 @@ export default function ServicesPage() {
             />
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-center mt-6">
-                    <Pagination
-                        total={totalPages}
-                        page={currentPage}
-                        onChange={(page) => {
-                            setCurrentPage(page);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        showControls
-                        classNames={{
-                            wrapper: "gap-2",
-                            item: "w-8 h-8 text-sm",
-                        }}
-                    />
-                </div>
-            )}
+            {
+                totalPages > 1 && (
+                    <div className="flex justify-center mt-6">
+                        <Pagination
+                            total={totalPages}
+                            page={currentPage}
+                            onChange={(page) => {
+                                setCurrentPage(page);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            showControls
+                            classNames={{
+                                wrapper: "gap-2",
+                                item: "w-8 h-8 text-sm",
+                            }}
+                        />
+                    </div>
+                )
+            }
 
             {/* Add/Edit Modal - REMOVED, using dedicated pages now */}
 
@@ -433,7 +445,7 @@ export default function ServicesPage() {
                 type="danger"
                 isLoading={isDeleting}
             />
-        </div>
+        </div >
     );
 }
 

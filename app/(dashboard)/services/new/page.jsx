@@ -1,63 +1,72 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
-import { Button, Input, Textarea, Switch, Select, SelectItem } from '@heroui/react';
+import { Button, SelectItem } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { useCreateServiceMutation } from '@/redux/services/api';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-const SERVICE_CATEGORIES = [
-    { key: 'medi-care', label: 'Medi Care' },
-    { key: 'skin-treatment', label: 'Skin Treatment' },
-    { key: 'laser-treatments', label: 'Laser Treatments' },
-    { key: 'semi-permanent-makeup', label: 'Semi Permanent Makeup' },
-    { key: 'hair-treatments', label: 'Hair Treatments' },
-    { key: 'gynae-care', label: 'Gynae Care' },
-    { key: 'skincare', label: 'Skincare' },
-    { key: 'wellness', label: 'Wellness' },
-    { key: 'cosmetic', label: 'Cosmetic' },
-    { key: 'therapy', label: 'Therapy' },
-];
+import { useCreateServiceMutation, useGetCategoriesQuery } from '@/redux/services/api';
+import { serviceSchema } from '@/lib/validation';
+import { Form } from '@/components/ui/Form';
+import { FormInput, FormTextarea, FormSelect, FormSwitchRow } from '@/components/ui/FormFields';
+
+
 
 export default function NewServicePage() {
     const router = useRouter();
     const [createService, { isLoading }] = useCreateServiceMutation();
+    const { data: categories } = useGetCategoriesQuery({ type: 'SERVICE' });
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        category: 'medi-care',
-        duration: '',
-        price: '',
-        is_active: true,
+    const methods = useForm({
+        resolver: zodResolver(serviceSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+            category: '',
+            duration: '',
+            price: '',
+            is_active: true,
+        },
     });
 
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
+    const { formState: { isSubmitting } } = methods;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        // Validation
-        if (!formData.name || !formData.category) {
-            toast.error('Please fill in all required fields');
-            return;
-        }
-
+    const onSubmit = async (data) => {
         try {
             await createService({
-                ...formData,
-                duration: formData.duration ? parseInt(formData.duration) : null,
-                price: formData.price ? parseFloat(formData.price) : null,
+                ...data,
+                duration: data.duration ? Number(data.duration) : null,
+                price: data.price ? Number(data.price) : null,
             }).unwrap();
 
             toast.success('Service created successfully');
             router.push('/services');
         } catch (error) {
-            toast.error(error?.data?.detail || 'Failed to create service');
+            console.error('Service creation error:', error);
+            if (error?.status === 422 && error?.data?.detail) {
+                // Handle validation errors from backend
+                const details = Array.isArray(error.data.detail) ? error.data.detail : [error.data.detail];
+                details.forEach((err) => {
+                    const fieldName = err.loc?.[1]; // e.g. ["body", "name"] -> "name"
+                    if (fieldName && methods.getValues(fieldName) !== undefined) {
+                        methods.setError(fieldName, {
+                            type: 'server',
+                            message: err.msg || 'Invalid value'
+                        });
+                    } else {
+                        toast.error(err.msg || 'Validation error');
+                    }
+                });
+                if (!details.some(err => err.loc?.[1])) {
+                    toast.error('Please check the form for errors');
+                }
+            } else {
+                toast.error(error?.data?.detail || 'Failed to create service');
+            }
         }
+
     };
 
     return (
@@ -79,46 +88,42 @@ export default function NewServicePage() {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit}>
+                <Form methods={methods} onSubmit={onSubmit}>
                     <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
                         {/* Basic Information */}
                         <div>
                             <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
+                                <FormInput
+                                    name="name"
                                     label="Service Name"
                                     placeholder="Enter service name"
-                                    value={formData.name}
-                                    onValueChange={(value) => handleChange('name', value)}
                                     isRequired
                                     className="md:col-span-2"
                                 />
-                                <Select
+                                <FormSelect
+                                    name="category"
                                     label="Category"
                                     placeholder="Select category"
-                                    selectedKeys={[formData.category]}
-                                    onSelectionChange={(keys) => handleChange('category', Array.from(keys)[0])}
                                     isRequired
                                 >
-                                    {SERVICE_CATEGORIES.map((cat) => (
-                                        <SelectItem key={cat.key} value={cat.key}>
-                                            {cat.label}
+                                    {(categories || []).map((cat) => (
+                                        <SelectItem key={cat.name} value={cat.name}>
+                                            {cat.name}
                                         </SelectItem>
                                     ))}
-                                </Select>
-                                <Input
+                                </FormSelect>
+                                <FormInput
+                                    name="duration"
                                     label="Duration (minutes)"
                                     type="number"
                                     placeholder="30"
-                                    value={formData.duration}
-                                    onValueChange={(value) => handleChange('duration', value)}
                                 />
-                                <Input
+                                <FormInput
+                                    name="price"
                                     label="Price (₹)"
                                     type="number"
                                     placeholder="500"
-                                    value={formData.price}
-                                    onValueChange={(value) => handleChange('price', value)}
                                     className="md:col-span-2"
                                 />
                             </div>
@@ -126,24 +131,20 @@ export default function NewServicePage() {
 
                         {/* Description */}
                         <div>
-                            <Textarea
+                            <FormTextarea
+                                name="description"
                                 label="Description"
                                 placeholder="Enter service description and details"
-                                value={formData.description}
-                                onValueChange={(value) => handleChange('description', value)}
                                 minRows={4}
                             />
                         </div>
 
                         {/* Status */}
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="font-medium text-gray-900">Active Status</p>
-                                <p className="text-sm text-gray-600">Service will be available for booking</p>
-                            </div>
-                            <Switch
-                                isSelected={formData.is_active}
-                                onValueChange={(value) => handleChange('is_active', value)}
+                        <div>
+                            <FormSwitchRow
+                                name="is_active"
+                                label="Active Status"
+                                description="Service will be available for booking"
                             />
                         </div>
                     </div>
@@ -159,13 +160,13 @@ export default function NewServicePage() {
                         <Button
                             color="primary"
                             type="submit"
-                            isLoading={isLoading}
-                            startContent={!isLoading && <Save className="w-4 h-4" />}
+                            isLoading={isLoading || isSubmitting}
+                            startContent={!isLoading && !isSubmitting && <Save className="w-4 h-4" />}
                         >
                             Create Service
                         </Button>
                     </div>
-                </form>
+                </Form>
             </div>
         </div>
     );

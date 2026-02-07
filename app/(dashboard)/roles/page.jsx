@@ -49,6 +49,10 @@ import {
     useRevokeUserRoleMutation,
 } from '@/redux/services/api';
 import { motion } from 'framer-motion';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { roleSchema } from '@/lib/validation';
+import { FormInput, FormTextarea } from '@/components/ui/FormFields';
 
 export default function RolesPage() {
     const [selectedTab, setSelectedTab] = useState('roles');
@@ -122,19 +126,28 @@ function RolesTab() {
     const [editingRole, setEditingRole] = useState(null);
     const [selectedRole, setSelectedRole] = useState(null);
     const [roleToDelete, setRoleToDelete] = useState(null);
-    const [formData, setFormData] = useState({ name: '', description: '' });
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    const methods = useForm({
+        resolver: zodResolver(roleSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+        },
+    });
+
+    const { reset, handleSubmit: hookFormSubmit, formState: { errors } } = methods;
+
     const handleCreate = () => {
         setEditingRole(null);
-        setFormData({ name: '', description: '' });
+        reset({ name: '', description: '' });
         onOpen();
     };
 
     const handleEdit = (role) => {
         setEditingRole(role);
-        setFormData({ name: role.name, description: role.description || '' });
+        reset({ name: role.name, description: role.description || '' });
         onOpen();
     };
 
@@ -143,18 +156,13 @@ function RolesTab() {
         onPermOpen();
     };
 
-    const handleSubmit = async () => {
-        if (!formData.name.trim()) {
-            toast.error('Role name is required');
-            return;
-        }
-
+    const onSubmit = async (data) => {
         try {
             if (editingRole) {
-                await updateRole({ id: editingRole.id, ...formData }).unwrap();
+                await updateRole({ id: editingRole.id, ...data }).unwrap();
                 toast.success('Role updated successfully');
             } else {
-                await createRole(formData).unwrap();
+                await createRole(data).unwrap();
                 toast.success('Role created successfully');
             }
             onClose();
@@ -370,29 +378,29 @@ function RolesTab() {
                 isOpen={isOpen}
                 onOpenChange={onOpenChange}
                 onClose={onClose}
-                onSubmit={handleSubmit}
+                onSubmit={hookFormSubmit(onSubmit)}
                 title={editingRole ? 'Edit Role' : 'Create Role'}
                 submitLabel={editingRole ? 'Update' : 'Create'}
                 isLoading={isCreating || isUpdating}
             >
-                <div className="space-y-4">
-                    <Input
-                        label="Role Name"
-                        labelPlacement="outside"
-                        placeholder="e.g., manager"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        isDisabled={editingRole && systemRoles.includes(editingRole.name)}
-                        size="sm"
-                    />
-                    <Textarea
-                        label="Description"
-                        labelPlacement="outside"
-                        placeholder="Describe what this role can do..."
-                        value={formData.description}
-                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    />
-                </div>
+                <FormProvider {...methods}>
+                    <div className="space-y-4">
+                        <FormInput
+                            name="name"
+                            label="Role Name"
+                            labelPlacement="outside"
+                            placeholder="e.g., manager"
+                            isDisabled={editingRole && systemRoles.includes(editingRole.name)}
+                            size="sm"
+                        />
+                        <FormTextarea
+                            name="description"
+                            label="Description"
+                            labelPlacement="outside"
+                            placeholder="Describe what this role can do..."
+                        />
+                    </div>
+                </FormProvider>
             </FormModal>
 
             {/* Manage Permissions Modal */}

@@ -209,14 +209,14 @@ export default function Sidebar() {
                                         <button
                                             onClick={() => toggleSection(item.label)}
                                             className={`
-                                                w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all
+                                                w-full flex items-center gap-3 px-2 py-1.5 rounded-lg transition-all
                                                 ${isActive
                                                     ? 'bg-primary-50 text-primary-700'
                                                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                                 }
                                             `}
                                         >
-                                            <IconComponent className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary-600' : ''}`} />
+                                            <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary-600' : ''}`} />
                                             <AnimatePresence mode="wait">
                                                 {(!isCollapsed || isMobileOpen) && (
                                                     <motion.span
@@ -230,7 +230,7 @@ export default function Sidebar() {
                                                 )}
                                             </AnimatePresence>
                                             {(!isCollapsed || isMobileOpen) && (
-                                                <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                             )}
                                         </button>
                                         <AnimatePresence>
@@ -251,14 +251,14 @@ export default function Sidebar() {
                                                                     href={child.href || '#'}
                                                                     onClick={handleNavClick}
                                                                     className={`
-                                                                        flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+                                                                        flex items-center gap-3 px-2 py-1.5 rounded-lg transition-all text-xs
                                                                         ${isChildActive
                                                                             ? 'bg-primary-50 text-primary-700 font-medium'
                                                                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                                                         }
                                                                     `}
                                                                 >
-                                                                    <ChildIcon className={`w-4 h-4 shrink-0 ${isChildActive ? 'text-primary-600' : ''}`} />
+                                                                    <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-primary-600' : ''}`} />
                                                                     <span>{child.label}</span>
                                                                 </Link>
                                                             </li>
@@ -278,21 +278,21 @@ export default function Sidebar() {
                                         href={item.href || '#'}
                                         onClick={handleNavClick}
                                         className={`
-                                            flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all
+                                            flex items-center gap-3 px-2 py-1.5 rounded-lg transition-all
                                             ${isActive
                                                 ? 'bg-primary-50 text-primary-700'
                                                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                             }
                                         `}
                                     >
-                                        <IconComponent className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary-600' : ''}`} />
+                                        <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary-600' : ''}`} />
                                         <AnimatePresence mode="wait">
                                             {(!isCollapsed || isMobileOpen) && (
                                                 <motion.span
                                                     initial={{ opacity: 0, width: 0 }}
                                                     animate={{ opacity: 1, width: 'auto' }}
                                                     exit={{ opacity: 0, width: 0 }}
-                                                    className="font-medium whitespace-nowrap"
+                                                    className="font-medium whitespace-nowrap text-sm"
                                                 >
                                                     {item.label}
                                                 </motion.span>
@@ -327,9 +327,9 @@ export default function Sidebar() {
 
                 <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors text-sm"
                 >
-                    <LogOut className="w-5 h-5 shrink-0" />
+                    <LogOut className="w-4 h-4 shrink-0" />
                     <AnimatePresence mode="wait">
                         {(!isCollapsed || isMobileOpen) && (
                             <motion.span

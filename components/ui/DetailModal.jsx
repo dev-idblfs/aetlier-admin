@@ -14,6 +14,7 @@ import {
     Button,
 } from '@heroui/react';
 import { Edit } from 'lucide-react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 export default function DetailModal({
     isOpen,
@@ -27,6 +28,8 @@ export default function DetailModal({
     size = 'lg',
     actions, // Custom actions to render in footer
 }) {
+    const isMobile = useMediaQuery('(max-width: 768px)');
+
     const handleClose = () => {
         onClose?.();
         onOpenChange?.(false);
@@ -36,7 +39,7 @@ export default function DetailModal({
         <Modal
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            size={size}
+            size={isMobile ? 'full' : size}
             scrollBehavior="inside"
             placement="center"
             backdrop="opaque"

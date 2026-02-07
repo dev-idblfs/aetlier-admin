@@ -169,10 +169,31 @@ export default function CustomersPage() {
         }
 
         try {
+            // Helper to sanitize empty strings to null
+            const sanitize = (val) => val && val.trim() !== '' ? val.trim() : null;
+
             const payload = {
-                ...formData,
+                customer_type: formData.customer_type,
                 display_name: formData.display_name.trim(),
+                salutation: sanitize(formData.salutation),
+                first_name: sanitize(formData.first_name),
+                last_name: sanitize(formData.last_name),
+                company_name: sanitize(formData.company_name),
+                email: sanitize(formData.email),
+                phone: sanitize(formData.phone),
+                mobile: sanitize(formData.mobile),
+                billing_address_line1: sanitize(formData.billing_address), // Map textarea to line1
+                shipping_address_line1: sanitize(formData.shipping_address), // Map textarea to line1
+                // Map frontend names to backend names
+                gstin: sanitize(formData.gst_number),
+                pan: sanitize(formData.pan_number),
+                // Fix Enum Case (Frontend uppercase -> Backend lowercase)
+                payment_terms: (formData.payment_terms || 'DUE_ON_RECEIPT').toLowerCase(),
+                currency: formData.currency || 'INR',
+                notes: sanitize(formData.notes),
             };
+
+            console.log('Submitting payload:', payload);
 
             if (formMode === 'create') {
                 await createCustomer(payload).unwrap();
@@ -184,6 +205,7 @@ export default function CustomersPage() {
             onFormClose();
             refetch();
         } catch (error) {
+            console.error('Customer submit error:', error);
             toast.error(error.data?.detail || `Failed to ${formMode} customer`);
         }
     };

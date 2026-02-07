@@ -27,6 +27,7 @@ export const calculateLineItemTax = (item) => {
  * @returns {number} Subtotal
  */
 export const calculateSubtotal = (lineItems = []) => {
+  if (!Array.isArray(lineItems)) return 0;
   return lineItems.reduce((sum, item) => sum + calculateLineItemTotal(item), 0);
 };
 
@@ -36,6 +37,7 @@ export const calculateSubtotal = (lineItems = []) => {
  * @returns {number} Total tax
  */
 export const calculateTotalTax = (lineItems = []) => {
+  if (!Array.isArray(lineItems)) return 0;
   return lineItems.reduce((sum, item) => sum + calculateLineItemTax(item), 0);
 };
 

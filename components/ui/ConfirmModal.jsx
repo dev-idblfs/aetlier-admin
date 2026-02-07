@@ -14,6 +14,7 @@ import {
     ModalFooter,
     Button,
 } from '@heroui/react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 const iconMap = {
     warning: { icon: AlertTriangle, color: 'text-yellow-500', bg: 'bg-yellow-100' },
@@ -35,6 +36,8 @@ export default function ConfirmModal({
     isLoading = false,
 }) {
     const { icon: IconComponent, color, bg } = iconMap[type] || iconMap.warning;
+
+    const isMobile = useMediaQuery('(max-width: 768px)');
 
     const handleClose = () => {
         onClose?.();
@@ -58,7 +61,7 @@ export default function ConfirmModal({
         <Modal
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            size="sm"
+            size={isMobile ? 'full' : 'sm'}
             placement="center"
             backdrop="opaque"
             motionProps={{

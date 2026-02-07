@@ -28,7 +28,7 @@ export default function Header() {
     };
 
     return (
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
+        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-3 md:px-4 sticky top-0 z-30">
             {/* Left side - Hamburger + Search */}
             <div className="flex items-center gap-3 flex-1">
                 {/* Hamburger menu for mobile */}

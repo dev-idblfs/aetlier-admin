@@ -1,16 +1,10 @@
-/**
- * InvoiceNotesFields Component
- * Reusable notes and terms fields
- */
 'use client';
 
-import { Textarea } from '@heroui/react';
+import { FormTextarea } from '@/components/ui/FormFields';
 
 export default function InvoiceNotesFields({
-    notes = '',
-    terms = '',
-    onNotesChange,
-    onTermsChange,
+    notesName = 'notes',
+    termsName = 'terms_conditions',
     readonly = false,
     notesLabel = 'Notes',
     termsLabel = 'Terms & Conditions',
@@ -19,21 +13,17 @@ export default function InvoiceNotesFields({
 }) {
     return (
         <div className="space-y-4">
-            <Textarea
+            <FormTextarea
+                name={notesName}
                 label={notesLabel}
-                labelPlacement="outside"
                 placeholder={notesPlaceholder}
-                value={notes}
-                onChange={(e) => onNotesChange(e.target.value)}
                 minRows={3}
                 isReadOnly={readonly}
             />
-            <Textarea
+            <FormTextarea
+                name={termsName}
                 label={termsLabel}
-                labelPlacement="outside"
                 placeholder={termsPlaceholder}
-                value={terms}
-                onChange={(e) => onTermsChange(e.target.value)}
                 minRows={3}
                 isReadOnly={readonly}
             />

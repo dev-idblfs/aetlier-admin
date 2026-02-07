@@ -6,9 +6,15 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
-import { Button, Input, Textarea, Switch, Select, SelectItem } from '@heroui/react';
+import { Button, SelectItem, Input } from '@heroui/react'; // Input needed for qual add
 import { toast } from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { useCreateDoctorMutation } from '@/redux/services/api';
+import { doctorSchema } from '@/lib/validation';
+import { Form } from '@/components/ui/Form';
+import { FormInput, FormTextarea, FormSelect, FormSwitchRow } from '@/components/ui/FormFields';
 
 const SPECIALIZATIONS = [
     'Dermatologist',
@@ -26,60 +32,42 @@ const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam'
 export default function NewDoctorPage() {
     const router = useRouter();
     const [createDoctor, { isLoading }] = useCreateDoctorMutation();
+    const [qualificationInput, setQualificationInput] = useState('');
 
-    const [formData, setFormData] = useState({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        specializations: [],
-        qualifications: [],
-        bio: '',
-        consultation_fee: '',
-        experience_years: '',
-        languages: [],
-        is_active: true,
+    const methods = useForm({
+        resolver: zodResolver(doctorSchema),
+        defaultValues: {
+            first_name: '',
+            last_name: '',
+            email: '',
+            phone: '',
+            specializations: [],
+            qualifications: [],
+            bio: '',
+            consultation_fee: 0,
+            experience_years: 0,
+            languages: [],
+            is_active: true,
+        },
     });
 
-    const [qualification, setQualification] = useState('');
-
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
+    const { setValue, watch, handleSubmit, formState: { isSubmitting } } = methods;
+    const qualifications = watch('qualifications') || [];
 
     const handleAddQualification = () => {
-        if (qualification.trim()) {
-            setFormData(prev => ({
-                ...prev,
-                qualifications: [...prev.qualifications, qualification.trim()]
-            }));
-            setQualification('');
+        if (qualificationInput.trim()) {
+            setValue('qualifications', [...qualifications, qualificationInput.trim()]);
+            setQualificationInput('');
         }
     };
 
     const handleRemoveQualification = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            qualifications: prev.qualifications.filter((_, i) => i !== index)
-        }));
+        setValue('qualifications', qualifications.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        // Validation
-        if (!formData.first_name || !formData.last_name || !formData.email) {
-            toast.error('Please fill in all required fields');
-            return;
-        }
-
+    const onSubmit = async (data) => {
         try {
-            await createDoctor({
-                ...formData,
-                consultation_fee: formData.consultation_fee ? parseFloat(formData.consultation_fee) : null,
-                experience_years: formData.experience_years ? parseInt(formData.experience_years) : 0,
-            }).unwrap();
-
+            await createDoctor(data).unwrap();
             toast.success('Doctor created successfully');
             router.push('/doctors');
         } catch (error) {
@@ -106,40 +94,36 @@ export default function NewDoctorPage() {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit}>
+                <Form methods={methods} onSubmit={onSubmit}>
                     <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
                         {/* Basic Information */}
                         <div>
                             <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
+                                <FormInput
+                                    name="first_name"
                                     label="First Name"
                                     placeholder="Enter first name"
-                                    value={formData.first_name}
-                                    onValueChange={(value) => handleChange('first_name', value)}
                                     isRequired
                                 />
-                                <Input
+                                <FormInput
+                                    name="last_name"
                                     label="Last Name"
                                     placeholder="Enter last name"
-                                    value={formData.last_name}
-                                    onValueChange={(value) => handleChange('last_name', value)}
                                     isRequired
                                 />
-                                <Input
+                                <FormInput
+                                    name="email"
                                     label="Email"
                                     type="email"
                                     placeholder="doctor@example.com"
-                                    value={formData.email}
-                                    onValueChange={(value) => handleChange('email', value)}
                                     isRequired
                                 />
-                                <Input
+                                <FormInput
+                                    name="phone"
                                     label="Phone"
                                     type="tel"
                                     placeholder="+91 9876543210"
-                                    value={formData.phone}
-                                    onValueChange={(value) => handleChange('phone', value)}
                                 />
                             </div>
                         </div>
@@ -148,33 +132,36 @@ export default function NewDoctorPage() {
                         <div>
                             <h2 className="text-lg font-semibold mb-4">Professional Details</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Select
+                                <FormSelect
+                                    name="specializations"
                                     label="Specializations"
                                     placeholder="Select specializations"
                                     selectionMode="multiple"
-                                    selectedKeys={formData.specializations}
-                                    onSelectionChange={(keys) => handleChange('specializations', Array.from(keys))}
                                 >
                                     {SPECIALIZATIONS.map((spec) => (
                                         <SelectItem key={spec} value={spec}>
                                             {spec}
                                         </SelectItem>
                                     ))}
-                                </Select>
+                                </FormSelect>
 
                                 <div>
                                     <label className="block text-sm font-medium mb-2">Qualifications</label>
                                     <div className="flex gap-2 mb-2">
                                         <Input
                                             placeholder="Add qualification (e.g., MBBS, MD)"
-                                            value={qualification}
-                                            onValueChange={setQualification}
+                                            value={qualificationInput}
+                                            onValueChange={setQualificationInput}
                                             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddQualification())}
+                                            labelPlacement="outside"
+                                            classNames={{
+                                                inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
+                                            }}
                                         />
                                         <Button onPress={handleAddQualification}>Add</Button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        {formData.qualifications.map((qual, idx) => (
+                                        {qualifications.map((qual, idx) => (
                                             <span
                                                 key={idx}
                                                 className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
@@ -192,60 +179,51 @@ export default function NewDoctorPage() {
                                     </div>
                                 </div>
 
-                                <Input
+                                <FormInput
+                                    name="experience_years"
                                     label="Experience (Years)"
                                     type="number"
                                     placeholder="0"
-                                    value={formData.experience_years}
-                                    onValueChange={(value) => handleChange('experience_years', value)}
                                 />
 
-                                <Input
+                                <FormInput
+                                    name="consultation_fee"
                                     label="Consultation Fee (₹)"
                                     type="number"
                                     placeholder="0"
-                                    value={formData.consultation_fee}
-                                    onValueChange={(value) => handleChange('consultation_fee', value)}
                                 />
 
-                                <Select
+                                <FormSelect
+                                    name="languages"
                                     label="Languages"
                                     placeholder="Select languages"
                                     selectionMode="multiple"
-                                    selectedKeys={formData.languages}
-                                    onSelectionChange={(keys) => handleChange('languages', Array.from(keys))}
                                 >
                                     {LANGUAGES.map((lang) => (
                                         <SelectItem key={lang} value={lang}>
                                             {lang}
                                         </SelectItem>
                                     ))}
-                                </Select>
+                                </FormSelect>
                             </div>
                         </div>
 
                         {/* Biography */}
                         <div>
-                            <Textarea
+                            <FormTextarea
+                                name="bio"
                                 label="Biography"
                                 placeholder="Enter doctor's bio and professional background"
-                                value={formData.bio}
-                                onValueChange={(value) => handleChange('bio', value)}
                                 minRows={4}
                             />
                         </div>
 
                         {/* Status */}
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="font-medium text-gray-900">Active Status</p>
-                                <p className="text-sm text-gray-600">Doctor will be visible to patients</p>
-                            </div>
-                            <Switch
-                                isSelected={formData.is_active}
-                                onValueChange={(value) => handleChange('is_active', value)}
-                            />
-                        </div>
+                        <FormSwitchRow
+                            name="is_active"
+                            label="Active Status"
+                            description="Doctor will be visible to patients"
+                        />
                     </div>
 
                     {/* Actions */}
@@ -259,13 +237,13 @@ export default function NewDoctorPage() {
                         <Button
                             color="primary"
                             type="submit"
-                            isLoading={isLoading}
-                            startContent={!isLoading && <Save className="w-4 h-4" />}
+                            isLoading={isLoading || isSubmitting}
+                            startContent={(!isLoading && !isSubmitting) && <Save className="w-4 h-4" />}
                         >
                             Create Doctor
                         </Button>
                     </div>
-                </form>
+                </Form>
             </div>
         </div>
     );

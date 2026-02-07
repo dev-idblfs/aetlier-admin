@@ -37,13 +37,11 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { PageHeader, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton } from '@/components/ui';
+import { PageHeader, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, LinkButton } from '@/components/ui';
 import {
     useGetExpensesQuery,
     useGetExpenseCategoriesQuery,
     useDeleteExpenseMutation,
-    useCreateExpenseCategoryMutation,
-    useSeedExpenseCategoriesMutation,
 } from '@/redux/services/api';
 import { formatDate, formatCurrency } from '@/utils/dateFormatters';
 
@@ -60,10 +58,9 @@ export default function ExpensesPage() {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [selectedExpense, setSelectedExpense] = useState(null);
-    const [newCategoryName, setNewCategoryName] = useState('');
 
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange, onClose: onDeleteClose } = useDisclosure();
-    const { isOpen: isCategoryOpen, onOpen: onCategoryOpen, onOpenChange: onCategoryOpenChange, onClose: onCategoryClose } = useDisclosure();
+
 
     const { data, isLoading, refetch } = useGetExpensesQuery({
         page,
@@ -75,8 +72,6 @@ export default function ExpensesPage() {
 
     const { data: categories } = useGetExpenseCategoriesQuery();
     const [deleteExpense, { isLoading: isDeleting }] = useDeleteExpenseMutation();
-    const [createCategory, { isLoading: isCreatingCategory }] = useCreateExpenseCategoryMutation();
-    const [seedCategories, { isLoading: isSeeding }] = useSeedExpenseCategoriesMutation();
 
     const expenses = data?.expenses || [];
     const totalPages = data?.total_pages || 1;
@@ -102,29 +97,6 @@ export default function ExpensesPage() {
             refetch();
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to delete expense');
-        }
-    };
-
-    const handleCreateCategory = async () => {
-        if (!newCategoryName.trim()) {
-            toast.error('Category name is required');
-            return;
-        }
-        try {
-            await createCategory({ name: newCategoryName, icon: '📁' }).unwrap();
-            toast.success('Category created successfully');
-            setNewCategoryName('');
-        } catch (error) {
-            toast.error(error.data?.detail || 'Failed to create category');
-        }
-    };
-
-    const handleSeedCategories = async () => {
-        try {
-            await seedCategories().unwrap();
-            toast.success('Default categories seeded');
-        } catch (error) {
-            toast.error(error.data?.detail || 'Failed to seed categories');
         }
     };
 
@@ -210,9 +182,13 @@ export default function ExpensesPage() {
                 description="Track and manage business expenses"
                 actions={
                     <div className="flex gap-2">
-                        <Button variant="flat" startContent={<Tag className="w-4 h-4" />} onPress={onCategoryOpen}>
+                        <LinkButton
+                            href="/finance/expenses/categories"
+                            variant="flat"
+                            startContent={<Tag className="w-4 h-4" />}
+                        >
                             Categories
-                        </Button>
+                        </LinkButton>
                         <LinkButton
                             href="/finance/expenses/new"
                             color="primary"
@@ -327,49 +303,6 @@ export default function ExpensesPage() {
                 type="danger"
                 isLoading={isDeleting}
             />
-
-            {/* Category Management Modal */}
-            <DetailModal
-                isOpen={isCategoryOpen}
-                onOpenChange={onCategoryOpenChange}
-                title="Manage Categories"
-            >
-                <div className="space-y-4">
-                    {/* Add new category */}
-                    <div className="flex gap-2">
-                        <Input
-                            placeholder="New category name"
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            className="flex-1"
-                        />
-                        <Button color="primary" onPress={handleCreateCategory} isLoading={isCreatingCategory}>
-                            Add
-                        </Button>
-                    </div>
-
-                    {/* Existing categories */}
-                    <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-700">Existing Categories</p>
-                        {categories?.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                                {categories.map((cat) => (
-                                    <Chip key={cat.id} variant="flat">
-                                        {cat.icon} {cat.name}
-                                    </Chip>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-4">
-                                <p className="text-gray-500 mb-3">No categories yet</p>
-                                <Button variant="flat" onPress={handleSeedCategories} isLoading={isSeeding}>
-                                    Load Default Categories
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </DetailModal>
         </div>
     );
 }

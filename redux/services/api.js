@@ -51,6 +51,7 @@ export const api = createApi({
     "Report",
     "Navigation",
     "Wallet",
+    "Category",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -442,6 +443,55 @@ export const api = createApi({
         method: "DELETE",
       }),
       invalidatesTags: ["Service"],
+    }),
+
+    // =========================================================================
+    // GENERIC CATEGORY ENDPOINTS
+    // =========================================================================
+
+    // GET /categories - List categories by type
+    getCategories: builder.query({
+      query: ({ type, active_only = true }) => 
+        `/categories?type=${type}&active_only=${active_only}`,
+      providesTags: ["Category"],
+    }),
+
+    // GET /categories/:id - Get single category
+    getCategory: builder.query({
+      query: (id) => `/categories/${id}`,
+      providesTags: (result, error, id) => [{ type: "Category", id }],
+    }),
+
+    // POST /categories - Create category
+    createCategory: builder.mutation({
+      query: (data) => ({
+        url: "/categories",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Category"],
+    }),
+
+    // PATCH /categories/:id - Update category
+    updateCategory: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/categories/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Category", id },
+        "Category",
+      ],
+    }),
+
+    // DELETE /categories/:id - Delete category
+    deleteCategory: builder.mutation({
+      query: (id) => ({
+        url: `/categories/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Category"],
     }),
 
     // =========================================================================
@@ -1019,4 +1069,10 @@ export const {
   useGetAppSettingQuery,
   useUpdateAppSettingMutation,
   useSeedAppSettingsMutation,
+  // Categories
+  useGetCategoriesQuery,
+  useGetCategoryQuery,
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
 } = api;

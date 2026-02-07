@@ -1,10 +1,7 @@
-/**
- * InvoiceDetailsFields Component
- * Reusable invoice date/terms fields group
- */
 'use client';
 
-import { Input, Select, SelectItem } from '@heroui/react';
+import { SelectItem } from '@heroui/react';
+import { FormInput, FormSelect } from '@/components/ui/FormFields';
 
 const PAYMENT_TERMS = [
     { value: 'DUE_ON_RECEIPT', label: 'Due on Receipt' },
@@ -15,32 +12,20 @@ const PAYMENT_TERMS = [
     { value: 'NET_60', label: 'Net 60 Days' },
 ];
 
-export default function InvoiceDetailsFields({
-    value,
-    onChange,
-    onPaymentTermsChange,
-    disabled = false,
-}) {
+export default function InvoiceDetailsFields({ disabled = false }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
+            <FormInput
+                name="invoice_date"
                 label="Invoice Date"
-                labelPlacement="outside"
                 type="date"
-                value={value.invoice_date}
-                onChange={(e) => onChange({ ...value, invoice_date: e.target.value })}
                 isRequired
                 isDisabled={disabled}
             />
-            <Select
+            <FormSelect
+                name="payment_terms"
                 label="Payment Terms"
-                labelPlacement="outside"
                 placeholder="Select payment terms"
-                selectedKeys={value.payment_terms ? [value.payment_terms] : []}
-                onSelectionChange={(keys) => {
-                    const selectedTerm = Array.from(keys)[0];
-                    onPaymentTermsChange(selectedTerm);
-                }}
                 isRequired
                 isDisabled={disabled}
             >
@@ -49,13 +34,11 @@ export default function InvoiceDetailsFields({
                         {term.label}
                     </SelectItem>
                 ))}
-            </Select>
-            <Input
+            </FormSelect>
+            <FormInput
+                name="due_date"
                 label="Due Date"
-                labelPlacement="outside"
                 type="date"
-                value={value.due_date}
-                onChange={(e) => onChange({ ...value, due_date: e.target.value })}
                 isRequired
                 isDisabled={disabled}
             />

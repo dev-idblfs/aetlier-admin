@@ -1,24 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
-import { Button, Input, Textarea, Switch, Select, SelectItem, Spinner } from '@heroui/react';
+import { Button, SelectItem, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { useGetServiceQuery, useUpdateServiceMutation } from '@/redux/services/api';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-const SERVICE_CATEGORIES = [
-    { key: 'medi-care', label: 'Medi Care' },
-    { key: 'skin-treatment', label: 'Skin Treatment' },
-    { key: 'laser-treatments', label: 'Laser Treatments' },
-    { key: 'semi-permanent-makeup', label: 'Semi Permanent Makeup' },
-    { key: 'hair-treatments', label: 'Hair Treatments' },
-    { key: 'gynae-care', label: 'Gynae Care' },
-    { key: 'skincare', label: 'Skincare' },
-    { key: 'wellness', label: 'Wellness' },
-    { key: 'cosmetic', label: 'Cosmetic' },
-    { key: 'therapy', label: 'Therapy' },
-];
+import { useGetServiceQuery, useUpdateServiceMutation, useGetCategoriesQuery } from '@/redux/services/api';
+import { serviceSchema } from '@/lib/validation';
+import { Form } from '@/components/ui/Form';
+import { FormInput, FormTextarea, FormSelect, FormSwitchRow } from '@/components/ui/FormFields';
+
+
 
 export default function EditServicePage() {
     const router = useRouter();
@@ -26,49 +21,43 @@ export default function EditServicePage() {
     const serviceId = params.id;
 
     const { data: service, isLoading: isLoadingService } = useGetServiceQuery(serviceId);
+    const { data: categories } = useGetCategoriesQuery({ type: 'SERVICE' });
     const [updateService, { isLoading: isUpdating }] = useUpdateServiceMutation();
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        category: 'medi-care',
-        duration: '',
-        price: '',
-        is_active: true,
+    const methods = useForm({
+        resolver: zodResolver(serviceSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+            category: '',
+            duration: '',
+            price: '',
+            is_active: true,
+        },
     });
+
+    const { reset, formState: { isSubmitting } } = methods;
 
     useEffect(() => {
         if (service) {
-            setFormData({
+            reset({
                 name: service.name || '',
                 description: service.description || '',
-                category: service.category || 'medi-care',
+                category: service.category || '',
                 duration: service.duration?.toString() || '',
-                price: service.price?.toString() || '',
+                price: (service.price !== undefined && service.price !== null) ? service.price.toString() : '',
                 is_active: service.is_active ?? true,
             });
         }
-    }, [service]);
+    }, [service, reset]);
 
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        // Validation
-        if (!formData.name || !formData.category) {
-            toast.error('Please fill in all required fields');
-            return;
-        }
-
+    const onSubmit = async (data) => {
         try {
             await updateService({
                 id: serviceId,
-                ...formData,
-                duration: formData.duration ? parseInt(formData.duration) : null,
-                price: formData.price ? parseFloat(formData.price) : null,
+                ...data,
+                duration: data.duration ? Number(data.duration) : null,
+                price: data.price ? Number(data.price) : null,
             }).unwrap();
 
             toast.success('Service updated successfully');
@@ -114,46 +103,42 @@ export default function EditServicePage() {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit}>
+                <Form methods={methods} onSubmit={onSubmit}>
                     <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
                         {/* Basic Information */}
                         <div>
                             <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
+                                <FormInput
+                                    name="name"
                                     label="Service Name"
                                     placeholder="Enter service name"
-                                    value={formData.name}
-                                    onValueChange={(value) => handleChange('name', value)}
                                     isRequired
                                     className="md:col-span-2"
                                 />
-                                <Select
+                                <FormSelect
+                                    name="category"
                                     label="Category"
                                     placeholder="Select category"
-                                    selectedKeys={[formData.category]}
-                                    onSelectionChange={(keys) => handleChange('category', Array.from(keys)[0])}
                                     isRequired
                                 >
-                                    {SERVICE_CATEGORIES.map((cat) => (
-                                        <SelectItem key={cat.key} value={cat.key}>
-                                            {cat.label}
+                                    {(categories || []).map((cat) => (
+                                        <SelectItem key={cat.name} value={cat.name}>
+                                            {cat.name}
                                         </SelectItem>
                                     ))}
-                                </Select>
-                                <Input
+                                </FormSelect>
+                                <FormInput
+                                    name="duration"
                                     label="Duration (minutes)"
                                     type="number"
                                     placeholder="30"
-                                    value={formData.duration}
-                                    onValueChange={(value) => handleChange('duration', value)}
                                 />
-                                <Input
+                                <FormInput
+                                    name="price"
                                     label="Price (₹)"
                                     type="number"
                                     placeholder="500"
-                                    value={formData.price}
-                                    onValueChange={(value) => handleChange('price', value)}
                                     className="md:col-span-2"
                                 />
                             </div>
@@ -161,24 +146,20 @@ export default function EditServicePage() {
 
                         {/* Description */}
                         <div>
-                            <Textarea
+                            <FormTextarea
+                                name="description"
                                 label="Description"
                                 placeholder="Enter service description and details"
-                                value={formData.description}
-                                onValueChange={(value) => handleChange('description', value)}
                                 minRows={4}
                             />
                         </div>
 
                         {/* Status */}
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="font-medium text-gray-900">Active Status</p>
-                                <p className="text-sm text-gray-600">Service will be available for booking</p>
-                            </div>
-                            <Switch
-                                isSelected={formData.is_active}
-                                onValueChange={(value) => handleChange('is_active', value)}
+                        <div>
+                            <FormSwitchRow
+                                name="is_active"
+                                label="Active Status"
+                                description="Service will be available for booking"
                             />
                         </div>
                     </div>
@@ -194,13 +175,13 @@ export default function EditServicePage() {
                         <Button
                             color="primary"
                             type="submit"
-                            isLoading={isUpdating}
-                            startContent={!isUpdating && <Save className="w-4 h-4" />}
+                            isLoading={isUpdating || isSubmitting}
+                            startContent={!isUpdating && !isSubmitting && <Save className="w-4 h-4" />}
                         >
                             Save Changes
                         </Button>
                     </div>
-                </form>
+                </Form>
             </div>
         </div>
     );

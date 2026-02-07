@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
-import { Button, Input, Textarea, Select, SelectItem } from '@heroui/react';
+import { Button, SelectItem } from '@heroui/react';
 import { toast } from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { customerSchema } from '@/lib/validation';
+import { Form } from '@/components/ui/Form';
+import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
 import { useCreateCustomerMutation } from '@/redux/services/api';
 
 const CUSTOMER_TYPES = [
@@ -23,38 +27,51 @@ export default function NewCustomerPage() {
     const router = useRouter();
     const [createCustomer, { isLoading }] = useCreateCustomerMutation();
 
-    const [formData, setFormData] = useState({
-        email: '',
-        first_name: '',
-        last_name: '',
-        phone: '',
-        customer_type: 'individual',
-        company_name: '',
-        gstin: '',
-        pan: '',
-        billing_address: '',
-        shipping_address: '',
-        payment_terms: 'immediate',
+    const methods = useForm({
+        resolver: zodResolver(customerSchema),
+        defaultValues: {
+            first_name: '',
+            last_name: '',
+            email: '',
+            phone: '',
+            customer_type: 'individual',
+            company_name: '',
+            gstin: '',
+            pan: '',
+            billing_address: '',
+            shipping_address: '',
+            payment_terms: 'immediate',
+        },
     });
 
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        // Validation
-        if (!formData.email || !formData.first_name) {
-            toast.error('Please fill in all required fields');
-            return;
-        }
-
+    const onSubmit = async (data) => {
         try {
+            // Validate JSON if present
+            let billingAddr = null;
+            let shippingAddr = null;
+
+            if (data.billing_address) {
+                try {
+                    billingAddr = JSON.parse(data.billing_address);
+                } catch (e) {
+                    toast.error('Invalid JSON in Billing Address');
+                    return;
+                }
+            }
+
+            if (data.shipping_address) {
+                try {
+                    shippingAddr = JSON.parse(data.shipping_address);
+                } catch (e) {
+                    toast.error('Invalid JSON in Shipping Address');
+                    return;
+                }
+            }
+
             const payload = {
-                ...formData,
-                billing_address: formData.billing_address ? JSON.parse(formData.billing_address) : null,
-                shipping_address: formData.shipping_address ? JSON.parse(formData.shipping_address) : null,
+                ...data,
+                billing_address: billingAddr,
+                shipping_address: shippingAddr,
             };
 
             await createCustomer(payload).unwrap();
@@ -84,120 +101,107 @@ export default function NewCustomerPage() {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit}>
-                    <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                        {/* Basic Information */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                    label="First Name"
-                                    placeholder="Enter first name"
-                                    value={formData.first_name}
-                                    onValueChange={(value) => handleChange('first_name', value)}
-                                    isRequired
-                                />
-                                <Input
-                                    label="Last Name"
-                                    placeholder="Enter last name"
-                                    value={formData.last_name}
-                                    onValueChange={(value) => handleChange('last_name', value)}
-                                />
-                                <Input
-                                    label="Email"
-                                    type="email"
-                                    placeholder="customer@example.com"
-                                    value={formData.email}
-                                    onValueChange={(value) => handleChange('email', value)}
-                                    isRequired
-                                />
-                                <Input
-                                    label="Phone"
-                                    type="tel"
-                                    placeholder="+91 9876543210"
-                                    value={formData.phone}
-                                    onValueChange={(value) => handleChange('phone', value)}
-                                />
-                            </div>
+                <Form methods={methods} onSubmit={onSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                    {/* Basic Information */}
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormInput
+                                name="first_name"
+                                label="First Name"
+                                placeholder="Enter first name"
+                                isRequired
+                            />
+                            <FormInput
+                                name="last_name"
+                                label="Last Name"
+                                placeholder="Enter last name"
+                            />
+                            <FormInput
+                                name="email"
+                                label="Email"
+                                type="email"
+                                placeholder="customer@example.com"
+                                isRequired
+                            />
+                            <FormInput
+                                name="phone"
+                                label="Phone"
+                                type="tel"
+                                placeholder="+91 9876543210"
+                            />
                         </div>
+                    </div>
 
-                        {/* Business Information */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Business Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Select
-                                    label="Customer Type"
-                                    placeholder="Select type"
-                                    selectedKeys={[formData.customer_type]}
-                                    onSelectionChange={(keys) => handleChange('customer_type', Array.from(keys)[0])}
-                                >
-                                    {CUSTOMER_TYPES.map((type) => (
-                                        <SelectItem key={type.key} value={type.key}>
-                                            {type.label}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
-                                <Input
-                                    label="Company Name"
-                                    placeholder="Enter company name"
-                                    value={formData.company_name}
-                                    onValueChange={(value) => handleChange('company_name', value)}
-                                />
-                                <Input
-                                    label="GSTIN"
-                                    placeholder="Enter GSTIN"
-                                    value={formData.gstin}
-                                    onValueChange={(value) => handleChange('gstin', value)}
-                                />
-                                <Input
-                                    label="PAN"
-                                    placeholder="Enter PAN"
-                                    value={formData.pan}
-                                    onValueChange={(value) => handleChange('pan', value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Address Information */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Address Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Textarea
-                                    label="Billing Address"
-                                    placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
-                                    value={formData.billing_address}
-                                    onValueChange={(value) => handleChange('billing_address', value)}
-                                    minRows={3}
-                                    description="Enter as JSON format"
-                                />
-                                <Textarea
-                                    label="Shipping Address"
-                                    placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
-                                    value={formData.shipping_address}
-                                    onValueChange={(value) => handleChange('shipping_address', value)}
-                                    minRows={3}
-                                    description="Enter as JSON format"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Payment Terms */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Payment Terms</h2>
-                            <Select
-                                label="Payment Terms"
-                                placeholder="Select payment terms"
-                                selectedKeys={[formData.payment_terms]}
-                                onSelectionChange={(keys) => handleChange('payment_terms', Array.from(keys)[0])}
-                                className="max-w-md"
+                    {/* Business Information */}
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4">Business Information</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormSelect
+                                name="customer_type"
+                                label="Customer Type"
+                                placeholder="Select type"
                             >
-                                {PAYMENT_TERMS.map((term) => (
-                                    <SelectItem key={term.key} value={term.key}>
-                                        {term.label}
+                                {CUSTOMER_TYPES.map((type) => (
+                                    <SelectItem key={type.key} value={type.key}>
+                                        {type.label}
                                     </SelectItem>
                                 ))}
-                            </Select>
+                            </FormSelect>
+                            <FormInput
+                                name="company_name"
+                                label="Company Name"
+                                placeholder="Enter company name"
+                            />
+                            <FormInput
+                                name="gstin"
+                                label="GSTIN"
+                                placeholder="Enter GSTIN"
+                            />
+                            <FormInput
+                                name="pan"
+                                label="PAN"
+                                placeholder="Enter PAN"
+                            />
                         </div>
+                    </div>
+
+                    {/* Address Information */}
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4">Address Information</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormTextarea
+                                name="billing_address"
+                                label="Billing Address"
+                                placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
+                                minRows={3}
+                                description="Enter as JSON format"
+                            />
+                            <FormTextarea
+                                name="shipping_address"
+                                label="Shipping Address"
+                                placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
+                                minRows={3}
+                                description="Enter as JSON format"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Payment Terms */}
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4">Payment Terms</h2>
+                        <FormSelect
+                            name="payment_terms"
+                            label="Payment Terms"
+                            placeholder="Select payment terms"
+                            className="max-w-md"
+                        >
+                            {PAYMENT_TERMS.map((term) => (
+                                <SelectItem key={term.key} value={term.key}>
+                                    {term.label}
+                                </SelectItem>
+                            ))}
+                        </FormSelect>
                     </div>
 
                     {/* Actions */}
@@ -217,7 +221,7 @@ export default function NewCustomerPage() {
                             Create Customer
                         </Button>
                     </div>
-                </form>
+                </Form>
             </div>
         </div>
     );

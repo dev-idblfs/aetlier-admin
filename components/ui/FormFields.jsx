@@ -6,6 +6,15 @@
 'use client';
 
 import { Input, Textarea, Select, SelectItem, Switch } from '@heroui/react';
+import { Controller, useFormContext } from 'react-hook-form';
+
+/**
+ * Helper to get control from props or context
+ */
+const useFormControl = (control) => {
+    const context = useFormContext();
+    return control || context?.control;
+};
 
 /**
  * Form Section
@@ -42,6 +51,8 @@ export function FormRow({ children, columns = 2, className = '' }) {
  * Styled input with outside label
  */
 export function FormInput({
+    name,
+    control,
     label,
     value,
     onChange,
@@ -56,6 +67,38 @@ export function FormInput({
     className = '',
     ...props
 }) {
+    const activeControl = useFormControl(control);
+
+    if (name && activeControl) {
+        return (
+            <Controller
+                name={name}
+                control={activeControl}
+                render={({ field, fieldState: { error } }) => (
+                    <Input
+                        {...field}
+                        label={label}
+                        labelPlacement="outside"
+                        placeholder={placeholder}
+                        type={type}
+                        isRequired={isRequired}
+                        isDisabled={isDisabled}
+                        description={description}
+                        errorMessage={error?.message || errorMessage}
+                        isInvalid={!!error || !!errorMessage}
+                        startContent={startContent}
+                        endContent={endContent}
+                        classNames={{
+                            inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
+                        }}
+                        className={className}
+                        {...props}
+                    />
+                )}
+            />
+        );
+    }
+
     return (
         <Input
             label={label}
@@ -84,6 +127,8 @@ export function FormInput({
  * Styled textarea with outside label
  */
 export function FormTextarea({
+    name,
+    control,
     label,
     value,
     onChange,
@@ -93,8 +138,39 @@ export function FormTextarea({
     minRows = 3,
     description,
     className = '',
+    errorMessage,
     ...props
 }) {
+    const activeControl = useFormControl(control);
+
+    if (name && activeControl) {
+        return (
+            <Controller
+                name={name}
+                control={activeControl}
+                render={({ field, fieldState: { error } }) => (
+                    <Textarea
+                        {...field}
+                        label={label}
+                        labelPlacement="outside"
+                        placeholder={placeholder}
+                        isRequired={isRequired}
+                        isDisabled={isDisabled}
+                        minRows={minRows}
+                        description={description}
+                        errorMessage={error?.message || errorMessage}
+                        isInvalid={!!error || !!errorMessage}
+                        classNames={{
+                            inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
+                        }}
+                        className={className}
+                        {...props}
+                    />
+                )}
+            />
+        );
+    }
+
     return (
         <Textarea
             label={label}
@@ -106,6 +182,7 @@ export function FormTextarea({
             isDisabled={isDisabled}
             minRows={minRows}
             description={description}
+            errorMessage={errorMessage}
             classNames={{
                 inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
             }}
@@ -120,6 +197,8 @@ export function FormTextarea({
  * Styled select with outside label
  */
 export function FormSelect({
+    name,
+    control,
     label,
     selectedKeys,
     onSelectionChange,
@@ -127,10 +206,54 @@ export function FormSelect({
     isRequired = false,
     isDisabled = false,
     description,
+    errorMessage,
     children,
     className = '',
+    selectionMode = "single",
     ...props
 }) {
+    const activeControl = useFormControl(control);
+
+    if (name && activeControl) {
+        return (
+            <Controller
+                name={name}
+                control={activeControl}
+                render={({ field, fieldState: { error } }) => {
+                    const keys = field.value
+                        ? (Array.isArray(field.value) ? new Set(field.value) : new Set([field.value]))
+                        : new Set([]);
+
+                    return (
+                        <Select
+                            label={label}
+                            labelPlacement="outside"
+                            placeholder={placeholder}
+                            selectedKeys={keys}
+                            onSelectionChange={(k) => {
+                                const arr = Array.from(k);
+                                field.onChange(selectionMode === 'multiple' ? arr : arr[0]);
+                            }}
+                            isRequired={isRequired}
+                            isDisabled={isDisabled}
+                            description={description}
+                            errorMessage={error?.message || errorMessage}
+                            isInvalid={!!error || !!errorMessage}
+                            selectionMode={selectionMode}
+                            classNames={{
+                                trigger: 'bg-white border border-gray-200 hover:border-gray-300',
+                            }}
+                            className={className}
+                            {...props}
+                        >
+                            {children}
+                        </Select>
+                    );
+                }}
+            />
+        );
+    }
+
     return (
         <Select
             label={label}
@@ -141,6 +264,8 @@ export function FormSelect({
             isRequired={isRequired}
             isDisabled={isDisabled}
             description={description}
+            errorMessage={errorMessage}
+            selectionMode={selectionMode}
             classNames={{
                 trigger: 'bg-white border border-gray-200 hover:border-gray-300',
             }}
@@ -157,6 +282,8 @@ export function FormSelect({
  * Switch with label and description in a row layout
  */
 export function FormSwitchRow({
+    name,
+    control,
     label,
     description,
     isSelected,
@@ -164,6 +291,31 @@ export function FormSwitchRow({
     isDisabled = false,
     className = '',
 }) {
+    const activeControl = useFormControl(control);
+
+    if (name && activeControl) {
+        return (
+            <Controller
+                name={name}
+                control={activeControl}
+                render={({ field }) => (
+                    <div className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${className}`}>
+                        <div className="flex-1 min-w-0 mr-3">
+                            <p className="font-medium text-gray-900 text-sm">{label}</p>
+                            {description && <p className="text-xs text-gray-500">{description}</p>}
+                        </div>
+                        <Switch
+                            isSelected={field.value}
+                            onValueChange={field.onChange}
+                            isDisabled={isDisabled}
+                            size="sm"
+                        />
+                    </div>
+                )}
+            />
+        );
+    }
+
     return (
         <div className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${className}`}>
             <div className="flex-1 min-w-0 mr-3">

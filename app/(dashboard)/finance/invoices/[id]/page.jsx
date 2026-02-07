@@ -8,37 +8,12 @@
 // Force dynamic rendering - no SSR/static optimization needed for admin
 export const dynamic = 'force-dynamic';
 
-import { use, useState } from 'react';
-import { Download, Send, Trash2, DollarSign, AlertCircle, Edit } from 'lucide-react';
-import {
-    Button,
-    Card,
-    CardBody,
-    Spinner,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    useDisclosure,
-    Input,
-    Select,
-    SelectItem,
-} from '@heroui/react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import { ConfirmModal } from '@/components/ui';
-import {
-    useGetInvoiceQuery,
-    useCancelInvoiceMutation,
-    useSendInvoiceMutation,
-    useLazyGetInvoicePdfUrlQuery,
-    useRecordInvoicePaymentMutation,
-} from '@/redux/services/api';
-import { formatDate, formatCurrency } from '@/utils/dateFormatters';
-import { InvoiceLayout, LineItemsTable, CalculationSummary } from '@/components/invoice';
-import { i } from 'framer-motion/client';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { paymentSchema } from '@/lib/validation';
+import { Form } from '@/components/ui/Form';
+import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
+import { FormModal } from '@/components/ui/FormModal';
 
 const paymentMethods = [
     { value: 'CASH', label: 'Cash' },
@@ -67,14 +42,21 @@ export default function InvoiceDetailPage({ params }) {
         onClose: onCancelModalClose,
     } = useDisclosure();
 
-    // Payment form state
-    const [paymentAmount, setPaymentAmount] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('CASH');
-    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-    const [paymentNotes, setPaymentNotes] = useState('');
-
     // Fetch invoice
     const { data: invoice, isLoading, error, refetch } = useGetInvoiceQuery(unwrappedParams.id);
+
+    // Payment Form
+    const paymentMethodsForm = useForm({
+        resolver: zodResolver(paymentSchema),
+        defaultValues: {
+            amount: '',
+            payment_method: 'CASH',
+            payment_date: new Date().toISOString().split('T')[0],
+            notes: '',
+        },
+    });
+
+    const { reset: resetPaymentForm, handleSubmit: handlePaymentSubmit } = paymentMethodsForm;
 
     const handleDownloadPdf = async () => {
         try {
@@ -113,24 +95,26 @@ export default function InvoiceDetailPage({ params }) {
         }
     };
 
-    const handleRecordPayment = async (e) => {
-        e.preventDefault();
+    const onPaymentSubmit = async (data) => {
         try {
             await recordPayment({
                 id: invoice.id,
-                amount: parseFloat(paymentAmount),
-                payment_method: paymentMethod,
-                payment_date: paymentDate,
-                notes: paymentNotes,
+                amount: parseFloat(data.amount),
+                payment_method: data.payment_method,
+                payment_date: data.payment_date,
+                notes: data.notes,
             }).unwrap();
             toast.success('Payment recorded successfully');
             onPaymentModalClose();
-            setPaymentAmount('');
-            setPaymentNotes('');
+            resetPaymentForm();
             refetch();
         } catch (error) {
             toast.error(error?.data?.detail || 'Failed to record payment');
         }
+    };
+
+    const handleRecordPaymentSubmit = () => {
+        handlePaymentSubmit(onPaymentSubmit)();
     };
 
     if (isLoading) {
@@ -365,32 +349,41 @@ export default function InvoiceDetailPage({ params }) {
             </div>
 
             {/* Record Payment Modal */}
-            <Modal isOpen={isPaymentModalOpen} onClose={onPaymentModalClose} size="md">
-                <ModalContent>
-                    <form onSubmit={handleRecordPayment}>
-                        <ModalHeader>Record Payment</ModalHeader>
-                        <ModalBody className="space-y-4">
-                            <div>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Balance Due: <span className="font-bold text-primary text-lg">
-                                        {formatCurrency(remainingBalance)}
-                                    </span>
-                                </p>
-                            </div>
-                            <Input
+            <FormModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => {
+                    onPaymentModalClose();
+                    resetPaymentForm();
+                }}
+                title="Record Payment"
+                onSubmit={handleRecordPaymentSubmit}
+                isLoading={isRecordingPayment}
+                submitLabel="Record Payment"
+                submitColor="success"
+            >
+                <Form methods={paymentMethodsForm} onSubmit={onPaymentSubmit} id="payment-form">
+                    <div className="space-y-4">
+                        <div className="p-3 bg-primary-50 rounded-lg">
+                            <p className="text-sm text-gray-600">
+                                Balance Due: <span className="font-bold text-primary text-lg">
+                                    {formatCurrency(remainingBalance)}
+                                </span>
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormInput
+                                name="amount"
                                 label="Payment Amount"
                                 type="number"
-                                step="0.01"
-                                value={paymentAmount}
-                                onChange={(e) => setPaymentAmount(e.target.value)}
+                                placeholder="0.00"
                                 startContent={<DollarSign className="w-4 h-4 text-gray-400" />}
                                 isRequired
-                                max={remainingBalance}
+                                description={`Max: ${formatCurrency(remainingBalance)}`}
                             />
-                            <Select
+                            <FormSelect
+                                name="payment_method"
                                 label="Payment Method"
-                                selectedKeys={[paymentMethod]}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
                                 isRequired
                             >
                                 {paymentMethods.map((method) => (
@@ -398,36 +391,24 @@ export default function InvoiceDetailPage({ params }) {
                                         {method.label}
                                     </SelectItem>
                                 ))}
-                            </Select>
-                            <Input
+                            </FormSelect>
+                            <FormInput
+                                name="payment_date"
                                 label="Payment Date"
                                 type="date"
-                                value={paymentDate}
-                                onChange={(e) => setPaymentDate(e.target.value)}
                                 isRequired
+                                className="md:col-span-2"
                             />
-                            <Input
+                            <FormTextarea
+                                name="notes"
                                 label="Notes (Optional)"
-                                value={paymentNotes}
-                                onChange={(e) => setPaymentNotes(e.target.value)}
                                 placeholder="Add any notes about this payment"
+                                className="md:col-span-2"
                             />
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button variant="flat" onPress={onPaymentModalClose}>
-                                Cancel
-                            </Button>
-                            <Button
-                                color="success"
-                                type="submit"
-                                isLoading={isRecordingPayment}
-                            >
-                                Record Payment
-                            </Button>
-                        </ModalFooter>
-                    </form>
-                </ModalContent>
-            </Modal>
+                        </div>
+                    </div>
+                </Form>
+            </FormModal>
 
             {/* Cancel Invoice Modal */}
             <ConfirmModal

@@ -1,16 +1,15 @@
-/**
- * Edit Invoice Page
- * Edit existing invoice with pre-filled data
- */
-
 'use client';
 
-import { use, useState, useEffect, useMemo } from 'react';
+import { use, useState, useEffect, useMemo, useCallback } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
-import { Button, Input, Textarea, Spinner } from '@heroui/react';
-import Link from 'next/link';
+import { Button, Spinner } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { invoiceSchema } from '@/lib/validation';
+import { Form } from '@/components/ui/Form';
+import { FormInput, FormTextarea } from '@/components/ui/FormFields';
 import {
     useGetInvoiceQuery,
     useUpdateInvoiceMutation,
@@ -46,30 +45,39 @@ export default function EditInvoicePage({ params }) {
         { skip: !invoice?.user_id }
     );
 
-    // Form State
-    const [formData, setFormData] = useState({
-        customer_name: '',
-        customer_email: '',
-        customer_phone: '',
-        customer_address: '',
-        invoice_date: new Date().toISOString().split('T')[0],
-        due_date: new Date().toISOString().split('T')[0],
-        payment_terms: 'DUE_ON_RECEIPT',
-        notes: '',
-        terms_conditions: '',
-        discount_type: 'PERCENTAGE',
-        discount_value: 0,
-        coins_redeemed: 0,
+    const methods = useForm({
+        resolver: zodResolver(invoiceSchema),
+        defaultValues: {
+            customer_name: '',
+            customer_email: '',
+            customer_phone: '',
+            customer_address: '',
+            invoice_date: new Date().toISOString().split('T')[0],
+            due_date: new Date().toISOString().split('T')[0],
+            payment_terms: 'DUE_ON_RECEIPT',
+            notes: '',
+            terms_conditions: '',
+            discount_type: 'PERCENTAGE',
+            discount_value: 0,
+            coins_redeemed: 0,
+            line_items: [{ id: 1, service_id: null, description: '', quantity: 1, unit_price: 0, tax_rate: 18 }],
+        },
     });
 
-    const [lineItems, setLineItems] = useState([
-        { id: 1, service_id: null, description: '', quantity: 1, unit_price: 0, tax_rate: 18 }
-    ]);
+    const { control, watch, setValue, handleSubmit, reset } = methods;
+
+    const lineItems = watch('line_items');
+    const paymentTerms = watch('payment_terms');
+    const invoiceDate = watch('invoice_date');
+    const discountType = watch('discount_type');
+    const discountValue = watch('discount_value');
+    const coinsRedeemed = watch('coins_redeemed');
 
     // Initialize form with invoice data
     useEffect(() => {
         if (invoice) {
-            setFormData({
+            reset({
+                customer_id: invoice.customer_id,
                 customer_name: invoice.customer_name || '',
                 customer_email: invoice.customer_email || '',
                 customer_phone: invoice.customer_phone || '',
@@ -82,42 +90,75 @@ export default function EditInvoicePage({ params }) {
                 discount_type: invoice.discount_type || 'PERCENTAGE',
                 discount_value: invoice.discount_value || 0,
                 coins_redeemed: invoice.coins_redeemed || 0,
+                line_items: invoice.line_items ? invoice.line_items.map(item => ({ ...item })) : [],
             });
-
-            if (invoice.line_items && invoice.line_items.length > 0) {
-                setLineItems(
-                    invoice.line_items.map((item, index) => ({
-                        ...item,
-                    }))
-                );
-            }
         }
-    }, [invoice]);
+    }, [invoice, reset]);
 
     // Calculate totals using utility function
     const calculations = useMemo(() => {
         return calculateInvoiceTotal({
-            lineItems,
-            discountType: formData.discount_type,
-            discountValue: formData.discount_value,
-            coinsRedeemed: formData.coins_redeemed,
+            lineItems: lineItems || [],
+            discountType: discountType || 'PERCENTAGE',
+            discountValue: discountValue || 0,
+            coinsRedeemed: coinsRedeemed || 0,
         });
-    }, [lineItems, formData.discount_type, formData.discount_value, formData.coins_redeemed]);
+    }, [lineItems, discountType, discountValue, coinsRedeemed]);
 
-    // Handle payment terms change
+    // Handle payment terms change side effect
+    useEffect(() => {
+        // Only update due date if dirty? 
+        // Or if we change payment terms explicitly.
+        // If we load existing, due_date is set.
+        // If user changes payment_terms, update due_date.
+        // But initialization also fires this effect.
+        // Ideally we check if `payment_terms` field is dirty or touched.
+        // But `reset` sets `isDirty` to false. 
+        // So safe to assume if `payment_terms` or `invoice_date` changes after loading?
+        // Actually, simplest is: if user changes payment_terms, we want logic.
+        // But simpler: just let it calc. If it matches existing, no unexpected change.
+    }, [paymentTerms, invoiceDate, setValue]);
+
+    // Better hook for payment terms:
+    // We can't easily detect "user change" vs "programmatic change" in useEffect easily without ref.
+    // But `InvoiceDetailsFields` removed the prop.
+    // Let's implement logic: when `paymentTerms` changes, recalc due date, UNLESS it was just reset.
+    // If we rely on watcher, it fires on reset too.
+    // We can compare with `invoice.due_date` if matches logic?
+    // Let's keep it simple: if `payment_terms` changes, update `due_date`.
+    // But we need to avoid overwriting the `due_date` loaded from DB if it was custom?
+    // If DB `due_date` matches `payment_terms` logic, fine.
+    // We'll rely on the manual edit of due date if needed.
+    // Actually, `InvoiceDetailsFields` allows editing due date.
+    // If I put `useEffect` here, it will overwrite manual `due_date` edits if `payment_terms` or `invoice_date` logic runs.
+
     const handlePaymentTermsChange = (term) => {
-        const dueDate = getDefaultDueDate(term, formData.invoice_date);
-        setFormData({
-            ...formData,
-            payment_terms: term,
-            due_date: dueDate.toISOString().split('T')[0],
-        });
+        const dueDate = getDefaultDueDate(term, invoiceDate);
+        setValue('payment_terms', term);
+        setValue('due_date', dueDate.toISOString().split('T')[0]);
     };
 
+    // We don't have the prop on `InvoiceDetailsFields` anymore.
+    // So `InvoiceDetailsFields` changes `payment_terms` field directly.
+    // So we MUST use `useEffect` or `onChange` on the field Controller.
+    // But `InvoiceDetailsFields` uses `FormSelect`.
+    // We can't attach handler there without modifying `InvoiceDetailsFields`.
+    // Modification: Use `useEffect` properly.
+    // To avoid loop/overwrite on initial load:
+    // Check if `methods.formState.isDirty`?
+    // Or just accept the behavior that PaymentTerms drives DueDate.
+    useEffect(() => {
+        if (methods.formState.dirtyFields.payment_terms || methods.formState.dirtyFields.invoice_date) {
+            const dueDate = getDefaultDueDate(paymentTerms, invoiceDate);
+            setValue('due_date', dueDate.toISOString().split('T')[0]);
+        }
+    }, [paymentTerms, invoiceDate, methods.formState.dirtyFields, setValue]);
+
+
     // Submit handler
-    const handleSubmit = async (asDraft = false) => {
-        // Validation
-        if (!formData.customer_name) {
+    const onSubmit = async (data, asDraft = false) => {
+        // Validation handled by zodResolver mostly
+        if (!data.customer_name) {
             toast.error('Customer name is required');
             return;
         }
@@ -133,26 +174,22 @@ export default function EditInvoicePage({ params }) {
             return;
         }
 
-        if (invoice && invoice.amount_paid > 0) {
-            toast.warning('This invoice has payments recorded. Some changes may be restricted.');
-        }
-
         try {
             const payload = {
-                customer_name: formData.customer_name,
-                customer_email: formData.customer_email || undefined,
-                customer_phone: formData.customer_phone || undefined,
-                customer_address: formData.customer_address || undefined,
-                invoice_date: formData.invoice_date,
-                due_date: formData.due_date,
-                payment_terms: formData.payment_terms,
-                notes: formData.notes || undefined,
-                terms_conditions: formData.terms_conditions || undefined,
-                discount_type: formData.discount_type,
-                discount_value: formData.discount_value,
-                coins_redeemed: formData.coins_redeemed || 0,
+                customer_name: data.customer_name,
+                customer_email: data.customer_email || undefined,
+                customer_phone: data.customer_phone || undefined,
+                customer_address: data.customer_address || undefined,
+                invoice_date: data.invoice_date,
+                due_date: data.due_date,
+                payment_terms: data.payment_terms,
+                notes: data.notes || undefined,
+                terms_conditions: data.terms_conditions || undefined,
+                discount_type: data.discount_type,
+                discount_value: data.discount_value,
+                coins_redeemed: data.coins_redeemed || 0,
                 status: asDraft ? 'DRAFT' : invoice?.status || 'PENDING',
-                line_items: lineItems.map(item => ({
+                line_items: data.line_items.map(item => ({
                     description: item.description,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
@@ -226,7 +263,7 @@ export default function EditInvoicePage({ params }) {
             label: 'Save as Draft',
             variant: 'flat',
             icon: <Save className="w-4 h-4" />,
-            onClick: () => handleSubmit(true),
+            onClick: () => handleSubmit((data) => onSubmit(data, true))(),
             loading: isUpdating,
         });
     }
@@ -234,7 +271,7 @@ export default function EditInvoicePage({ params }) {
         label: 'Update Invoice',
         color: 'primary',
         icon: <Save className="w-4 h-4" />,
-        onClick: () => handleSubmit(false),
+        onClick: () => handleSubmit((data) => onSubmit(data, false))(),
         loading: isUpdating,
     });
 
@@ -245,110 +282,102 @@ export default function EditInvoicePage({ params }) {
             status={invoice.status}
             actions={actions}
         >
-            {/* Warning for invoices with payments */}
-            {invoice.amount_paid > 0 && (
-                <InvoiceAlert
-                    variant="warning"
-                    icon={<AlertCircle className="w-5 h-5" />}
-                    title="Payment Recorded"
-                    message={`This invoice has ${formatCurrency(invoice.amount_paid)} in payments recorded. Changes to line items will affect the balance due.`}
-                />
-            )}
+            <Form methods={methods} onSubmit={() => { }} className="contents">
+                {/* Warning for invoices with payments */}
+                {invoice.amount_paid > 0 && (
+                    <InvoiceAlert
+                        variant="warning"
+                        icon={<AlertCircle className="w-5 h-5" />}
+                        title="Payment Recorded"
+                        message={`This invoice has ${formatCurrency(invoice.amount_paid)} in payments recorded. Changes to line items will affect the balance due.`}
+                    />
+                )}
 
-            {/* Customer Information */}
-            <InvoiceSection title="Customer Information">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Customer Name"
-                        labelPlacement="outside"
-                        placeholder="Enter customer name"
-                        value={formData.customer_name}
-                        onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                        isRequired
-                        isDisabled={invoice.amount_paid > 0}
-                    />
-                    <Input
-                        label="Email"
-                        labelPlacement="outside"
-                        type="email"
-                        placeholder="customer@example.com"
-                        value={formData.customer_email}
-                        onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
-                    />
-                    <Input
-                        label="Phone"
-                        labelPlacement="outside"
-                        placeholder="+91 98765 43210"
-                        value={formData.customer_phone}
-                        onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
-                    />
-                    <div className="md:col-span-2">
-                        <Textarea
-                            label="Address"
-                            labelPlacement="outside"
-                            placeholder="Enter customer address"
-                            value={formData.customer_address}
-                            onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
-                            rows={2}
+                {/* Customer Information */}
+                <InvoiceSection title="Customer Information">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormInput
+                            name="customer_name"
+                            label="Customer Name"
+                            placeholder="Enter customer name"
+                            isRequired
+                            isDisabled={invoice.amount_paid > 0}
                         />
+                        <FormInput
+                            name="customer_email"
+                            label="Email"
+                            type="email"
+                            placeholder="customer@example.com"
+                        />
+                        <FormInput
+                            name="customer_phone"
+                            label="Phone"
+                            placeholder="+91 98765 43210"
+                        />
+                        <div className="md:col-span-2">
+                            <FormTextarea
+                                name="customer_address"
+                                label="Address"
+                                placeholder="Enter customer address"
+                                rows={2}
+                            />
+                        </div>
                     </div>
-                </div>
-            </InvoiceSection>
+                </InvoiceSection>
 
-            {/* Invoice Details */}
-            <InvoiceSection title="Invoice Details">
-                <InvoiceDetailsFields
-                    value={formData}
-                    onChange={setFormData}
-                    onPaymentTermsChange={handlePaymentTermsChange}
-                />
-            </InvoiceSection>
+                {/* Invoice Details */}
+                <InvoiceSection title="Invoice Details">
+                    <InvoiceDetailsFields />
+                </InvoiceSection>
 
-            {/* Line Items */}
-            <InvoiceSection title="Line Items">
-                <LineItemsTable
-                    items={lineItems}
-                    onChange={setLineItems}
-                    services={services}
-                />
-            </InvoiceSection>
-
-            {/* Calculation & Notes */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Notes Section */}
-                <InvoiceSection title="Additional Information">
-                    <InvoiceNotesFields
-                        notes={formData.notes}
-                        terms={formData.terms_conditions}
-                        onNotesChange={(value) => setFormData({ ...formData, notes: value })}
-                        onTermsChange={(value) => setFormData({ ...formData, terms_conditions: value })}
-                        notesLabel="Customer Notes"
-                        notesPlaceholder="Add notes for the customer"
-                        termsPlaceholder="Add terms and conditions"
+                {/* Line Items */}
+                <InvoiceSection title="Line Items">
+                    <Controller
+                        name="line_items"
+                        control={control}
+                        render={({ field }) => (
+                            <LineItemsTable
+                                items={field.value}
+                                onChange={field.onChange}
+                                services={services}
+                            />
+                        )}
                     />
                 </InvoiceSection>
 
-                {/* Summary with Coins */}
-                <div className="space-y-4">
-                    {invoice?.user_id && (
-                        <CoinsRedemption
-                            walletBalance={walletData?.balance || 0}
-                            coinsRedeemed={formData.coins_redeemed}
-                            afterDiscount={calculations.subtotal - calculations.discount}
-                            onCoinsChange={(value) => setFormData({ ...formData, coins_redeemed: value })}
-                            isLoadingWallet={isLoadingWallet}
+                {/* Calculation & Notes */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Notes Section */}
+                    <InvoiceSection title="Additional Information">
+                        <InvoiceNotesFields
+                            notesLabel="Customer Notes"
+                            notesPlaceholder="Add notes for the customer"
+                            termsPlaceholder="Add terms and conditions"
                         />
-                    )}
-                    <CalculationSummary
-                        lineItems={lineItems}
-                        discountType={formData.discount_type}
-                        discountValue={formData.discount_value}
-                        coinsRedeemed={formData.coins_redeemed}
-                        onDiscountTypeChange={(type) => setFormData({ ...formData, discount_type: type })}
-                        onDiscountValueChange={(value) => setFormData({ ...formData, discount_value: value })}
-                    />
+                    </InvoiceSection>
+
+                    {/* Summary with Coins */}
+                    <div className="space-y-4">
+                        {invoice?.user_id && (
+                            <CoinsRedemption
+                                walletBalance={walletData?.balance || 0}
+                                coinsRedeemed={coinsRedeemed}
+                                afterDiscount={calculations.subtotal - calculations.discount}
+                                onCoinsChange={(value) => setValue('coins_redeemed', value)}
+                                isLoadingWallet={isLoadingWallet}
+                            />
+                        )}
+                        <CalculationSummary
+                            lineItems={lineItems}
+                            discountType={discountType}
+                            discountValue={discountValue}
+                            coinsRedeemed={coinsRedeemed}
+                            onDiscountTypeChange={(type) => setValue('discount_type', type)}
+                            onDiscountValueChange={(value) => setValue('discount_value', value)}
+                        />
+                    </div>
                 </div>
-            </div>
+            </Form>
         </InvoiceLayout>
     );
 }
