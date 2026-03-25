@@ -41,6 +41,7 @@ export const api = createApi({
     "Appointment",
     "User",
     "Doctor",
+    "Verification",
     "Service",
     "Role",
     "Permission",
@@ -339,9 +340,8 @@ export const api = createApi({
     getDoctors: builder.query({
       query: ({ active_only = false } = {}) => {
         const params = new URLSearchParams();
-        if (active_only) params.append("active_only", "true");
-        const queryString = params.toString();
-        return `/doctors${queryString ? `?${queryString}` : ""}`;
+        params.append("active_only", active_only ? "true" : "false");
+        return `/doctors?${params.toString()}`;
       },
       providesTags: ["Doctor"],
     }),
@@ -389,6 +389,30 @@ export const api = createApi({
         method: "DELETE",
       }),
       invalidatesTags: ["Doctor"],
+    }),
+
+    // =========================================================================
+    // VERIFICATION ENDPOINTS
+    // =========================================================================
+
+    // GET /verification/doctor/:doctorUserId - Get single doctor's verification
+    getDoctorVerification: builder.query({
+      query: (doctorUserId) => `/verification/doctor/${doctorUserId}`,
+      providesTags: (result, error, id) => [{ type: "Verification", id }],
+    }),
+
+    // PUT /verification/admin/:verificationId/status - Approve or reject
+    updateVerificationStatus: builder.mutation({
+      query: ({ verificationId, ...body }) => ({
+        url: `/verification/admin/${verificationId}/status`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (result, error, { verificationId }) => [
+        { type: "Verification", id: verificationId },
+        "Verification",
+        "Doctor",
+      ],
     }),
 
     // =========================================================================
@@ -451,7 +475,7 @@ export const api = createApi({
 
     // GET /categories - List categories by type
     getCategories: builder.query({
-      query: ({ type, active_only = true }) => 
+      query: ({ type, active_only = true }) =>
         `/categories?type=${type}&active_only=${active_only}`,
       providesTags: ["Category"],
     }),
@@ -1075,4 +1099,7 @@ export const {
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
+  // Doctor Verifications
+  useGetDoctorVerificationQuery,
+  useUpdateVerificationStatusMutation,
 } = api;

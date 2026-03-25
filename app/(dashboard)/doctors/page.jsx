@@ -8,7 +8,7 @@
 // Force dynamic rendering - no SSR/static optimization needed for admin
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Plus,
@@ -18,6 +18,7 @@ import {
     Eye,
     Mail,
     Phone,
+    X,
 } from 'lucide-react';
 import {
     Button,
@@ -51,24 +52,26 @@ export default function DoctorsPage() {
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
 
-    const { data, isLoading, refetch } = useGetDoctorsQuery({});
+    const handleSearchChange = (value) => {
+        setSearch(value);
+        setCurrentPage(1);
+    };
 
+    const { data, isLoading, refetch } = useGetDoctorsQuery({});
     const [deleteDoctor, { isLoading: isDeleting }] = useDeleteDoctorMutation();
 
-    // Reset page when search changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [search]);
-
     // Client-side filtering since backend doesn't support search
-    const allDoctors = data?.doctors || data || [];
-    const filteredDoctors = allDoctors.filter(doctor => {
-        if (!search) return true;
+    const filteredDoctors = useMemo(() => {
+        const allDoctors = data?.doctors || data || [];
+        if (!search) return allDoctors;
         const searchLower = search.toLowerCase();
-        return doctor.name?.toLowerCase().includes(searchLower) ||
-            doctor.specialty?.toLowerCase().includes(searchLower) ||
-            doctor.email?.toLowerCase().includes(searchLower);
-    });
+        return allDoctors.filter(doctor => {
+            const fullName = `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim();
+            return fullName.toLowerCase().includes(searchLower) ||
+                doctor.specializations?.some(s => s.toLowerCase().includes(searchLower)) ||
+                doctor.email?.toLowerCase().includes(searchLower);
+        });
+    }, [data, search]);
 
     // Pagination
     const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
@@ -82,13 +85,13 @@ export default function DoctorsPage() {
             render: (row) => (
                 <div className="flex items-center gap-3">
                     <Avatar
-                        src={row?.image_url || row?.photo}
-                        name={row?.name}
+                        src={row?.profile_image}
+                        name={`${row?.first_name || ''} ${row?.last_name || ''}`.trim()}
                         size="sm"
                     />
                     <div>
-                        <p className="font-medium text-gray-900">{row?.name}</p>
-                        <p className="text-sm text-gray-500">{row?.specialty}</p>
+                        <p className="font-medium text-gray-900">{row?.first_name} {row?.last_name}</p>
+                        <p className="text-sm text-gray-500">{row?.specializations?.join(', ')}</p>
                     </div>
                 </div>
             ),
@@ -106,44 +109,12 @@ export default function DoctorsPage() {
         {
             key: 'status',
             label: 'Status',
-            render: (row) => (
-                <StatusBadge
-                    status={row?.is_active !== false ? 'active' : 'inactive'}
-                />
-            ),
-        },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (row) => (
-                <div className="flex items-center gap-2">
-                    <Button
-                        size="sm"
-                        variant="light"
-                        isIconOnly
-                        onPress={() => handleViewDetails(row)}
-                    >
-                        <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="light"
-                        isIconOnly
-                        onPress={() => handleEdit(row)}
-                    >
-                        <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="light"
-                        isIconOnly
-                        color="danger"
-                        onPress={() => handleDeleteClick(row)}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
-                </div>
-            ),
+            render: (row) => {
+                let status = 'inactive';
+                if (row?.is_active !== false && row?.is_published) status = 'active';
+                else if (row?.is_active !== false && !row?.is_published) status = 'pending';
+                return <StatusBadge status={status} />;
+            },
         },
     ];
 
@@ -194,15 +165,17 @@ export default function DoctorsPage() {
                     { label: 'Doctors' },
                 ]}
                 actions={
-                    <Button
-                        color="primary"
-                        startContent={<Plus className="w-4 h-4" />}
-                        onPress={handleAdd}
-                        className="w-full sm:w-auto"
-                    >
-                        <span className="hidden sm:inline">Add Doctor</span>
-                        <span className="sm:hidden">Add</span>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            color="primary"
+                            startContent={<Plus className="w-4 h-4" />}
+                            onPress={handleAdd}
+                            className="w-full sm:w-auto"
+                        >
+                            <span className="hidden sm:inline">Add Doctor</span>
+                            <span className="sm:hidden">Add</span>
+                        </Button>
+                    </div>
                 }
             />
 
@@ -210,7 +183,7 @@ export default function DoctorsPage() {
             <div className="flex items-center gap-3">
                 <SearchInput
                     value={search}
-                    onChange={setSearch}
+                    onChange={handleSearchChange}
                     placeholder="Search doctors..."
                     fullWidth
                     className="flex-1"
@@ -220,7 +193,7 @@ export default function DoctorsPage() {
                         variant="flat"
                         size="sm"
                         isIconOnly
-                        onPress={() => setSearch('')}
+                        onPress={() => handleSearchChange('')}
                     >
                         <X className="w-4 h-4" />
                     </Button>
@@ -305,13 +278,13 @@ export default function DoctorsPage() {
                     <div className="space-y-4 md:space-y-6">
                         <div className="flex items-center gap-3 md:gap-4">
                             <Avatar
-                                src={selectedDoctor.image_url || selectedDoctor.photo}
-                                name={selectedDoctor.name}
+                                src={selectedDoctor.profile_image}
+                                name={`${selectedDoctor.first_name || ''} ${selectedDoctor.last_name || ''}`.trim()}
                                 className="w-16 h-16 md:w-20 md:h-20"
                             />
                             <div>
-                                <h3 className="text-base md:text-lg font-semibold">{selectedDoctor.name}</h3>
-                                <p className="text-sm md:text-base text-primary-600">{selectedDoctor.specialty}</p>
+                                <h3 className="text-base md:text-lg font-semibold">{selectedDoctor.first_name} {selectedDoctor.last_name}</h3>
+                                <p className="text-sm md:text-base text-primary-600">{selectedDoctor.specializations?.join(', ')}</p>
                                 <StatusBadge
                                     status={selectedDoctor.is_active !== false ? 'active' : 'inactive'}
                                     className="mt-1"
@@ -349,7 +322,7 @@ export default function DoctorsPage() {
                 onOpenChange={onDeleteOpenChange}
                 onConfirm={handleDeleteConfirm}
                 title="Delete Doctor"
-                message={`Are you sure you want to delete ${selectedDoctor?.name}? This action cannot be undone.`}
+                message={`Are you sure you want to delete Dr. ${selectedDoctor?.first_name} ${selectedDoctor?.last_name}? This action cannot be undone.`}
                 confirmLabel="Delete"
                 type="danger"
                 isLoading={isDeleting}
@@ -364,14 +337,14 @@ function DoctorMobileCard({ doctor, onClick, actions }) {
         <MobileCard onClick={onClick} actions={actions}>
             <MobileCard.Header>
                 <Avatar
-                    src={doctor.image_url || doctor.photo}
-                    name={doctor.name}
+                    src={doctor.profile_image}
+                    name={`${doctor.first_name || ''} ${doctor.last_name || ''}`.trim()}
                     size="sm"
                     className="w-10 h-10"
                 />
                 <div className="flex-1 min-w-0">
-                    <MobileCard.Title>{doctor.name}</MobileCard.Title>
-                    <MobileCard.Subtitle>{doctor.specialty}</MobileCard.Subtitle>
+                    <MobileCard.Title>{doctor.first_name} {doctor.last_name}</MobileCard.Title>
+                    <MobileCard.Subtitle>{doctor.specializations?.join(', ')}</MobileCard.Subtitle>
                 </div>
                 <StatusBadge
                     status={doctor.is_active !== false ? 'active' : 'inactive'}
