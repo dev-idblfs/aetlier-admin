@@ -3,7 +3,7 @@
 // Force dynamic rendering - no SSR/static optimization needed for admin
 export const dynamic = 'force-dynamic';
 
-import CategoryManager from '@/components/shared/CategoryManager';
+import CategoryManager from '@/features/categories/components/CategoryManager';
 import { PageHeader } from '@/components/ui';
 
 export default function ExpenseCategoriesPage() {
