@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { paymentSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
-import { FormModal } from '@/components/ui/FormModal';
+import FormModal from '@/components/ui/FormModal';
 
 const paymentMethods = [
     { value: 'CASH', label: 'Cash' },
