@@ -6,8 +6,9 @@
 'use client';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { Bell, Search, User, LogOut, ChevronRight } from 'lucide-react';
+import { Bell, Search, User, LogOut, ChevronRight, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import {
     Avatar,
     Dropdown,
@@ -22,7 +23,10 @@ import { useSidebar } from './AdminLayout';
 export default function Header() {
     const { user } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
+    const router = useRouter();
+    const pathname = usePathname();
     const { pageTitle, breadcrumbs } = useSidebar();
+    const isRoot = pathname === '/';
 
     const handleLogout = () => {
         dispatch(logout());
@@ -30,11 +34,21 @@ export default function Header() {
 
     return (
         <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-3 md:px-4 sticky top-0 z-30 relative">
-            {/* ── Mobile left: logo ── */}
+            {/* ── Mobile left: back button OR logo ── */}
             <div className="flex items-center md:hidden shrink-0">
-                <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">A</span>
-                </div>
+                {isRoot ? (
+                    <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">A</span>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => router.back()}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors -ml-1"
+                        aria-label="Go back"
+                    >
+                        <ArrowLeft className="w-5 h-5 text-gray-700" />
+                    </button>
+                )}
             </div>
 
             {/* ── Mobile center: page title ── */}
@@ -42,27 +56,38 @@ export default function Header() {
                 {pageTitle || 'Admin'}
             </p>
 
-            {/* ── Desktop left: breadcrumb path + bold title ── */}
-            <div className="hidden md:flex flex-col justify-center min-w-0 flex-1">
-                {breadcrumbs.length > 0 && (
-                    <nav className="flex items-center gap-1 mb-0.5">
-                        {breadcrumbs.map((crumb, i) => (
-                            <span key={i} className="flex items-center gap-1">
-                                {i > 0 && <ChevronRight className="w-3 h-3 text-gray-300" />}
-                                {crumb.href ? (
-                                    <Link href={crumb.href} className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors truncate max-w-[120px]">
-                                        {crumb.label}
-                                    </Link>
-                                ) : (
-                                    <span className="text-[11px] text-gray-400 truncate max-w-[120px]">{crumb.label}</span>
-                                )}
-                            </span>
-                        ))}
-                    </nav>
+            {/* ── Desktop left: back button (when not root) + breadcrumb path + title ── */}
+            <div className="hidden md:flex items-center gap-1 min-w-0 flex-1">
+                {!isRoot && (
+                    <button
+                        onClick={() => router.back()}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors shrink-0 mr-1"
+                        aria-label="Go back"
+                    >
+                        <ArrowLeft className="w-4 h-4 text-gray-600" />
+                    </button>
                 )}
-                <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
-                    {pageTitle || 'Dashboard'}
-                </p>
+                <div className="flex flex-col justify-center min-w-0">
+                    {breadcrumbs.length > 0 && (
+                        <nav className="flex items-center gap-1 mb-0.5">
+                            {breadcrumbs.map((crumb, i) => (
+                                <span key={i} className="flex items-center gap-1">
+                                    {i > 0 && <ChevronRight className="w-3 h-3 text-gray-300" />}
+                                    {crumb.href ? (
+                                        <Link href={crumb.href} className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors truncate max-w-[120px]">
+                                            {crumb.label}
+                                        </Link>
+                                    ) : (
+                                        <span className="text-[11px] text-gray-400 truncate max-w-[120px]">{crumb.label}</span>
+                                    )}
+                                </span>
+                            ))}
+                        </nav>
+                    )}
+                    <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
+                        {pageTitle || 'Dashboard'}
+                    </p>
+                </div>
             </div>
 
             {/* ── Desktop right: search + bell + user ── */}

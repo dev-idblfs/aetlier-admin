@@ -27,7 +27,10 @@ export default function PageHeader({
 }) {
     const { setPageTitle, setBreadcrumbs } = useSidebar();
 
-    // Push title + breadcrumbs up into the sticky header bar
+    // Stable string key — avoids infinite loop from inline array literals
+    // creating a new object reference on every render
+    const crumbsKey = breadcrumbs.map(c => `${c.label}:${c.href || ''}`).join('|');
+
     useEffect(() => {
         setPageTitle(title || '');
         setBreadcrumbs(breadcrumbs);
@@ -35,7 +38,8 @@ export default function PageHeader({
             setPageTitle('');
             setBreadcrumbs([]);
         };
-    }, [title, breadcrumbs, setPageTitle, setBreadcrumbs]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [title, crumbsKey]);
 
     // Nothing to render? Skip the wrapper entirely.
     const hasContent = description || actions;
