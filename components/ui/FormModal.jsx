@@ -45,28 +45,36 @@ export default function FormModal({
             onOpenChange={onOpenChange}
             size={isMobile ? 'full' : size}
             scrollBehavior={scrollBehavior}
-            placement="center"
+            placement={isMobile ? 'bottom' : 'center'}
             backdrop="opaque"
             motionProps={{
                 variants: {
                     enter: {
                         y: 0,
                         opacity: 1,
-                        transition: { duration: 0.2, ease: "easeOut" },
+                        transition: {
+                            duration: isMobile ? 0.32 : 0.2,
+                            ease: isMobile ? [0.22, 1, 0.36, 1] : 'easeOut',
+                        },
                     },
                     exit: {
-                        y: -20,
-                        opacity: 0,
-                        transition: { duration: 0.15, ease: "easeIn" },
+                        y: isMobile ? '100%' : -20,
+                        opacity: isMobile ? 1 : 0,
+                        transition: {
+                            duration: isMobile ? 0.25 : 0.15,
+                            ease: 'easeIn',
+                        },
                     },
                 },
             }}
             classNames={{
-                backdrop: "bg-black/50 backdrop-blur-sm",
-                base: "border border-gray-200 bg-white shadow-xl",
-                header: "border-b border-gray-100",
-                body: "py-4",
-                footer: "border-t border-gray-100",
+                backdrop: 'bg-black/50 backdrop-blur-sm',
+                base: isMobile
+                    ? 'rounded-t-2xl rounded-b-none m-0 max-h-[92vh] bg-white shadow-2xl border-0 w-full'
+                    : 'border border-gray-200 bg-white shadow-xl',
+                header: 'border-b border-gray-100',
+                body: 'py-4',
+                footer: 'border-t border-gray-100',
             }}
         >
             <ModalContent>

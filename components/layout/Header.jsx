@@ -6,7 +6,8 @@
 'use client';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { Bell, Search, User, Menu, LogOut } from 'lucide-react';
+import { Bell, Search, User, LogOut, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import {
     Avatar,
     Dropdown,
@@ -21,44 +22,61 @@ import { useSidebar } from './AdminLayout';
 export default function Header() {
     const { user } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
-    const { setIsMobileOpen } = useSidebar();
+    const { pageTitle, breadcrumbs } = useSidebar();
 
     const handleLogout = () => {
         dispatch(logout());
     };
 
     return (
-        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-3 md:px-4 sticky top-0 z-30">
-            {/* Left side - Hamburger + Search */}
-            <div className="flex items-center gap-3 flex-1">
-                {/* Hamburger menu for mobile */}
-                <button
-                    onClick={() => setIsMobileOpen(true)}
-                    className="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                    <Menu className="w-5 h-5 text-gray-600" />
-                </button>
-
-                {/* Search */}
-                <div className="hidden sm:block flex-1 max-w-md">
-                    <Input
-                        placeholder="Search..."
-                        startContent={<Search className="w-4 h-4 text-gray-400" />}
-                        classNames={{
-                            inputWrapper: 'bg-gray-50 border-gray-200 hover:bg-gray-100',
-                        }}
-                        size="sm"
-                    />
+        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-3 md:px-4 sticky top-0 z-30 relative">
+            {/* ── Mobile left: logo ── */}
+            <div className="flex items-center md:hidden shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">A</span>
                 </div>
-
-                {/* Mobile search button */}
-                <button className="sm:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <Search className="w-5 h-5 text-gray-600" />
-                </button>
             </div>
 
-            {/* Right side */}
-            <div className="flex items-center gap-2 md:gap-4">
+            {/* ── Mobile center: page title ── */}
+            <p className="md:hidden absolute left-1/2 -translate-x-1/2 text-base font-semibold text-gray-900 truncate max-w-[52vw] pointer-events-none">
+                {pageTitle || 'Admin'}
+            </p>
+
+            {/* ── Desktop left: breadcrumb path + bold title ── */}
+            <div className="hidden md:flex flex-col justify-center min-w-0 flex-1">
+                {breadcrumbs.length > 0 && (
+                    <nav className="flex items-center gap-1 mb-0.5">
+                        {breadcrumbs.map((crumb, i) => (
+                            <span key={i} className="flex items-center gap-1">
+                                {i > 0 && <ChevronRight className="w-3 h-3 text-gray-300" />}
+                                {crumb.href ? (
+                                    <Link href={crumb.href} className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors truncate max-w-[120px]">
+                                        {crumb.label}
+                                    </Link>
+                                ) : (
+                                    <span className="text-[11px] text-gray-400 truncate max-w-[120px]">{crumb.label}</span>
+                                )}
+                            </span>
+                        ))}
+                    </nav>
+                )}
+                <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
+                    {pageTitle || 'Dashboard'}
+                </p>
+            </div>
+
+            {/* ── Desktop right: search + bell + user ── */}
+            <div className="hidden md:flex items-center gap-3">
+                <Input
+                    placeholder="Search..."
+                    startContent={<Search className="w-4 h-4 text-gray-400" />}
+                    classNames={{ inputWrapper: 'bg-gray-50 border-gray-200 hover:bg-gray-100 w-56' }}
+                    size="sm"
+                />
+            </div>
+
+            {/* ── Right side: bell + user (shared mobile & desktop) ── */}
+            <div className="flex items-center gap-2 md:gap-3 md:ml-3">
                 {/* Notifications */}
                 <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
                     <Bell className="w-5 h-5 text-gray-600" />

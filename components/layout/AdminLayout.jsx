@@ -11,15 +11,20 @@ import { useRouter } from 'next/navigation';
 import { Spinner } from '@heroui/react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import BottomNav from './BottomNav';
 import { fetchUserProfile, setPermissions } from '@/redux/slices/authSlice';
 import { useLazyGetUserPermissionsQuery } from '@/redux/services/api';
 
-// Context for mobile sidebar state
+// Context for sidebar state + page title + breadcrumbs
 export const SidebarContext = createContext({
     isMobileOpen: false,
     setIsMobileOpen: () => { },
     isCollapsed: false,
     setIsCollapsed: () => { },
+    pageTitle: '',
+    setPageTitle: () => { },
+    breadcrumbs: [],
+    setBreadcrumbs: () => { },
 });
 
 export const useSidebar = () => useContext(SidebarContext);
@@ -30,14 +35,10 @@ export default function AdminLayout({ children }) {
     const { user, isLoading, isAuthenticated } = useSelector((state) => state.auth);
     const [fetchPermissions] = useLazyGetUserPermissionsQuery();
 
-    // Sidebar state
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
-
-    // Close mobile sidebar on route change
-    useEffect(() => {
-        setIsMobileOpen(false);
-    }, []);
+    const [pageTitle, setPageTitle] = useState('');
+    const [breadcrumbs, setBreadcrumbs] = useState([]);
 
     // Fetch user profile on mount
     useEffect(() => {
@@ -88,16 +89,8 @@ export default function AdminLayout({ children }) {
     }
 
     return (
-        <SidebarContext.Provider value={{ isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed }}>
+        <SidebarContext.Provider value={{ isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed, pageTitle, setPageTitle, breadcrumbs, setBreadcrumbs }}>
             <div className="min-h-screen bg-gray-50">
-                {/* Mobile sidebar backdrop */}
-                {isMobileOpen && (
-                    <div
-                        className="fixed inset-0 bg-black/50 z-40 md:hidden"
-                        onClick={() => setIsMobileOpen(false)}
-                    />
-                )}
-
                 <Sidebar />
 
                 {/* Main content - responsive margin */}
@@ -106,10 +99,13 @@ export default function AdminLayout({ children }) {
                     ${isCollapsed ? 'md:ml-[80px]' : 'md:ml-[280px]'}
                 `}>
                     <Header />
-                    <main className="flex-1 p-4 md:p-6">
+                    <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
                         {children}
                     </main>
                 </div>
+
+                {/* Bottom navigation — mobile only */}
+                <BottomNav />
             </div>
         </SidebarContext.Provider>
     );

@@ -22,7 +22,6 @@ import {
     ChevronLeft,
     ChevronRight,
     LogOut,
-    X,
     Wallet,
     FileText,
     Receipt,
@@ -160,14 +159,6 @@ export default function Sidebar() {
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                {/* Close button for mobile */}
-                <button
-                    onClick={() => setIsMobileOpen(false)}
-                    className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                    <X className="w-5 h-5 text-gray-500" />
-                </button>
 
                 {/* Collapse button for desktop */}
                 <button
@@ -348,25 +339,12 @@ export default function Sidebar() {
     );
 
     return (
-        <>
-            {/* Desktop Sidebar */}
-            <motion.aside
-                initial={false}
-                animate={{ width: isCollapsed ? 80 : 280 }}
-                className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col "
-            >
-                {sidebarContent}
-            </motion.aside>
-
-            {/* Mobile Sidebar */}
-            <motion.aside
-                initial={{ x: '-100%' }}
-                animate={{ x: isMobileOpen ? 0 : '-100%' }}
-                transition={{ type: 'tween', duration: 0.3 }}
-                className="md:hidden fixed left-0 top-0 h-screen w-screen max-w-[420px] bg-white border-r border-gray-100 z-50 flex flex-col"
-            >
-                {sidebarContent}
-            </motion.aside>
-        </>
+        <motion.aside
+            initial={false}
+            animate={{ width: isCollapsed ? 80 : 280 }}
+            className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col"
+        >
+            {sidebarContent}
+        </motion.aside>
     );
 }

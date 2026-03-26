@@ -265,7 +265,7 @@ function DefaultMobileCard({ row, columns, actions, selectable, isSelected, onSe
                     {/* Primary field */}
                     <div className="font-medium text-gray-900 truncate">
                         {primaryColumn?.render
-                            ? primaryColumn.render(row[primaryColumn.key], row)
+                            ? primaryColumn.render(row)
                             : row[primaryColumn?.key]}
                     </div>
 
@@ -276,7 +276,7 @@ function DefaultMobileCard({ row, columns, actions, selectable, isSelected, onSe
                                 <span className="text-gray-500 mr-2">{column.label}:</span>
                                 <span className="text-gray-900">
                                     {column.render
-                                        ? column.render(row[column.key], row)
+                                        ? column.render(row)
                                         : row[column.key]}
                                 </span>
                             </div>

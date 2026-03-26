@@ -4,8 +4,10 @@
 
 'use client';
 
-import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { useEffect } from 'react';
+import { useSidebar } from '@/components/layout';
+// PageHeader — syncs title + breadcrumbs to the header bar.
+// The title and breadcrumbs are rendered IN the sticky header, not here.
 
 /**
  * PageHeader - Page title with breadcrumbs and actions
@@ -23,45 +25,31 @@ export default function PageHeader({
     actions,
     className = '',
 }) {
-    return (
-        <div className={`mb-8 ${className}`}>
-            {/* Breadcrumbs */}
-            {breadcrumbs.length > 0 && (
-                <nav className="flex items-center gap-1 text-sm text-gray-500 mb-3">
-                    {breadcrumbs.map((crumb, index) => (
-                        <div key={index} className="flex items-center gap-1">
-                            {index > 0 && <ChevronRight className="w-4 h-4" />}
-                            {crumb.href ? (
-                                <Link
-                                    href={crumb.href}
-                                    className="hover:text-gray-900 transition-colors"
-                                >
-                                    {crumb.label}
-                                </Link>
-                            ) : (
-                                <span className="text-gray-900 font-medium">{crumb.label}</span>
-                            )}
-                        </div>
-                    ))}
-                </nav>
-            )}
+    const { setPageTitle, setBreadcrumbs } = useSidebar();
 
-            {/* Title & Actions */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-                        {title}
-                    </h1>
-                    {description && (
-                        <p className="text-gray-500 mt-1">{description}</p>
-                    )}
-                </div>
-                {actions && (
-                    <div className="flex items-center gap-3">
-                        {actions}
-                    </div>
-                )}
-            </div>
+    // Push title + breadcrumbs up into the sticky header bar
+    useEffect(() => {
+        setPageTitle(title || '');
+        setBreadcrumbs(breadcrumbs);
+        return () => {
+            setPageTitle('');
+            setBreadcrumbs([]);
+        };
+    }, [title, breadcrumbs, setPageTitle, setBreadcrumbs]);
+
+    // Nothing to render? Skip the wrapper entirely.
+    const hasContent = description || actions;
+
+    if (!hasContent) return null;
+
+    return (
+        <div className={`flex items-center justify-between gap-3 mb-4 ${className}`}>
+            {description && (
+                <p className="text-sm text-gray-500 flex-1">{description}</p>
+            )}
+            {actions && (
+                <div className="flex items-center gap-2 shrink-0">{actions}</div>
+            )}
         </div>
     );
 }
