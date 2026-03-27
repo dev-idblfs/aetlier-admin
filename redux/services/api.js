@@ -53,6 +53,7 @@ export const api = createApi({
     "Navigation",
     "Wallet",
     "Category",
+    "Lead",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -987,6 +988,52 @@ export const api = createApi({
       }),
       invalidatesTags: ["Navigation"],
     }),
+
+    // =========================================================================
+    // LEAD ENDPOINTS
+    // =========================================================================
+
+    // GET /admin/leads - List leads with pagination + filters
+    getLeads: builder.query({
+      query: ({ page = 1, page_size = 20, status, search } = {}) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          page_size: page_size.toString(),
+        });
+        if (status) params.append("status", status);
+        if (search) params.append("search", search);
+        return `/admin/leads?${params.toString()}`;
+      },
+      providesTags: ["Lead"],
+    }),
+
+    // GET /admin/leads/:id - Get single lead
+    getLead: builder.query({
+      query: (id) => `/admin/leads/${id}`,
+      providesTags: (result, error, id) => [{ type: "Lead", id }],
+    }),
+
+    // PATCH /admin/leads/:id - Update lead
+    updateLead: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/admin/leads/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Lead", id },
+        "Lead",
+      ],
+    }),
+
+    // DELETE /admin/leads/:id - Delete lead
+    deleteLead: builder.mutation({
+      query: (id) => ({
+        url: `/admin/leads/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Lead"],
+    }),
   }),
 });
 
@@ -1102,4 +1149,9 @@ export const {
   // Doctor Verifications
   useGetDoctorVerificationQuery,
   useUpdateVerificationStatusMutation,
+  // Leads
+  useGetLeadsQuery,
+  useGetLeadQuery,
+  useUpdateLeadMutation,
+  useDeleteLeadMutation,
 } = api;

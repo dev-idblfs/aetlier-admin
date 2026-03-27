@@ -13,7 +13,7 @@ import {
     Calendar,
     UserCog,
     Wallet,
-    Settings,
+    Target,
 } from 'lucide-react';
 
 const TABS = [
@@ -21,7 +21,7 @@ const TABS = [
     { label: 'Doctors', href: '/doctors', icon: UserCog },
     { label: 'Schedule', href: '/appointments', icon: Calendar },
     { label: 'Finance', href: '/finance', icon: Wallet },
-    { label: 'Settings', href: '/settings', icon: Settings },
+    { label: 'Leads', href: '/leads', icon: Target },
 ];
 
 export default function BottomNav() {

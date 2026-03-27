@@ -30,6 +30,7 @@ import {
     ChevronDown,
     Menu,
     AlertCircle,
+    Target,
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/redux/slices/authSlice';
@@ -38,7 +39,14 @@ import { useSidebar } from './AdminLayout';
 
 /**
  * Icon mapping - Maps icon name strings from backend to Lucide components
- * Add new icons here as needed
+ *
+ * HOW TO ADD A NEW MODULE'S ICON:
+ * 1. Pick an icon from https://lucide.dev
+ * 2. Import it below (in the lucide-react import block above)
+ * 3. Add it to ICON_MAP with the EXACT same string you use in the
+ *    Alembic migration: add_nav_item(..., icon='YourIconName', ...)
+ *
+ * If you skip this step, the sidebar silently falls back to LayoutDashboard.
  */
 const ICON_MAP = {
     LayoutDashboard,
@@ -55,6 +63,7 @@ const ICON_MAP = {
     Contact,
     BarChart3,
     Menu,
+    Target,
 };
 
 /**

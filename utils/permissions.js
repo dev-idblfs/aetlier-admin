@@ -174,6 +174,11 @@ export const PERMISSIONS = {
   // Finance Dashboard & Reports
   FINANCE_DASHBOARD_VIEW: "finance.dashboard.view",
   FINANCE_REPORTS_VIEW: "finance.reports.view",
+
+  // === LEADS ===
+  LEAD_READ_ANY: "lead.read.any",
+  LEAD_WRITE: "lead.write.any",
+  LEAD_DELETE: "lead.delete.any",
 };
 
 const permissionsModule = {
