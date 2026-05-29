@@ -360,6 +360,30 @@ export default function DoctorsPage() {
                             </div>
                         </div>
 
+                        {selectedDoctor.qualifications?.length > 0 && (
+                            <DetailRow
+                                label="Qualifications"
+                                value={selectedDoctor.qualifications.join(', ')}
+                            />
+                        )}
+                        {selectedDoctor.languages?.length > 0 && (
+                            <DetailRow
+                                label="Languages"
+                                value={selectedDoctor.languages.join(', ')}
+                            />
+                        )}
+                        {selectedDoctor.experience_years != null && (
+                            <DetailRow
+                                label="Experience"
+                                value={`${selectedDoctor.experience_years} years`}
+                            />
+                        )}
+                        {selectedDoctor.consultation_fee != null && (
+                            <DetailRow
+                                label="Consultation fee"
+                                value={`₹${selectedDoctor.consultation_fee}`}
+                            />
+                        )}
                         {selectedDoctor.bio && (
                             <DetailRow label="Bio" value={selectedDoctor.bio} />
                         )}
