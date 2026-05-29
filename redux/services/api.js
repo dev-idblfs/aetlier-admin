@@ -416,6 +416,45 @@ export const api = createApi({
       ],
     }),
 
+    getPendingVerifications: builder.query({
+      query: ({ status_filter, skip = 0, limit = 20 } = {}) => {
+        const params = new URLSearchParams({
+          skip: String(skip),
+          limit: String(limit),
+        });
+        if (status_filter) params.append("status_filter", status_filter);
+        return `/verification/admin/pending?${params.toString()}`;
+      },
+      providesTags: ["Verification"],
+    }),
+
+    getAdminVerificationRecord: builder.query({
+      query: (verificationId) => `/verification/admin/records/${verificationId}`,
+      providesTags: (result, error, id) => [{ type: "Verification", id }],
+    }),
+
+    verifyDocument: builder.mutation({
+      query: ({ documentId, is_verified, verification_notes }) => ({
+        url: `/verification/admin/document/${documentId}/verify?is_verified=${is_verified}${verification_notes ? `&verification_notes=${encodeURIComponent(verification_notes)}` : ""}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Verification", "Doctor"],
+    }),
+
+    getVerificationAudit: builder.query({
+      query: (verificationId) => `/verification/${verificationId}/audit`,
+      providesTags: (result, error, id) => [{ type: "Verification", id: `audit-${id}` }],
+    }),
+
+    getVerificationStatistics: builder.query({
+      query: () => "/verification/admin/statistics",
+      providesTags: ["Verification"],
+    }),
+
+    getDocumentDownloadUrl: builder.query({
+      query: (documentId) => `/verification/documents/${documentId}/download-url`,
+    }),
+
     // =========================================================================
     // SERVICE ENDPOINTS (RESTful)
     // =========================================================================
@@ -1149,6 +1188,13 @@ export const {
   // Doctor Verifications
   useGetDoctorVerificationQuery,
   useUpdateVerificationStatusMutation,
+  useGetPendingVerificationsQuery,
+  useGetAdminVerificationRecordQuery,
+  useVerifyDocumentMutation,
+  useGetVerificationAuditQuery,
+  useGetVerificationStatisticsQuery,
+  useGetDocumentDownloadUrlQuery,
+  useLazyGetDocumentDownloadUrlQuery,
   // Leads
   useGetLeadsQuery,
   useGetLeadQuery,

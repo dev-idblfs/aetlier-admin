@@ -19,7 +19,12 @@ import {
     Mail,
     Phone,
     X,
+    ShieldCheck,
 } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';
+import { getDoctorDisplayStatus } from '@/utils/doctorStatus';
 import {
     Button,
     useDisclosure,
@@ -44,6 +49,11 @@ import {
 
 export default function DoctorsPage() {
     const router = useRouter();
+    const authUser = useSelector((s) => s.auth.user);
+    const canCreate = hasPermission(authUser, PERMISSIONS.DOCTOR_CREATE);
+    const canUpdate = hasPermission(authUser, PERMISSIONS.DOCTOR_UPDATE);
+    const canDelete = hasPermission(authUser, PERMISSIONS.DOCTOR_DELETE);
+    const canReviewVerification = hasPermission(authUser, PERMISSIONS.VERIFICATION_VERIFY_ANY);
     const [search, setSearch] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -107,14 +117,19 @@ export default function DoctorsPage() {
             ),
         },
         {
+            key: 'verification',
+            label: 'Verification',
+            render: (row) =>
+                row?.verification_status ? (
+                    <VerificationStatusBadge status={row.verification_status} />
+                ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                ),
+        },
+        {
             key: 'status',
-            label: 'Status',
-            render: (row) => {
-                let status = 'inactive';
-                if (row?.is_active !== false && row?.is_published) status = 'active';
-                else if (row?.is_active !== false && !row?.is_published) status = 'pending';
-                return <StatusBadge status={status} />;
-            },
+            label: 'Profile',
+            render: (row) => <StatusBadge status={getDoctorDisplayStatus(row)} />,
         },
     ];
 
@@ -165,6 +180,7 @@ export default function DoctorsPage() {
                     { label: 'Doctors' },
                 ]}
                 actions={
+                    canCreate ? (
                     <div className="flex gap-2">
                         <Button
                             color="primary"
@@ -176,6 +192,7 @@ export default function DoctorsPage() {
                             <span className="sm:hidden">Add</span>
                         </Button>
                     </div>
+                    ) : null
                 }
             />
 
@@ -225,17 +242,34 @@ export default function DoctorsPage() {
                         icon: <Eye className="w-4 h-4" />,
                         onClick: handleViewDetails,
                     },
-                    {
-                        label: 'Edit',
-                        icon: <Edit className="w-4 h-4" />,
-                        onClick: handleEdit,
-                    },
-                    {
-                        label: 'Delete',
-                        icon: <Trash2 className="w-4 h-4" />,
-                        color: 'danger',
-                        onClick: handleDeleteClick,
-                    },
+                    ...(canReviewVerification
+                        ? [{
+                            label: 'Review verification',
+                            icon: <ShieldCheck className="w-4 h-4" />,
+                            onClick: (row) => {
+                                if (row.verification_id) {
+                                    router.push(`/verification/${row.verification_id}`);
+                                } else {
+                                    router.push(`/doctors/${row.id}/edit`);
+                                }
+                            },
+                        }]
+                        : []),
+                    ...(canUpdate
+                        ? [{
+                            label: 'Edit',
+                            icon: <Edit className="w-4 h-4" />,
+                            onClick: handleEdit,
+                        }]
+                        : []),
+                    ...(canDelete
+                        ? [{
+                            label: 'Delete',
+                            icon: <Trash2 className="w-4 h-4" />,
+                            color: 'danger',
+                            onClick: handleDeleteClick,
+                        }]
+                        : []),
                 ]}
                 renderMobileCard={(doctor, { onClick, actions }) => (
                     <DoctorMobileCard
@@ -272,7 +306,7 @@ export default function DoctorsPage() {
                 isOpen={isDetailOpen}
                 onOpenChange={onDetailOpenChange}
                 title="Doctor Details"
-                onEdit={() => handleEdit(selectedDoctor)}
+                onEdit={canUpdate ? () => handleEdit(selectedDoctor) : undefined}
             >
                 {selectedDoctor && (
                     <div className="space-y-4 md:space-y-6">
@@ -285,12 +319,29 @@ export default function DoctorsPage() {
                             <div>
                                 <h3 className="text-base md:text-lg font-semibold">{selectedDoctor.first_name} {selectedDoctor.last_name}</h3>
                                 <p className="text-sm md:text-base text-primary-600">{selectedDoctor.specializations?.join(', ')}</p>
-                                <StatusBadge
-                                    status={selectedDoctor.is_active !== false ? 'active' : 'inactive'}
-                                    className="mt-1"
-                                />
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {selectedDoctor.verification_status && (
+                                        <VerificationStatusBadge status={selectedDoctor.verification_status} />
+                                    )}
+                                    <StatusBadge status={getDoctorDisplayStatus(selectedDoctor)} />
+                                </div>
                             </div>
                         </div>
+
+                        {canReviewVerification && selectedDoctor.verification_id && (
+                            <Button
+                                color="primary"
+                                variant="flat"
+                                size="sm"
+                                startContent={<ShieldCheck className="w-4 h-4" />}
+                                onPress={() => {
+                                    onDetailOpenChange(false);
+                                    router.push(`/verification/${selectedDoctor.verification_id}`);
+                                }}
+                            >
+                                Open verification review
+                            </Button>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                             <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
@@ -346,9 +397,7 @@ function DoctorMobileCard({ doctor, onClick, actions }) {
                     <MobileCard.Title>{doctor.first_name} {doctor.last_name}</MobileCard.Title>
                     <MobileCard.Subtitle>{doctor.specializations?.join(', ')}</MobileCard.Subtitle>
                 </div>
-                <StatusBadge
-                    status={doctor.is_active !== false ? 'active' : 'inactive'}
-                />
+                <StatusBadge status={getDoctorDisplayStatus(doctor)} />
             </MobileCard.Header>
             <MobileCard.Meta>
                 {doctor.email && (

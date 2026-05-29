@@ -113,6 +113,10 @@ export const PERMISSIONS = {
   DOCTOR_UPDATE: "doctor.update.any",
   DOCTOR_DELETE: "doctor.delete.any",
 
+  // Verification
+  VERIFICATION_VERIFY_ANY: "verification.verify.any",
+  VERIFICATION_APPROVE_ANY: "verification.approve.any",
+
   // Services
   SERVICE_READ_ANY: "service.read.any",
   SERVICE_CREATE: "service.create.any",
