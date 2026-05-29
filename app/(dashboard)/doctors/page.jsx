@@ -46,6 +46,7 @@ import {
     useGetDoctorsQuery,
     useDeleteDoctorMutation,
 } from '@/redux/services/api';
+import { normalizeApiList } from '@/utils/normalizeApiList';
 
 export default function DoctorsPage() {
     const router = useRouter();
@@ -67,12 +68,12 @@ export default function DoctorsPage() {
         setCurrentPage(1);
     };
 
-    const { data, isLoading, refetch } = useGetDoctorsQuery({});
+    const { data, isLoading, isError, error, refetch } = useGetDoctorsQuery({});
     const [deleteDoctor, { isLoading: isDeleting }] = useDeleteDoctorMutation();
 
     // Client-side filtering since backend doesn't support search
     const filteredDoctors = useMemo(() => {
-        const allDoctors = data?.doctors || data || [];
+        const allDoctors = normalizeApiList(data);
         if (!search) return allDoctors;
         const searchLower = search.toLowerCase();
         return allDoctors.filter(doctor => {
@@ -195,6 +196,13 @@ export default function DoctorsPage() {
                     ) : null
                 }
             />
+
+            {isError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    Failed to load doctors
+                    {error?.data?.detail ? `: ${error.data.detail}` : '. Check that the API is running and NEXT_PUBLIC_API_URL is correct.'}
+                </div>
+            )}
 
             {/* Search Bar */}
             <div className="flex items-center gap-3">
