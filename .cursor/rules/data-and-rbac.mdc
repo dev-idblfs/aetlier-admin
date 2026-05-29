@@ -1,0 +1,19 @@
+---
+description: RTK Query data layer and client-side RBAC (admin)
+globs: redux/**/*.js,utils/permissions.js,app/**/*.jsx,components/**/*.jsx
+alwaysApply: false
+---
+
+# Data & RBAC
+
+## Data (RTK Query)
+- All REST goes through the single `createApi` slice in `redux/services/api.js`. Add endpoints there and export the generated hook at the bottom.
+- Use tag-based caching: declare in `tagTypes`, set `providesTags`/`invalidatesTags`.
+- Token comes from cookie `admin_access_token`; 401 clears it and redirects to `/login`.
+- Use axios `apiClient` only for the auth profile fetch — prefer RTK Query for everything else.
+
+## RBAC
+- Check permissions with `utils/permissions.js` helpers: `hasPermission`, `hasAnyPermission`, `hasAllPermissions`, `hasRole`, `isAdmin`, `isSuperAdmin` (super admins bypass).
+- Use the `PERMISSIONS` object (backend `resource.action.scope` dot-notation); add new permissions there, aligned with the backend.
+- Pattern: `const user = useSelector(s => s.auth.user)`; gate queries with `{ skip: !canView }` and UI with the helpers.
+- Sidebar nav is permission-filtered server-side via `useGetNavigationQuery`; add icons to `ICON_MAP` in `components/layout/Sidebar.jsx`.

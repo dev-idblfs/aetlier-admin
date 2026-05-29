@@ -1,0 +1,23 @@
+---
+description: Admin App Router page/component conventions
+globs: app/**/*.jsx,components/**/*.jsx,features/**/*.jsx
+alwaysApply: false
+---
+
+# Admin Page & Component Conventions
+
+- JavaScript `.jsx` only — do NOT introduce TypeScript.
+- Most pages/components are `'use client'`. The root layout sets `dynamic = 'force-dynamic'` globally.
+- The `(dashboard)` route group is NOT part of the URL: `app/(dashboard)/verification/page.jsx` → `/verification`.
+- Import shared UI from the barrel: `import { PageHeader, DataTable, Button } from '@/components/ui'`.
+- Add `loading.jsx` for data-fetching sections, matching existing ones.
+- Forms: Zod schemas in `lib/validation/index.js` + `react-hook-form` + `components/ui/FormFields`.
+- Style with Tailwind v4 (config in `hero.ts`) + HeroUI; merge classes with `utils/cn.js`. There is no Prettier — match surrounding style.
+- Ignore the legacy `src/app/` scaffold and `*.backup` files.
+
+## Reuse, purity & coupling
+
+- **Reuse first**: before creating a component/hook/util, search the `components/ui/` barrel, `components/`, and `features/`. If one exists, reuse and extend it via props rather than duplicating.
+- **Generic & shared**: promote reused pieces into `components/ui/` (exported via its barrel); compose pages from these blocks.
+- **Pure components**: no side effects during render or hidden global mutations; side effects go in `useEffect`/handlers. Prefer presentational components driven by props.
+- **Loose coupling**: communicate via props/callbacks; fetch data via RTK Query hooks at the page level and pass it down; avoid tight cross-imports and circular deps.
