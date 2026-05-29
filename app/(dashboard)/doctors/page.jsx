@@ -161,13 +161,22 @@ export default function DoctorsPage() {
     };
 
     const handleDeleteConfirm = async () => {
+        if (!selectedDoctor?.id) return;
         try {
             await deleteDoctor(selectedDoctor.id).unwrap();
             toast.success('Doctor deleted successfully');
+            setSelectedDoctor(null);
             onDeleteOpenChange(false);
             refetch();
         } catch (error) {
-            toast.error(error.data?.detail || 'Failed to delete doctor');
+            const detail = error?.data?.detail;
+            const message =
+                typeof detail === 'string'
+                    ? detail
+                    : Array.isArray(detail)
+                      ? detail.map((d) => d.msg || d).join(', ')
+                      : 'Failed to delete doctor';
+            toast.error(message);
         }
     };
 

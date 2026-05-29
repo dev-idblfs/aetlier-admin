@@ -383,12 +383,13 @@ export const api = createApi({
       ],
     }),
 
-    // DELETE /doctors/:id - Delete doctor
+    // DELETE /doctors/:id - Delete doctor (soft-delete)
     deleteDoctor: builder.mutation({
       query: (id) => ({
         url: `/doctors/${id}`,
         method: "DELETE",
       }),
+      transformResponse: (response) => response ?? { success: true },
       invalidatesTags: ["Doctor"],
     }),
 

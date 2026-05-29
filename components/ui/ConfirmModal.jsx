@@ -117,7 +117,11 @@ export default function ConfirmModal({
                             </Button>
                             <Button
                                 color={getButtonColor()}
-                                onPress={onConfirm}
+                                onPress={async () => {
+                                    if (onConfirm) {
+                                        await onConfirm();
+                                    }
+                                }}
                                 isLoading={isLoading}
                                 className="w-full sm:w-auto order-1 sm:order-2"
                             >
