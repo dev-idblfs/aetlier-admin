@@ -66,6 +66,7 @@ constants/ config/ hooks/ contexts/
 - **Client-side permission checks** use `utils/permissions.js`: `hasPermission`, `hasAnyPermission`, `hasAllPermissions`, `hasRole`, `isAdmin`, `isSuperAdmin`. Super admins bypass all checks.
 - Permission strings use the backend dot-notation in the `PERMISSIONS` object (e.g. `appointment.read.any`, `verification.verify.any`). Add new permissions there, keeping them aligned with the backend.
 - Pattern: `const user = useSelector(s => s.auth.user)` → `hasPermission(user, PERMISSIONS.X)`; gate queries with `{ skip: !canView }`.
+- Admin portal entry is gated by `canAccessAdminPortal(user)` (`utils/permissions.js`), which prefers the backend `user.can_access_admin_app` and falls back to the `admin.portal.access` permission. The portal flags (`grants_admin_portal`, `prefer_admin_redirect_on_login`) live on **roles**, not users, and are editable from the Roles page.
 - Sidebar nav is permission-filtered **server-side** via `useGetNavigationQuery`. To add a nav icon, extend `ICON_MAP` in `components/layout/Sidebar.jsx`.
 
 ## Coding Principles (apply to every change)

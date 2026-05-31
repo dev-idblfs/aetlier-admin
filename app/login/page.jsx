@@ -12,15 +12,16 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { Spinner } from '@heroui/react';
+import { canAccessAdminPortal } from '@/utils/permissions';
 
 export default function LoginPage() {
     const router = useRouter();
     const { isAuthenticated, user } = useSelector((state) => state.auth);
 
     useEffect(() => {
-        // If already authenticated as admin, go to dashboard
+        // If already authenticated with admin portal access, go to dashboard
         if (isAuthenticated && user) {
-            if (['admin', 'super_admin', 'superadmin'].includes(user.role)) {
+            if (canAccessAdminPortal(user)) {
                 router.push('/');
                 return;
             }

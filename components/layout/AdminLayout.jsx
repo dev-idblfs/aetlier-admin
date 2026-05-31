@@ -14,6 +14,7 @@ import Header from './Header';
 import BottomNav from './BottomNav';
 import { fetchUserProfile, setPermissions } from '@/redux/slices/authSlice';
 import { useLazyGetUserPermissionsQuery } from '@/redux/services/api';
+import { canAccessAdminPortal } from '@/utils/permissions';
 
 // Context for sidebar state + page title + breadcrumbs
 export const SidebarContext = createContext({
@@ -68,7 +69,7 @@ export default function AdminLayout({ children }) {
             router.push('/login');
         }
 
-        if (!isLoading && user && !['admin', 'super_admin', 'superadmin'].includes(user.role)) {
+        if (!isLoading && user && !canAccessAdminPortal(user)) {
             router.push('/unauthorized');
         }
     }, [isLoading, isAuthenticated, user, router]);

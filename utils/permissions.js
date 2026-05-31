@@ -89,6 +89,29 @@ export function isAdmin(user) {
   return hasRole(user, ["super_admin", "superadmin", "admin"]);
 }
 
+// Permission string that gates entry to the admin app.
+export const ADMIN_PORTAL_PERMISSION = "admin.portal.access";
+
+/**
+ * Whether the user is allowed to use the admin portal.
+ * Prefers the backend-computed `can_access_admin_app`, falls back to the
+ * portal permission, and finally to legacy admin roles so existing admins are
+ * not locked out before their auth context is populated.
+ * @param {Object} user - User object
+ * @returns {boolean}
+ */
+export function canAccessAdminPortal(user) {
+  if (!user) return false;
+  if (user.can_access_admin_app === true) return true;
+  if (
+    Array.isArray(user.permissions) &&
+    user.permissions.includes(ADMIN_PORTAL_PERMISSION)
+  ) {
+    return true;
+  }
+  return isAdmin(user);
+}
+
 // Permission constants for easy reference
 export const PERMISSIONS = {
   // === SYSTEM ===
@@ -151,6 +174,9 @@ export const PERMISSIONS = {
   SETTINGS_READ: "settings.read.any",
   SETTINGS_UPDATE: "settings.update.any",
 
+  // Admin portal access (gates entry to the admin app)
+  ADMIN_PORTAL_ACCESS: "admin.portal.access",
+
   // Reports
   REPORTS_VIEW: "reports.view.any",
   REPORTS_EXPORT: "reports.export.any",
@@ -192,6 +218,7 @@ const permissionsModule = {
   hasRole,
   isSuperAdmin,
   isAdmin,
+  canAccessAdminPortal,
   PERMISSIONS,
 };
 

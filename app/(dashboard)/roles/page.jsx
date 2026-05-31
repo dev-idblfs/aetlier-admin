@@ -49,10 +49,12 @@ import {
     useRevokeUserRoleMutation,
 } from '@/redux/services/api';
 import { motion } from 'framer-motion';
+import { useSelector } from 'react-redux';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { roleSchema } from '@/lib/validation';
-import { FormInput, FormTextarea } from '@/components/ui/FormFields';
+import { FormInput, FormTextarea, FormSwitchRow } from '@/components/ui/FormFields';
+import { isSuperAdmin } from '@/utils/permissions';
 
 export default function RolesPage() {
     const [selectedTab, setSelectedTab] = useState('roles');
@@ -129,11 +131,16 @@ function RolesTab() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    const currentUser = useSelector((state) => state.auth.user);
+    const canEditSystemFlags = isSuperAdmin(currentUser);
+
     const methods = useForm({
         resolver: zodResolver(roleSchema),
         defaultValues: {
             name: '',
             description: '',
+            grants_admin_portal: false,
+            prefer_admin_redirect_on_login: false,
         },
     });
 
@@ -141,13 +148,23 @@ function RolesTab() {
 
     const handleCreate = () => {
         setEditingRole(null);
-        reset({ name: '', description: '' });
+        reset({
+            name: '',
+            description: '',
+            grants_admin_portal: false,
+            prefer_admin_redirect_on_login: false,
+        });
         onOpen();
     };
 
     const handleEdit = (role) => {
         setEditingRole(role);
-        reset({ name: role.name, description: role.description || '' });
+        reset({
+            name: role.name,
+            description: role.description || '',
+            grants_admin_portal: role.grants_admin_portal || false,
+            prefer_admin_redirect_on_login: role.prefer_admin_redirect_on_login || false,
+        });
         onOpen();
     };
 
@@ -398,6 +415,18 @@ function RolesTab() {
                             label="Description"
                             labelPlacement="outside"
                             placeholder="Describe what this role can do..."
+                        />
+                        <FormSwitchRow
+                            name="grants_admin_portal"
+                            label="Admin portal access"
+                            description="Allow this role to use the admin app (requires the admin.portal.access permission)"
+                            isDisabled={editingRole && systemRoles.includes(editingRole.name) && !canEditSystemFlags}
+                        />
+                        <FormSwitchRow
+                            name="prefer_admin_redirect_on_login"
+                            label="Default to admin app on login"
+                            description="Users with this role land on the admin app when it's their only context"
+                            isDisabled={editingRole && systemRoles.includes(editingRole.name) && !canEditSystemFlags}
                         />
                     </div>
                 </FormProvider>

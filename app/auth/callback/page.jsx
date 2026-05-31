@@ -12,6 +12,7 @@ import { useDispatch } from 'react-redux';
 import { Spinner } from '@heroui/react';
 import Cookies from 'js-cookie';
 import { setCredentials } from '@/redux/slices/authSlice';
+import { canAccessAdminPortal } from '@/utils/permissions';
 import config from '@/config';
 
 // URL helpers
@@ -61,8 +62,8 @@ function AuthCallbackContent() {
 
                 const user = await response.json();
 
-                // Verify user has admin access
-                if (!['admin', 'super_admin', 'superadmin'].includes(user.role)) {
+                // Verify user has admin portal access (RBAC permission + role flags)
+                if (!canAccessAdminPortal(user)) {
                     setError('Access denied. Admin privileges required.');
                     Cookies.remove(config.tokenKey);
                     setTimeout(() => {
