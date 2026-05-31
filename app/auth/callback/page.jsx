@@ -67,7 +67,7 @@ function AuthCallbackContent() {
                     setError('Access denied. Admin privileges required.');
                     Cookies.remove(config.tokenKey);
                     setTimeout(() => {
-                        window.location.href = getFrontendUrl();
+                        window.location.href = `${getFrontendUrl()}?as=patient`;
                     }, 2000);
                     return;
                 }

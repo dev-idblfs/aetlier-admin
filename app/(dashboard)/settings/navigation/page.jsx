@@ -49,8 +49,13 @@ import {
     useDeleteNavigationItemMutation,
     useUpdateNavigationPermissionsMutation,
     useGetPermissionsQuery,
+    useGetNavigationPermissionPresetsQuery,
 } from '@/redux/services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    getPresetPermissionsForHref,
+    getPresetPermissionsForLabel,
+} from '@/utils/routeAccess';
 
 // Available icons for navigation items
 const AVAILABLE_ICONS = [
@@ -196,6 +201,7 @@ export default function NavigationManagementPage() {
     // API hooks
     const { data: navItems = [], isLoading, isError, refetch } = useGetAllNavigationQuery();
     const { data: permissionsData } = useGetPermissionsQuery();
+    const { data: navPresets } = useGetNavigationPermissionPresetsQuery();
     const [createNavItem, { isLoading: isCreating }] = useCreateNavigationItemMutation();
     const [updateNavItem, { isLoading: isUpdating }] = useUpdateNavigationItemMutation();
     const [deleteNavItem, { isLoading: isDeleting }] = useDeleteNavigationItemMutation();
@@ -238,6 +244,18 @@ export default function NavigationManagementPage() {
         }));
     }, [permissionsData]);
 
+    const presetHint = useMemo(() => {
+        const hrefPerms = getPresetPermissionsForHref(formData.href, navPresets);
+        const labelPerms = !formData.href
+            ? getPresetPermissionsForLabel(formData.label, navPresets)
+            : [];
+        const perms = hrefPerms.length ? hrefPerms : labelPerms;
+        if (!perms.length) {
+            return 'No preset for this path — assign permissions manually after save.';
+        }
+        return `Auto-configured on save (any of): ${perms.join(', ')}`;
+    }, [formData.href, formData.label, navPresets]);
+
     // Handlers
     const resetForm = () => {
         setFormData({
@@ -266,7 +284,12 @@ export default function NavigationManagementPage() {
                 sort_order: parseInt(formData.sort_order) || 0,
                 is_active: formData.is_active,
             }).unwrap();
-            toast.success('Navigation item created');
+            toast.success(
+                getPresetPermissionsForHref(formData.href, navPresets).length ||
+                    getPresetPermissionsForLabel(formData.label, navPresets).length
+                    ? 'Navigation item created with permissions'
+                    : 'Navigation item created',
+            );
             createModal.onClose();
             resetForm();
         } catch (error) {
@@ -374,7 +397,7 @@ export default function NavigationManagementPage() {
                 placeholder="e.g., /dashboard"
                 value={formData.href}
                 onChange={(e) => setFormData({ ...formData, href: e.target.value })}
-                description="Leave empty for parent-only items"
+                description={presetHint}
             />
             <Select
                 label="Icon"

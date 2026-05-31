@@ -18,6 +18,7 @@ import {
     Input,
 } from '@heroui/react';
 import { logout } from '@/redux/slices/authSlice';
+import { getDisplayRole } from '@/utils/permissions';
 import { useSidebar } from './AdminLayout';
 
 export default function Header() {
@@ -123,7 +124,7 @@ export default function Header() {
                             />
                             <div className="hidden md:block text-left">
                                 <p className="text-sm font-medium text-gray-900">{user?.name || 'Admin'}</p>
-                                <p className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ') || 'admin'}</p>
+                                <p className="text-xs text-gray-500 capitalize">{getDisplayRole(user)}</p>
                             </div>
                         </button>
                     </DropdownTrigger>

@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,6 +35,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/redux/slices/authSlice';
 import { useGetNavigationQuery } from '@/redux/services/api';
+import { filterNavItemsByPermission, withUserPermissions } from '@/utils/navAccess';
+import { getDisplayRole } from '@/utils/permissions';
 import { useSidebar } from './AdminLayout';
 
 /**
@@ -105,7 +107,7 @@ export default function Sidebar() {
     const { isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed } = useSidebar();
     const pathname = usePathname();
     const dispatch = useDispatch();
-    const { user, isAuthenticated } = useSelector((state) => state.auth);
+    const { user, permissions, isAuthenticated } = useSelector((state) => state.auth);
     const [expandedSections, setExpandedSections] = useState({});
 
     // Fetch navigation from API
@@ -117,6 +119,11 @@ export default function Sidebar() {
     } = useGetNavigationQuery(undefined, {
         skip: !isAuthenticated || !user,
     });
+
+    const visibleNavItems = useMemo(
+        () => filterNavItemsByPermission(navItems, withUserPermissions(user, permissions)),
+        [navItems, user, permissions],
+    );
 
     const handleLogout = () => {
         dispatch(logout());
@@ -135,9 +142,9 @@ export default function Sidebar() {
 
     // Auto-expand sections based on current path
     useEffect(() => {
-        if (!navItems || navItems.length === 0) return;
+        if (!visibleNavItems || visibleNavItems.length === 0) return;
 
-        navItems.forEach(item => {
+        visibleNavItems.forEach(item => {
             if (item.children && item.children.length > 0) {
                 const isChildActive = item.children.some(child =>
                     pathname === child.href || pathname.startsWith(child.href + '/')
@@ -147,7 +154,7 @@ export default function Sidebar() {
                 }
             }
         });
-    }, [pathname, navItems]);
+    }, [pathname, visibleNavItems]);
 
     const sidebarContent = (
         <>
@@ -190,7 +197,7 @@ export default function Sidebar() {
                     <NavError onRetry={refetch} />
                 ) : (
                     <ul className="space-y-1">
-                        {navItems.map((item) => {
+                        {visibleNavItems.map((item) => {
                             const hasChildren = item.children && item.children.length > 0;
                             const isExpanded = expandedSections[item.label];
                             const IconComponent = getIcon(item.icon);
@@ -319,7 +326,7 @@ export default function Sidebar() {
                             <p className="font-medium text-gray-900 truncate">{user.name}</p>
                             <p className="text-xs text-gray-500 truncate">{user.email}</p>
                             <p className="text-xs text-primary-600 capitalize mt-1">
-                                {user.role?.replace('_', ' ')}
+                                {getDisplayRole(user)}
                             </p>
                         </motion.div>
                     )}

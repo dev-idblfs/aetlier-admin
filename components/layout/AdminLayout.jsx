@@ -12,9 +12,11 @@ import { Spinner } from '@heroui/react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import BottomNav from './BottomNav';
+import RoutePermissionGuard from '@/components/RoutePermissionGuard';
 import { fetchUserProfile, setPermissions } from '@/redux/slices/authSlice';
-import { useLazyGetUserPermissionsQuery } from '@/redux/services/api';
+import { useLazyGetUserPermissionsQuery, useGetNavigationPermissionPresetsQuery, api } from '@/redux/services/api';
 import { canAccessAdminPortal } from '@/utils/permissions';
+import { setDynamicRouteRules } from '@/utils/routeAccess';
 
 // Context for sidebar state + page title + breadcrumbs
 export const SidebarContext = createContext({
@@ -35,6 +37,15 @@ export default function AdminLayout({ children }) {
     const router = useRouter();
     const { user, isLoading, isAuthenticated } = useSelector((state) => state.auth);
     const [fetchPermissions] = useLazyGetUserPermissionsQuery();
+    const { data: navPresets } = useGetNavigationPermissionPresetsQuery(undefined, {
+        skip: !isAuthenticated,
+    });
+
+    useEffect(() => {
+        if (navPresets?.route_rules?.length) {
+            setDynamicRouteRules(navPresets.route_rules);
+        }
+    }, [navPresets]);
 
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -54,6 +65,7 @@ export default function AdminLayout({ children }) {
                     const result = await fetchPermissions(user.id).unwrap();
                     const permissionNames = result?.permissions || [];
                     dispatch(setPermissions(permissionNames));
+                    dispatch(api.util.invalidateTags(['Navigation']));
                 } catch (error) {
                     console.error('Failed to fetch permissions:', error);
                 }
@@ -101,7 +113,7 @@ export default function AdminLayout({ children }) {
                 `}>
                     <Header />
                     <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
-                        {children}
+                        <RoutePermissionGuard>{children}</RoutePermissionGuard>
                     </main>
                 </div>
 

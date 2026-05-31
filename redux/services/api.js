@@ -974,6 +974,11 @@ export const api = createApi({
       providesTags: ["Navigation"],
     }),
 
+    getNavigationPermissionPresets: builder.query({
+      query: () => "/settings/navigation/permission-presets",
+      providesTags: ["Navigation"],
+    }),
+
     // GET /settings/navigation/all - Get all navigation for admin management
     getAllNavigation: builder.query({
       query: () => "/settings/navigation/all",
@@ -1169,6 +1174,7 @@ export const {
   useGetTaxSummaryReportQuery,
   // Navigation / Settings
   useGetNavigationQuery,
+  useGetNavigationPermissionPresetsQuery,
   useGetAllNavigationQuery,
   useCreateNavigationItemMutation,
   useUpdateNavigationItemMutation,

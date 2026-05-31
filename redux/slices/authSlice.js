@@ -15,14 +15,18 @@ export const fetchUserProfile = createAsyncThunk(
       const response = await apiClient.get("/auth/me");
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: "Failed to fetch profile" }
-      );
+      return rejectWithValue({
+        message:
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Failed to fetch profile",
+        status: error.response?.status,
+      });
     }
   }
 );
 
-// Async thunk for logout
+// Async thunk for logout — admin cookie only; frontend session stays intact.
 export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { dispatch }) => {
@@ -31,7 +35,9 @@ export const logout = createAsyncThunk(
     dispatch(clearAuth());
 
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      const frontendUrl =
+        process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+      window.location.href = frontendUrl;
     }
   }
 );
@@ -90,15 +96,23 @@ const authSlice = createSlice({
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.user = action.payload;
+        state.permissions = action.payload?.permissions || [];
+        if (state.user && !state.user.permissions?.length) {
+          state.user.permissions = state.permissions;
+        }
         state.isAuthenticated = true;
         state.isLoading = false;
         state.error = null;
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
-        state.user = null;
-        state.isAuthenticated = false;
         state.isLoading = false;
         state.error = action.payload?.message || "Authentication failed";
+        if (action.payload?.status === 401) {
+          Cookies.remove(config.tokenKey);
+          Cookies.remove(config.refreshTokenKey);
+          state.user = null;
+          state.isAuthenticated = false;
+        }
       });
   },
 });

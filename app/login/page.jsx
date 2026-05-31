@@ -25,14 +25,17 @@ export default function LoginPage() {
                 router.push('/');
                 return;
             }
+            // Valid frontend account without admin access — use the public app.
+            const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+            window.location.href = `${frontendUrl}?as=patient`;
+            return;
         }
 
-        // Redirect to frontend login
+        // Redirect to frontend login (admin cookie missing/expired)
         const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
         const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
         const callbackUrl = `${adminUrl}/auth/callback`;
 
-        // Redirect to frontend with login modal trigger and callback URL
         window.location.href = `${frontendUrl}?login=true&adminRedirect=${encodeURIComponent(callbackUrl)}`;
     }, [isAuthenticated, user, router]);
 

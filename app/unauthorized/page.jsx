@@ -31,7 +31,7 @@ export default function UnauthorizedPage() {
                 <Button
                     color="primary"
                     onPress={() => {
-                        window.location.href = getFrontendUrl();
+                        window.location.href = `${getFrontendUrl()}?as=patient`;
                     }}
                 >
                     Go to Aetlier

@@ -10,12 +10,13 @@
  * @returns {boolean}
  */
 export function hasPermission(user, permission) {
-  if (!user || !user.permissions) return false;
+  if (!user || !permission) return false;
 
-  // Super admin has all permissions
-  if (user.role === "super_admin" || user.role === "superadmin") {
+  if (isSuperAdmin(user)) {
     return true;
   }
+
+  if (!user.permissions) return false;
 
   return user.permissions.includes(permission);
 }
@@ -29,8 +30,7 @@ export function hasPermission(user, permission) {
 export function hasAnyPermission(user, permissions) {
   if (!user) return false;
 
-  // Super admin has all permissions
-  if (user.role === "super_admin" || user.role === "superadmin") {
+  if (isSuperAdmin(user)) {
     return true;
   }
 
@@ -48,8 +48,7 @@ export function hasAnyPermission(user, permissions) {
 export function hasAllPermissions(user, permissions) {
   if (!user) return false;
 
-  // Super admin has all permissions
-  if (user.role === "super_admin" || user.role === "superadmin") {
+  if (isSuperAdmin(user)) {
     return true;
   }
 
@@ -65,10 +64,11 @@ export function hasAllPermissions(user, permissions) {
  * @returns {boolean}
  */
 export function hasRole(user, roles) {
-  if (!user || !user.role) return false;
+  if (!user) return false;
 
   const rolesArray = Array.isArray(roles) ? roles : [roles];
-  return rolesArray.includes(user.role);
+  const userRoles = user.roles || (user.role ? [user.role] : []);
+  return rolesArray.some((r) => userRoles.includes(r));
 }
 
 /**
@@ -78,6 +78,17 @@ export function hasRole(user, roles) {
  */
 export function isSuperAdmin(user) {
   return hasRole(user, ["super_admin", "superadmin"]);
+}
+
+/** Human-readable primary role for UI (prefers RBAC roles over legacy user.role). */
+export function getDisplayRole(user) {
+  if (!user) return "User";
+  if (isSuperAdmin(user)) return "Super Admin";
+  const roles = user.roles || (user.role ? [user.role] : []);
+  if (roles.includes("admin")) return "Admin";
+  if (roles.includes("doctor")) return "Doctor";
+  if (roles.includes("patient")) return "Patient";
+  return user.role?.replace(/_/g, " ") || "User";
 }
 
 /**
@@ -122,6 +133,7 @@ export const PERMISSIONS = {
   // Appointments
   APPOINTMENT_READ_ANY: "appointment.read.any",
   APPOINTMENT_READ_OWN: "appointment.read.own",
+  APPOINTMENT_READ_ASSIGNED: "appointment.read.assigned",
   APPOINTMENT_CREATE: "appointment.create.any",
   APPOINTMENT_UPDATE_ANY: "appointment.update.any",
   APPOINTMENT_UPDATE_OWN: "appointment.update.own",
@@ -182,21 +194,24 @@ export const PERMISSIONS = {
   REPORTS_EXPORT: "reports.export.any",
 
   // === FINANCE ===
-  // Invoices
-  INVOICE_READ_ANY: "invoice.read.any",
+  // Invoices (backend: invoice.view.any)
+  INVOICE_VIEW_ANY: "invoice.view.any",
+  INVOICE_READ_ANY: "invoice.view.any",
   INVOICE_CREATE: "invoice.create.any",
   INVOICE_UPDATE: "invoice.update.any",
   INVOICE_DELETE: "invoice.delete.any",
   INVOICE_SEND: "invoice.send.any",
 
-  // Expenses
-  EXPENSE_READ_ANY: "expense.read.any",
+  // Expenses (backend: expense.view.any)
+  EXPENSE_VIEW_ANY: "expense.view.any",
+  EXPENSE_READ_ANY: "expense.view.any",
   EXPENSE_CREATE: "expense.create.any",
   EXPENSE_UPDATE: "expense.update.any",
   EXPENSE_DELETE: "expense.delete.any",
 
-  // Customers
-  CUSTOMER_READ_ANY: "customer.read.any",
+  // Customers (backend: customer.view.any)
+  CUSTOMER_VIEW_ANY: "customer.view.any",
+  CUSTOMER_READ_ANY: "customer.view.any",
   CUSTOMER_CREATE: "customer.create.any",
   CUSTOMER_UPDATE: "customer.update.any",
   CUSTOMER_DELETE: "customer.delete.any",
