@@ -14,7 +14,9 @@ import {
     Globe,
     Save,
     FileText,
+    MessageCircle,
 } from 'lucide-react';
+import WhatsAppIntegrationsPanel from '@/components/settings/WhatsAppIntegrationsPanel';
 import {
     Button,
     Tabs,
@@ -271,6 +273,18 @@ export default function SettingsPage() {
                                             />
                                         </SettingsCard>
                                     </motion.div>
+                                </Tab>
+
+                                <Tab
+                                    key="integrations"
+                                    title={
+                                        <div className="flex items-center gap-2">
+                                            <MessageCircle className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Integrations</span>
+                                        </div>
+                                    }
+                                >
+                                    <WhatsAppIntegrationsPanel />
                                 </Tab>
 
                                 <Tab

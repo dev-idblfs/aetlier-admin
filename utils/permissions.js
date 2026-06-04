@@ -185,6 +185,8 @@ export const PERMISSIONS = {
   // Settings
   SETTINGS_READ: "settings.read.any",
   SETTINGS_UPDATE: "settings.update.any",
+  INTEGRATIONS_WHATSAPP_READ: "integrations.whatsapp.read.any",
+  INTEGRATIONS_WHATSAPP_UPDATE: "integrations.whatsapp.update.any",
 
   // Admin portal access (gates entry to the admin app)
   ADMIN_PORTAL_ACCESS: "admin.portal.access",

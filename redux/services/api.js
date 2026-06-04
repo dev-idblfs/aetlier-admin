@@ -51,6 +51,7 @@ export const api = createApi({
     "Customer",
     "Report",
     "Navigation",
+    "Integration",
     "Wallet",
     "Category",
     "Lead",
@@ -577,6 +578,27 @@ export const api = createApi({
         body: data,
       }),
       invalidatesTags: ["Invoice"],
+    }),
+
+    getWhatsAppIntegration: builder.query({
+      query: () => "/admin/integrations/whatsapp",
+      providesTags: ["Integration"],
+    }),
+
+    updateWhatsAppIntegration: builder.mutation({
+      query: (data) => ({
+        url: "/admin/integrations/whatsapp",
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Integration"],
+    }),
+
+    testWhatsAppIntegration: builder.mutation({
+      query: () => ({
+        url: "/admin/integrations/whatsapp/test",
+        method: "POST",
+      }),
     }),
 
     // POST /invoices/settings/logo - Upload invoice logo
@@ -1182,6 +1204,9 @@ export const {
   useUpdateNavigationPermissionsMutation,
   useReorderNavigationMutation,
   // App Settings
+  useGetWhatsAppIntegrationQuery,
+  useUpdateWhatsAppIntegrationMutation,
+  useTestWhatsAppIntegrationMutation,
   useGetAppSettingsQuery,
   useGetAppSettingQuery,
   useUpdateAppSettingMutation,
