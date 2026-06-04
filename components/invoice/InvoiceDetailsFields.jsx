@@ -12,14 +12,18 @@ const PAYMENT_TERMS = [
     { value: 'NET_60', label: 'Net 60 Days' },
 ];
 
-export default function InvoiceDetailsFields({ disabled = false }) {
+export default function InvoiceDetailsFields({ disabled = false, compact = false }) {
+    const size = compact ? 'sm' : 'md';
+    const gap = compact ? 'gap-3' : 'gap-4';
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-3 ${gap}`}>
             <FormInput
                 name="invoice_date"
                 label="Invoice Date"
                 type="date"
                 isRequired
+                size={size}
                 isDisabled={disabled}
             />
             <FormSelect
@@ -27,6 +31,7 @@ export default function InvoiceDetailsFields({ disabled = false }) {
                 label="Payment Terms"
                 placeholder="Select payment terms"
                 isRequired
+                size={size}
                 isDisabled={disabled}
             >
                 {PAYMENT_TERMS.map((term) => (
@@ -40,6 +45,7 @@ export default function InvoiceDetailsFields({ disabled = false }) {
                 label="Due Date"
                 type="date"
                 isRequired
+                size={size}
                 isDisabled={disabled}
             />
         </div>

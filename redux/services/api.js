@@ -152,6 +152,16 @@ export const api = createApi({
       invalidatesTags: ["Appointment"],
     }),
 
+    // POST /appointments/:id/complete - Complete visit and create DRAFT invoice
+    completeAppointment: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/appointments/${id}/complete`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Appointment", "Invoice"],
+    }),
+
     // =========================================================================
     // USER ENDPOINTS (Admin)
     // =========================================================================
@@ -721,6 +731,10 @@ export const api = createApi({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Invoice", id },
+        "Invoice",
+      ],
     }),
 
     // POST /invoices/create-from-appointment - Create invoice from appointment
@@ -881,8 +895,15 @@ export const api = createApi({
 
     // GET /customers/search - Search customers (autocomplete)
     searchCustomers: builder.query({
-      query: ({ q, limit = 10 }) =>
+      query: ({ q, limit = 20 }) =>
         `/customers/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+      transformResponse: (response) => {
+        if (Array.isArray(response)) return response;
+        if (response?.items && Array.isArray(response.items)) {
+          return response.items;
+        }
+        return [];
+      },
       providesTags: ["Customer"],
     }),
 
@@ -1115,6 +1136,7 @@ export const {
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
   useDeleteAppointmentMutation,
+  useCompleteAppointmentMutation,
   // Users & Roles
   useGetUsersQuery,
   useGetUserQuery,

@@ -12,7 +12,8 @@ export default function InvoiceAlert({
     title,
     message,
     icon = null,
-    className = 'mb-6',
+    className = 'mb-3',
+    compact = false,
     onDismiss = null,
     dismissible = false,
 }) {
@@ -50,9 +51,9 @@ export default function InvoiceAlert({
     const styles = variantStyles[variant];
 
     return (
-        <Card className={`${styles.bg} ${styles.border} ${className}`}>
-            <CardBody>
-                <div className="flex items-start gap-3">
+        <Card className={`${styles.bg} ${styles.border} ${compact ? 'mb-0' : className}`}>
+            <CardBody className={compact ? 'py-3' : undefined}>
+                <div className={`flex items-start ${compact ? 'gap-2' : 'gap-3'}`}>
                     {icon && (
                         <div className={`shrink-0 ${styles.iconColor}`}>
                             {icon}

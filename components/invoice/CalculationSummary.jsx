@@ -6,7 +6,8 @@
 
 import { Card, CardBody, Divider, Input, Select, SelectItem } from '@heroui/react';
 import { calculateInvoiceTotal } from '@/utils/invoice/calculations';
-import { Percent, DollarSign, Coins, Calculator } from 'lucide-react';
+import { formatCurrency } from '@/utils/dateFormatters';
+import { Percent, Coins, Calculator } from 'lucide-react';
 
 export default function CalculationSummary({
     lineItems = [],
@@ -18,6 +19,7 @@ export default function CalculationSummary({
     readonly = false,
     showCoins = true,
     highlightTotal = true,
+    compact = false,
     className = '',
 }) {
     const calculations = calculateInvoiceTotal({
@@ -32,33 +34,38 @@ export default function CalculationSummary({
         { key: 'FIXED', label: 'Fixed Amount' },
     ];
 
+    const bodyGap = compact ? 'gap-2' : 'gap-4';
+    const rowText = compact ? 'text-sm' : 'text-lg';
+
     return (
         <Card className={`shadow-md ${className}`}>
-            <CardBody className="gap-4">
-                {/* Header */}
+            <CardBody className={bodyGap}>
                 <div className="flex items-center gap-2">
-                    <Calculator className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-lg font-semibold text-gray-900">Invoice Summary</h3>
+                    <Calculator
+                        className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-gray-600`}
+                    />
+                    <h3 className={compact ? 'text-base font-semibold text-gray-900' : 'text-lg font-semibold text-gray-900'}>
+                        Invoice Summary
+                    </h3>
                 </div>
 
                 <Divider />
 
                 {/* Subtotal */}
                 <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="text-lg font-semibold">₹{calculations.subtotal.toFixed(2)}</span>
+                    <span className="text-gray-600 text-sm">Subtotal</span>
+                    <span className={`${rowText} font-semibold`}>{formatCurrency(calculations.subtotal)}</span>
                 </div>
 
-                {/* Tax */}
                 <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Tax</span>
-                    <span className="text-lg font-semibold text-blue-600">
-                        +₹{calculations.totalTax.toFixed(2)}
+                    <span className="text-gray-600 text-sm">Tax</span>
+                    <span className={`${rowText} font-semibold text-blue-600`}>
+                        +{formatCurrency(calculations.totalTax)}
                     </span>
                 </div>
 
                 {/* Discount Section */}
-                <div className="space-y-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className={`space-y-2 ${compact ? 'p-2' : 'p-3'} bg-green-50 rounded-lg border border-green-200`}>
                     <div className="flex items-center gap-2">
                         <Percent className="w-4 h-4 text-green-600" />
                         <span className="text-sm font-medium text-green-900">Discount</span>
@@ -70,7 +77,10 @@ export default function CalculationSummary({
                                 size="sm"
                                 label="Type"
                                 selectedKeys={[discountType]}
-                                onChange={(e) => onDiscountTypeChange(e.target.value)}
+                                onSelectionChange={(keys) => {
+                                    const key = Array.from(keys)[0];
+                                    if (key) onDiscountTypeChange(key);
+                                }}
                             >
                                 {discountTypes.map((type) => (
                                     <SelectItem key={type.key} value={type.key}>
@@ -94,7 +104,7 @@ export default function CalculationSummary({
                                     discountType === 'PERCENTAGE' ? (
                                         <Percent className="w-3 h-3 text-gray-400" />
                                     ) : (
-                                        <DollarSign className="w-3 h-3 text-gray-400" />
+                                        <span className="text-gray-400 text-xs font-medium">₹</span>
                                     )
                                 }
                             />
@@ -103,14 +113,14 @@ export default function CalculationSummary({
                         <div className="text-sm text-gray-600">
                             {discountType === 'PERCENTAGE'
                                 ? `${discountValue}%`
-                                : `₹${parseFloat(discountValue || 0).toFixed(2)}`}
+                                : formatCurrency(discountValue)}
                         </div>
                     )}
 
                     <div className="flex justify-between items-center pt-2 border-t border-green-200">
                         <span className="text-sm text-green-700">Discount Amount</span>
                         <span className="text-lg font-bold text-green-700">
-                            -₹{parseFloat(calculations.discount || 0).toFixed(2)}
+                            -{formatCurrency(calculations.discount || 0)}
                         </span>
                     </div>
                 </div>
@@ -123,7 +133,21 @@ export default function CalculationSummary({
                             <span className="text-warning-900">Coins Redeemed</span>
                         </div>
                         <span className="text-lg font-bold text-warning-700">
-                            -₹{parseFloat(coinsRedeemed || 0).toFixed(2)}
+                            -{formatCurrency(coinsRedeemed || 0)}
+                        </span>
+                    </div>
+                )}
+
+                {/* Round off to nearest rupee */}
+                {calculations.roundOff !== 0 && (
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Round Off</span>
+                        <span
+                            className={`text-lg font-semibold ${calculations.roundOff > 0 ? 'text-blue-600' : 'text-orange-600'
+                                }`}
+                        >
+                            {calculations.roundOff > 0 ? '+' : ''}
+                            {formatCurrency(calculations.roundOff)}
                         </span>
                     </div>
                 )}
@@ -132,12 +156,18 @@ export default function CalculationSummary({
 
                 {/* Total */}
                 <div
-                    className={`flex justify-between items-center ${highlightTotal ? 'p-4 bg-primary-50 rounded-lg border-2 border-primary-300' : ''
+                    className={`flex justify-between items-center ${highlightTotal
+                        ? compact
+                            ? 'p-3 bg-primary-50 rounded-lg border border-primary-200'
+                            : 'p-4 bg-primary-50 rounded-lg border-2 border-primary-300'
+                        : ''
                         }`}
                 >
-                    <span className="text-lg font-bold text-gray-900">Total Amount</span>
-                    <span className="text-2xl font-bold text-primary-600">
-                        ₹{parseFloat(calculations.total || 0).toFixed(2)}
+                    <span className={compact ? 'text-base font-bold text-gray-900' : 'text-lg font-bold text-gray-900'}>
+                        Total Amount
+                    </span>
+                    <span className={compact ? 'text-xl font-bold text-primary-600' : 'text-2xl font-bold text-primary-600'}>
+                        {formatCurrency(calculations.total || 0)}
                     </span>
                 </div>
 

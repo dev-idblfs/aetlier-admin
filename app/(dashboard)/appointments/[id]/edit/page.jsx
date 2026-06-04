@@ -5,13 +5,15 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Button, Select, SelectItem, Textarea, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { useGetAppointmentQuery, useUpdateAppointmentMutation, useGetDoctorsQuery } from '@/redux/services/api';
+import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';
 
 const APPOINTMENT_STATUSES = [
     { key: 'pending', label: 'Pending' },
     { key: 'confirmed', label: 'Confirmed' },
-    { key: 'cancelled', label: 'Cancelled' },
     { key: 'completed', label: 'Completed' },
+    { key: 'cancelled', label: 'Cancelled' },
+    { key: 'rescheduled', label: 'Rescheduled' },
+    { key: 'invoiced', label: 'Invoiced' },
 ];
 
 export default function EditAppointmentPage() {
@@ -20,23 +22,18 @@ export default function EditAppointmentPage() {
     const appointmentId = params.id;
 
     const { data: appointment, isLoading: isLoadingAppointment } = useGetAppointmentQuery(appointmentId);
-    const { data: doctorsData } = useGetDoctorsQuery({});
     const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
-
-    const doctors = doctorsData?.doctors || doctorsData || [];
 
     const [formData, setFormData] = useState({
         status: 'pending',
-        doctor_id: '',
-        notes: '',
+        special_notes: '',
     });
 
     useEffect(() => {
         if (appointment) {
             setFormData({
                 status: appointment.status || 'pending',
-                doctor_id: appointment.doctor_id?.toString() || '',
-                notes: appointment.notes || '',
+                special_notes: appointment.special_notes || appointment.doctor_notes || '',
             });
         }
     }, [appointment]);
@@ -52,8 +49,7 @@ export default function EditAppointmentPage() {
             await updateAppointment({
                 id: appointmentId,
                 status: formData.status,
-                doctor_id: formData.doctor_id ? parseInt(formData.doctor_id) : null,
-                notes: formData.notes,
+                special_notes: formData.special_notes,
             }).unwrap();
 
             toast.success('Appointment updated successfully');
@@ -141,29 +137,15 @@ export default function EditAppointmentPage() {
                                     ))}
                                 </Select>
 
-                                <Select
-                                    label="Assign Doctor"
-                                    placeholder="Select doctor"
-                                    selectedKeys={formData.doctor_id ? [formData.doctor_id] : []}
-                                    onSelectionChange={(keys) => handleChange('doctor_id', Array.from(keys)[0])}
-                                    className="md:col-span-2"
-                                >
-                                    {doctors.map((doctor) => (
-                                        <SelectItem key={doctor.id.toString()} value={doctor.id.toString()}>
-                                            {doctor.name || `${doctor.first_name} ${doctor.last_name}`}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
                             </div>
                         </div>
 
-                        {/* Notes */}
                         <div>
                             <Textarea
-                                label="Notes"
+                                label="Special notes"
                                 placeholder="Add any notes or special instructions"
-                                value={formData.notes}
-                                onValueChange={(value) => handleChange('notes', value)}
+                                value={formData.special_notes}
+                                onValueChange={(value) => handleChange('special_notes', value)}
                                 minRows={4}
                             />
                         </div>

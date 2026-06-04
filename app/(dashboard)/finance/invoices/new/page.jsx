@@ -3,7 +3,7 @@
 // Force dynamic rendering - no SSR/static optimization needed for admin
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Save } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -13,15 +13,19 @@ import { invoiceSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
 import {
     useCreateInvoiceMutation,
-    useLazySearchCustomersQuery,
     useGetServicesQuery,
     useGetInvoiceSettingsQuery,
     useCreateInvoiceFromAppointmentMutation,
-    useCreateCustomerMutation,
 } from '@/redux/services/api';
+import {
+    useInvoiceCustomerSearch,
+    formatCustomerAddressForForm,
+    parseCustomerAddressForPayload,
+} from '@/hooks/useInvoiceCustomerSearch';
 import {
     InvoiceLayout,
     CustomerSelector,
+    InvoiceCustomerBillingFields,
     LineItemsTable,
     CalculationSummary,
     InvoiceDetailsFields,
@@ -34,19 +38,24 @@ import { getDefaultDueDate } from '@/utils/invoice/paymentTerms';
 export default function NewInvoicePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const appointmentId = searchParams.get('appointment');
+    const appointmentId = searchParams.get('appointment_id');
     const isDraftRef = useRef(false);
+    const appointmentCreateStartedRef = useRef(false);
 
     // API Hooks
     const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceMutation();
     const [createFromAppointment, { isLoading: isCreatingFromAppointment }] = useCreateInvoiceFromAppointmentMutation();
-    const [searchCustomers, { data: customerResults }] = useLazySearchCustomersQuery();
     const { data: servicesData, isLoading: isLoadingServices } = useGetServicesQuery(undefined, {
         refetchOnMountOrArgChange: 600,
         keepUnusedDataFor: 600,
     });
     const { data: settings } = useGetInvoiceSettingsQuery();
-    const [createCustomer, { isLoading: isCreatingCustomer }] = useCreateCustomerMutation();
+    const {
+        handleSearchCustomers,
+        handleCreateCustomer,
+        isCreatingCustomer,
+        isSearchingCustomers,
+    } = useInvoiceCustomerSearch();
 
     const services = servicesData || [];
 
@@ -121,62 +130,34 @@ export default function NewInvoicePage() {
 
     // Handle appointment-based creation
     useEffect(() => {
-        if (appointmentId) {
-            const createFromAppointmentHandler = async () => {
-                try {
-                    const result = await createFromAppointment(appointmentId).unwrap();
-                    toast.success('Invoice created from appointment');
-                    router.push(`/finance/invoices/${result.id}`);
-                } catch (error) {
-                    toast.error(error.data?.detail || 'Failed to create invoice from appointment');
-                    router.push('/finance/invoices');
-                }
-            };
-            createFromAppointmentHandler();
-        }
+        if (!appointmentId || appointmentCreateStartedRef.current) return;
+        appointmentCreateStartedRef.current = true;
+
+        const createFromAppointmentHandler = async () => {
+            try {
+                const result = await createFromAppointment(appointmentId).unwrap();
+                toast.success('Invoice ready for this appointment');
+                router.replace(`/finance/invoices/${result.id}`);
+            } catch (error) {
+                toast.error(error.data?.detail || 'Failed to create invoice from appointment');
+                router.replace('/finance/invoices');
+            }
+        };
+        createFromAppointmentHandler();
     }, [appointmentId, createFromAppointment, router]);
 
-
-    // Wrapper for searchCustomers
-    const handleSearchCustomers = useCallback(async (term) => {
-        try {
-            if (!term || term.trim() === '') return [];
-            const result = await searchCustomers({ q: term, limit: 10 });
-            return result.data || [];
-        } catch (error) {
-            console.error('Search error:', error);
-            return [];
-        }
-    }, [searchCustomers]);
-
-    // Wrapper for createCustomer
-    const handleCreateCustomer = useCallback(async (data) => {
-        try {
-            return await createCustomer(data).unwrap();
-        } catch (error) {
-            throw error;
-        }
-    }, [createCustomer]);
 
     const onCustomerSelect = (customer) => {
         setSelectedCustomer(customer);
         if (customer) {
-            setValue('customer_id', customer.id);
-            setValue('customer_name', customer.display_name || customer.name);
+            setValue('customer_id', customer.id ? String(customer.id) : '');
+            setValue('customer_name', customer.display_name || customer.name || '');
             setValue('customer_email', customer.email || '');
             setValue('customer_phone', customer.phone || '');
-            setValue('customer_address', JSON.stringify(customer.billing_address) || '');
-            // Note: address is stored as string in schema? 
-            // Previous code passed `billing_address` directly which was object?
-            // checking schema: `customer_address: z.string().optional()`
-            // NewCustomerPage uses JSON string.
-            // API expects? 
-            // Let's check api.js or slice. 
-            // Assuming API handles it, but schema enforces string.
-            // Actually `billing_address` from `customer` object is usually an object.
-            // If I set it as object, validation might fail if schema expects string?
-            // The schema says `z.string().optional()`.
-            // So I should stringify if it's an object.
+            setValue(
+                'customer_address',
+                formatCustomerAddressForForm(customer.billing_address)
+            );
         } else {
             setValue('customer_id', '');
             setValue('customer_name', '');
@@ -193,16 +174,16 @@ export default function NewInvoicePage() {
                 customer_name: data.customer_name,
                 customer_email: data.customer_email || undefined,
                 customer_phone: data.customer_phone || undefined,
-                customer_address: data.customer_address ? JSON.parse(data.customer_address) : undefined, // Parse if it was stringified
+                customer_address: parseCustomerAddressForPayload(data.customer_address),
                 invoice_date: data.invoice_date,
                 due_date: data.due_date,
                 payment_terms: data.payment_terms,
                 notes: data.notes || undefined,
-                terms_conditions: data.terms_conditions || undefined,
+                terms: data.terms_conditions || undefined,
                 discount_type: data.discount_type,
                 discount_value: data.discount_value,
                 coins_redeemed: data.coins_redeemed,
-                status: isDraftRef.current ? 'DRAFT' : 'SENT',
+                status: 'DRAFT',
                 line_items: data.line_items.map(item => ({
                     description: item.description,
                     quantity: item.quantity,
@@ -210,33 +191,6 @@ export default function NewInvoicePage() {
                     tax_rate: item.tax_rate,
                 })),
             };
-
-            // Handle address parsing safety
-            try {
-                if (data.customer_address && typeof data.customer_address === 'string') {
-                    // Try parsing, if fails (e.g. simple string), use as is? 
-                    // Or schema only allows valid json if we used NewCustomerPage logic.
-                    // But here we set via setValue.
-                    // Let's assume the API expects an object for address.
-                    // If I pass simple string, it might fail if backend expects JSON/Dict.
-                    // Check `finance/customers/new/page.jsx`: `billing_address` was parsed.
-                    // Check `finance/invoices/new/page.jsx` original: `customer_address: selectedCustomer?.billing_address` (object)
-                    // So payload expects object.
-                    // But schema expects string? 
-                    // Wait, `customer_address` in `invoiceSchema` is `z.string().optional()`.
-                    // If I pass object to `z.string()`, it fails.
-                    // So I MUST stringify it in `setValue` (which I did).
-                    // And Parse it in `payload` (which I did).
-                    // However, if the address is just a plain string (not JSON), `JSON.parse` throws.
-                    // I should handle that.
-                    try {
-                        payload.customer_address = JSON.parse(data.customer_address);
-                    } catch (e) {
-                        // Keep as string if parsing fails
-                        payload.customer_address = data.customer_address;
-                    }
-                }
-            } catch (e) { }
 
             const result = await createInvoice(payload).unwrap();
             toast.success(isDraftRef.current ? 'Invoice saved as draft' : 'Invoice created successfully');
@@ -270,6 +224,7 @@ export default function NewInvoicePage() {
     return (
         <InvoiceLayout
             title="New Invoice"
+            compact
             actions={[
                 {
                     label: 'Save as Draft',
@@ -287,26 +242,26 @@ export default function NewInvoicePage() {
             ]}
         >
             <Form methods={methods} onSubmit={onSubmit} className="contents">
-                {/* Customer Section */}
-                <InvoiceSection title="Customer Information">
-                    <CustomerSelector
-                        value={selectedCustomer}
-                        onChange={onCustomerSelect}
-                        searchCustomers={handleSearchCustomers}
-                        createCustomer={handleCreateCustomer}
-                        isLoadingCreate={isCreatingCustomer}
-                    />
-                    {/* Hidden fields for validation */}
-                    <input type="hidden" {...methods.register('customer_name')} />
+                <InvoiceSection title="Customer & invoice" compact>
+                    <div className="space-y-3">
+                        <CustomerSelector
+                            value={selectedCustomer}
+                            onChange={onCustomerSelect}
+                            searchCustomers={handleSearchCustomers}
+                            createCustomer={handleCreateCustomer}
+                            isLoadingSearch={isSearchingCustomers}
+                            isLoadingCreate={isCreatingCustomer}
+                            hideSelectedPreview
+                            compact
+                        />
+                        <InvoiceCustomerBillingFields />
+                        <div className="border-t border-gray-100 pt-3">
+                            <InvoiceDetailsFields compact />
+                        </div>
+                    </div>
                 </InvoiceSection>
 
-                {/* Invoice Details */}
-                <InvoiceSection title="Invoice Details">
-                    <InvoiceDetailsFields />
-                </InvoiceSection>
-
-                {/* Line Items */}
-                <InvoiceSection title="Line Items">
+                <InvoiceSection title="Line Items" compact>
                     <Controller
                         name="line_items"
                         control={control}
@@ -317,16 +272,16 @@ export default function NewInvoicePage() {
                                 onChange={field.onChange}
                                 services={services}
                                 isLoadingServices={isLoadingServices}
+                                compact
                             />
                         )}
                     />
                 </InvoiceSection>
 
                 {/* Notes and Summary */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Notes Section */}
-                    <InvoiceSection title="Additional Information">
-                        <InvoiceNotesFields />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <InvoiceSection title="Additional Information" compact>
+                        <InvoiceNotesFields compact />
                     </InvoiceSection>
 
                     {/* Summary */}
@@ -337,6 +292,7 @@ export default function NewInvoicePage() {
                         coinsRedeemed={coinsRedeemed}
                         onDiscountTypeChange={(val) => setValue('discount_type', val)}
                         onDiscountValueChange={(val) => setValue('discount_value', val)}
+                        compact
                     />
                 </div>
             </Form>

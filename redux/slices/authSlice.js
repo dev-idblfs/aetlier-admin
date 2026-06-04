@@ -26,7 +26,7 @@ export const fetchUserProfile = createAsyncThunk(
   }
 );
 
-// Async thunk for logout — admin cookie only; frontend session stays intact.
+// Unified logout — clear admin session, then clear the frontend session too.
 export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { dispatch }) => {
@@ -37,7 +37,7 @@ export const logout = createAsyncThunk(
     if (typeof window !== "undefined") {
       const frontendUrl =
         process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
-      window.location.href = frontendUrl;
+      window.location.href = `${frontendUrl}?unifiedLogout=1`;
     }
   }
 );

@@ -139,6 +139,7 @@ export const PERMISSIONS = {
   APPOINTMENT_UPDATE_OWN: "appointment.update.own",
   APPOINTMENT_DELETE_ANY: "appointment.delete.any",
   APPOINTMENT_APPROVE: "appointment.approve.any",
+  APPOINTMENT_CHANGE_STATUS: "appointment.change_status.any",
   APPOINTMENT_CANCEL: "appointment.cancel.any",
   APPOINTMENT_RESCHEDULE: "appointment.reschedule.any",
 
@@ -203,6 +204,7 @@ export const PERMISSIONS = {
   INVOICE_UPDATE: "invoice.update.any",
   INVOICE_DELETE: "invoice.delete.any",
   INVOICE_SEND: "invoice.send.any",
+  INVOICE_PAYMENT_RECORD: "invoice.payment.record",
 
   // Expenses (backend: expense.view.any)
   EXPENSE_VIEW_ANY: "expense.view.any",

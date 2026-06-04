@@ -180,7 +180,7 @@ export function formatCurrency(amount, currency = "INR", locale = "en-IN") {
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: currency,
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
   } catch (error) {

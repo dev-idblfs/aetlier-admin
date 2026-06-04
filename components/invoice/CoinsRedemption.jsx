@@ -19,6 +19,7 @@ export default function CoinsRedemption({
     isLoadingWallet = false,
     disabled = false,
     showWalletInfo = true,
+    compact = false,
 }) {
     const [localValue, setLocalValue] = useState(value);
     const [error, setError] = useState('');
@@ -66,13 +67,14 @@ export default function CoinsRedemption({
     const redemptionPercentage = afterDiscount > 0 ? (localValue / afterDiscount * 100).toFixed(1) : 0;
 
     return (
-        <Card className="bg-linear-to-br from-warning-50 to-warning-100 border border-warning-200">
-            <CardBody className="gap-4">
-                {/* Header */}
+        <Card className="bg-linear-to-br from-warning-50 to-warning-100 border border-warning-200 shadow-none">
+            <CardBody className={compact ? 'gap-2 py-3' : 'gap-4'}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Coins className="w-5 h-5 text-warning-600" />
-                        <h3 className="font-semibold text-warning-900">Coin Redemption</h3>
+                        <Coins className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-warning-600`} />
+                        <h3 className={`font-semibold text-warning-900 ${compact ? 'text-sm' : ''}`}>
+                            Coin redemption
+                        </h3>
                     </div>
                     {isLoadingWallet && <Spinner size="sm" color="warning" />}
                 </div>

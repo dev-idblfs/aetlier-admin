@@ -2,9 +2,7 @@
 const nextConfig = {
   // Enable optimized client-side navigation and prefetching
   experimental: {
-    // Optimize CSS loading for faster page transitions
-    optimizeCss: true,
-    // Enable scroll restoration for better navigation UX
+    // scrollRestoration only — optimizeCss needs optional `critters` dep
     scrollRestoration: true,
   },
 

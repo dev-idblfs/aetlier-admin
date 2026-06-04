@@ -18,7 +18,8 @@ export default function InvoiceLayout({
     showBackButton = true,
     status = null,
     className = '',
-    maxWidth = 'max-w-6xl', // Default to 6xl for forms (smaller than 7xl)
+    compact = false,
+    maxWidth = 'max-w-6xl',
 }) {
     const router = useRouter();
 
@@ -50,7 +51,9 @@ export default function InvoiceLayout({
     return (
         <div className={`min-h-screen bg-gray-50 ${className}`}>
             {/* Header Section */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 mb-2">
+            <div
+                className={`bg-white border-b border-gray-200 sticky top-0 z-10 ${compact ? 'mb-0' : 'mb-2'}`}
+            >
                 <div className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8`}>
                     {/* Breadcrumbs */}
                     {breadcrumbs.length > 0 && (
@@ -66,7 +69,13 @@ export default function InvoiceLayout({
                     )}
 
                     {/* Header Bar */}
-                    <div className="py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div
+                        className={
+                            compact
+                                ? 'py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3'
+                                : 'py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4'
+                        }
+                    >
                         {/* Left: Title and Back Button */}
                         <div className="flex items-center gap-4">
                             {showBackButton && (
@@ -81,7 +90,13 @@ export default function InvoiceLayout({
                             )}
                             <div>
                                 <div className="flex items-center gap-3 flex-wrap">
-                                    <h1 className="text-2xl font-bold text-gray-900">
+                                    <h1
+                                        className={
+                                            compact
+                                                ? 'text-xl font-bold text-gray-900'
+                                                : 'text-2xl font-bold text-gray-900'
+                                        }
+                                    >
                                         {title}
                                     </h1>
                                     {invoiceNumber && (
@@ -111,7 +126,7 @@ export default function InvoiceLayout({
                                         color={action.color || 'default'}
                                         variant={action.variant || 'flat'}
                                         startContent={action.icon}
-                                        onPress={action.onClick}
+                                        onPress={action.onPress || action.onClick}
                                         isDisabled={action.disabled}
                                         isLoading={action.loading}
                                         className={`text-sm ${action.className || ''}`}
@@ -126,8 +141,9 @@ export default function InvoiceLayout({
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className={`${maxWidth} mx-auto`}>
+            <div
+                className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8 pb-6 ${compact ? 'pt-3 space-y-3' : 'pt-4 space-y-4'}`}
+            >
                 {children}
             </div>
         </div>

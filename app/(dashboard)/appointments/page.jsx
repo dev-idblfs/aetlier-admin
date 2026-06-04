@@ -16,6 +16,7 @@ import {
     Edit,
     Trash2,
     CheckCircle,
+    BadgeCheck,
     XCircle,
     Clock,
     RefreshCw,
@@ -58,9 +59,10 @@ import {
     useDeleteAppointmentMutation,
     useGetServicesQuery,
     useGetDoctorsQuery,
+    useCompleteAppointmentMutation,
 } from '@/redux/services/api';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
-import { hasPermission, hasAnyPermission, PERMISSIONS } from '@/utils/permissions';
+import { hasPermission, hasAnyPermission, hasAllPermissions, PERMISSIONS } from '@/utils/permissions';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { appointmentSchema, appointmentUpdateSchema } from '@/lib/validation';
@@ -72,7 +74,8 @@ const STATUS_OPTIONS = [
     { value: 'confirmed', label: 'Confirmed' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
-    { value: 'no_show', label: 'No Show' },
+    { value: 'rescheduled', label: 'Rescheduled' },
+    { value: 'invoiced', label: 'Invoiced' },
 ];
 
 const STATUS_COLORS = {
@@ -80,7 +83,8 @@ const STATUS_COLORS = {
     confirmed: 'primary',
     completed: 'success',
     cancelled: 'danger',
-    no_show: 'default',
+    rescheduled: 'warning',
+    invoiced: 'secondary',
 };
 
 export default function AppointmentsPage() {
@@ -141,7 +145,7 @@ export default function AppointmentsPage() {
     // API hooks
     const { data, isLoading, refetch, isFetching } = useGetAppointmentsQuery({
         page,
-        size: 10,
+        page_size: 10,
         status: filters.status || undefined,
         date_from: filters.date_from || undefined,
         date_to: filters.date_to || undefined,
@@ -153,6 +157,7 @@ export default function AppointmentsPage() {
     const [createAppointment, { isLoading: isCreating }] = useCreateAppointmentMutation();
     const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
     const [deleteAppointment, { isLoading: isDeleting }] = useDeleteAppointmentMutation();
+    const [completeAppointment, { isLoading: isCompleting }] = useCompleteAppointmentMutation();
 
     const services = servicesData?.services || servicesData || [];
     const doctors = doctorsData?.doctors || doctorsData || [];
@@ -167,9 +172,17 @@ export default function AppointmentsPage() {
     const canDelete = hasAnyPermission(user, [PERMISSIONS.APPOINTMENT_DELETE_ANY, PERMISSIONS.APPOINTMENT_CANCEL]);
     const canChangeStatus = hasAnyPermission(user, [PERMISSIONS.APPOINTMENT_APPROVE, PERMISSIONS.APPOINTMENT_UPDATE_ANY]);
     const canGenerateInvoice = hasAnyPermission(user, [PERMISSIONS.INVOICE_CREATE, PERMISSIONS.INVOICE_READ_ANY]);
+    const canComplete = hasAllPermissions(user, [
+        PERMISSIONS.APPOINTMENT_CHANGE_STATUS,
+        PERMISSIONS.INVOICE_CREATE,
+    ]);
 
     // Generate Invoice handler
     const handleGenerateInvoice = (appointment) => {
+        if (appointment.invoice_id) {
+            router.push(`/finance/invoices/${appointment.invoice_id}`);
+            return;
+        }
         router.push(`/finance/invoices/new?appointment_id=${appointment.id}`);
     };
 
@@ -177,6 +190,24 @@ export default function AppointmentsPage() {
     const handleViewInvoice = (appointment) => {
         if (appointment.invoice_id) {
             router.push(`/finance/invoices/${appointment.invoice_id}`);
+        }
+    };
+
+    const handleComplete = async (appointment) => {
+        if (appointment.invoice_id) {
+            router.push(`/finance/invoices/${appointment.invoice_id}`);
+            return;
+        }
+        try {
+            const result = await completeAppointment({ id: appointment.id }).unwrap();
+            toast.success('Appointment completed and draft invoice created');
+            if (result?.invoice?.id) {
+                router.push(`/finance/invoices/${result.invoice.id}`);
+            } else {
+                refetch();
+            }
+        } catch (error) {
+            toast.error(error?.data?.detail || 'Failed to complete appointment');
         }
     };
 
@@ -269,7 +300,20 @@ export default function AppointmentsPage() {
                             <Edit className="w-4 h-4" />
                         </Button>
                     )}
-                    {canGenerateInvoice && row.status === 'completed' && (
+                    {canComplete && row.status === 'confirmed' && (
+                        <Button
+                            size="sm"
+                            color="success"
+                            variant="flat"
+                            isIconOnly
+                            onPress={() => handleComplete(row)}
+                            isLoading={isCompleting}
+                            title="Complete and create invoice"
+                        >
+                            <CheckCircle className="w-4 h-4" />
+                        </Button>
+                    )}
+                    {canGenerateInvoice && row.status === 'completed' && !row.invoice_id && (
                         <Button
                             size="sm"
                             color="primary"
@@ -290,7 +334,7 @@ export default function AppointmentsPage() {
                             onPress={() => handleQuickStatus(row.id, 'confirmed')}
                             isLoading={isUpdating}
                         >
-                            <CheckCircle className="w-4 h-4" />
+                            <BadgeCheck className="w-4 h-4" />
                         </Button>
                     )}
                     {canDelete && row.status !== 'cancelled' && (
@@ -324,20 +368,25 @@ export default function AppointmentsPage() {
         onCreateOpen();
     };
 
+    const buildCreatePayload = (data) => {
+        const nameParts = data.patient_name.trim().split(/\s+/);
+        return {
+            book_for_other: true,
+            patient_first_name: nameParts[0],
+            patient_last_name: nameParts.slice(1).join(' ') || nameParts[0],
+            patient_email: data.patient_email,
+            patient_phone: data.patient_phone || undefined,
+            service_id: data.service_id,
+            preferred_date: data.preferred_date,
+            preferred_time: data.preferred_time,
+            special_notes: data.special_notes || '',
+            ...(data.doctor_id ? { doctor_id: data.doctor_id } : {}),
+        };
+    };
+
     const onCreateSubmit = async (data) => {
         try {
-            await createAppointment({
-                patient_info: {
-                    full_name: data.patient_name,
-                    email: data.patient_email,
-                    phone: data.patient_phone,
-                },
-                service_id: data.service_id || undefined,
-                doctor_id: data.doctor_id || undefined,
-                preferred_date: data.preferred_date,
-                preferred_time: data.preferred_time,
-                special_notes: data.special_notes,
-            }).unwrap();
+            await createAppointment(buildCreatePayload(data)).unwrap();
             toast.success('Appointment created successfully');
             onCreateOpenChange(false);
             refetch();
@@ -366,7 +415,9 @@ export default function AppointmentsPage() {
         try {
             await updateAppointment({
                 id: selectedAppointment.id,
-                ...data,
+                appointment_date: data.preferred_date,
+                appointment_time: data.preferred_time,
+                special_notes: data.special_notes,
             }).unwrap();
             toast.success('Appointment updated successfully');
             onEditOpenChange(false);
@@ -591,11 +642,14 @@ export default function AppointmentsPage() {
                                 onStatusChange={() => handleStatusClick(apt)}
                                 onQuickConfirm={() => handleQuickStatus(apt.id, 'confirmed')}
                                 onGenerateInvoice={() => handleGenerateInvoice(apt)}
+                                onComplete={() => handleComplete(apt)}
+                                onViewInvoice={() => handleViewInvoice(apt)}
                                 canView={canView}
                                 canEdit={canEdit}
                                 canDelete={canDelete}
                                 canChangeStatus={canChangeStatus}
                                 canGenerateInvoice={canGenerateInvoice}
+                                canComplete={canComplete}
                             />
                         ))}
                         {totalPages > 1 && (
@@ -874,7 +928,8 @@ export default function AppointmentsPage() {
                     <SelectItem key="confirmed" value="confirmed">Confirmed</SelectItem>
                     <SelectItem key="completed" value="completed">Completed</SelectItem>
                     <SelectItem key="cancelled" value="cancelled">Cancelled</SelectItem>
-                    <SelectItem key="no_show" value="no_show">No Show</SelectItem>
+                    <SelectItem key="rescheduled" value="rescheduled">Rescheduled</SelectItem>
+                    <SelectItem key="invoiced" value="invoiced">Invoiced</SelectItem>
                 </Select>
             </FormModal >
         </div >
@@ -890,11 +945,14 @@ function AppointmentCard({
     onStatusChange,
     onQuickConfirm,
     onGenerateInvoice,
+    onComplete,
+    onViewInvoice,
     canView,
     canEdit,
     canDelete,
     canChangeStatus,
     canGenerateInvoice,
+    canComplete,
 }) {
     const apt = appointment;
 
@@ -938,11 +996,16 @@ function AppointmentCard({
                                 </DropdownItem>
                             )}
                             {apt.status === 'invoiced' && apt.invoice_id && (
-                                <DropdownItem key="view-invoice" startContent={<FileText className="w-4 h-4" />} color="primary" onPress={() => handleViewInvoice(apt)}>
+                                <DropdownItem key="view-invoice" startContent={<FileText className="w-4 h-4" />} color="primary" onPress={onViewInvoice}>
                                     View Invoice
                                 </DropdownItem>
                             )}
-                            {canGenerateInvoice && apt.status === 'completed' && (
+                            {canComplete && apt.status === 'confirmed' && (
+                                <DropdownItem key="complete" startContent={<CheckCircle className="w-4 h-4" />} color="success" onPress={onComplete}>
+                                    Complete and invoice
+                                </DropdownItem>
+                            )}
+                            {canGenerateInvoice && apt.status === 'completed' && !apt.invoice_id && (
                                 <DropdownItem key="invoice" startContent={<FileText className="w-4 h-4" />} color="primary" onPress={onGenerateInvoice}>
                                     Generate Invoice
                                 </DropdownItem>
@@ -953,7 +1016,7 @@ function AppointmentCard({
                                 </DropdownItem>
                             )}
                             {canChangeStatus && apt.status === 'pending' && (
-                                <DropdownItem key="confirm" startContent={<CheckCircle className="w-4 h-4" />} color="success" onPress={onQuickConfirm}>
+                                <DropdownItem key="confirm" startContent={<BadgeCheck className="w-4 h-4" />} color="success" onPress={onQuickConfirm}>
                                     Confirm
                                 </DropdownItem>
                             )}

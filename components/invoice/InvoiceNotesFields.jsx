@@ -10,21 +10,27 @@ export default function InvoiceNotesFields({
     termsLabel = 'Terms & Conditions',
     notesPlaceholder = 'Any additional notes for the customer...',
     termsPlaceholder = 'Invoice terms and conditions...',
+    compact = false,
 }) {
+    const rows = compact ? 2 : 3;
+    const gap = compact ? 'space-y-3' : 'space-y-4';
+
     return (
-        <div className="space-y-4">
+        <div className={gap}>
             <FormTextarea
                 name={notesName}
                 label={notesLabel}
                 placeholder={notesPlaceholder}
-                minRows={3}
+                minRows={rows}
+                size={compact ? 'sm' : 'md'}
                 isReadOnly={readonly}
             />
             <FormTextarea
                 name={termsName}
                 label={termsLabel}
                 placeholder={termsPlaceholder}
-                minRows={3}
+                minRows={rows}
+                size={compact ? 'sm' : 'md'}
                 isReadOnly={readonly}
             />
         </div>

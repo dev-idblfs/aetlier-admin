@@ -232,7 +232,15 @@ export function FormSelect({
                             selectedKeys={keys}
                             onSelectionChange={(k) => {
                                 const arr = Array.from(k);
-                                field.onChange(selectionMode === 'multiple' ? arr : arr[0]);
+                                const value =
+                                    selectionMode === 'multiple' ? arr : arr[0];
+                                if (
+                                    value !== undefined &&
+                                    value !== null &&
+                                    value !== ''
+                                ) {
+                                    field.onChange(value);
+                                }
                             }}
                             isRequired={isRequired}
                             isDisabled={isDisabled}

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useEffect, useMemo, useCallback } from 'react';
+import { use, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import { useRouter } from 'next/navigation';
@@ -9,7 +9,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { invoiceSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
-import { FormInput, FormTextarea } from '@/components/ui/FormFields';
 import {
     useGetInvoiceQuery,
     useUpdateInvoiceMutation,
@@ -23,11 +22,18 @@ import {
     CoinsRedemption,
     InvoiceDetailsFields,
     InvoiceNotesFields,
+    CustomerSelector,
+    InvoiceCustomerBillingFields,
 } from '@/components/invoice';
 import { InvoiceSection, InvoiceAlert, InvoiceEmptyState } from '@/components/ui';
 import { calculateInvoiceTotal } from '@/utils/invoice/calculations';
 import { formatCurrency } from '@/utils/dateFormatters';
 import { getDefaultDueDate } from '@/utils/invoice/paymentTerms';
+import {
+    useInvoiceCustomerSearch,
+    formatCustomerAddressForForm,
+    parseCustomerAddressForPayload,
+} from '@/hooks/useInvoiceCustomerSearch';
 
 export default function EditInvoicePage({ params }) {
     const unwrappedParams = use(params);
@@ -38,6 +44,16 @@ export default function EditInvoicePage({ params }) {
     const [updateInvoice, { isLoading: isUpdating }] = useUpdateInvoiceMutation();
     const { data: servicesData } = useGetServicesQuery();
     const services = servicesData || [];
+    const {
+        handleSearchCustomers,
+        handleCreateCustomer,
+        isCreatingCustomer,
+        isSearchingCustomers,
+    } = useInvoiceCustomerSearch();
+
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const invoiceFormSyncedId = useRef(null);
+    const customerLocked = (invoice?.amount_paid ?? 0) > 0;
 
     // Fetch wallet data if invoice has a user
     const { data: walletData, isLoading: isLoadingWallet } = useGetUserWalletQuery(
@@ -66,6 +82,28 @@ export default function EditInvoicePage({ params }) {
 
     const { control, watch, setValue, handleSubmit, reset } = methods;
 
+    const onInvalid = (errors) => {
+        const findMessage = (err) => {
+            if (!err) return null;
+            if (typeof err.message === 'string' && err.message) return err.message;
+            if (err.root?.message) return err.root.message;
+            if (Array.isArray(err)) {
+                for (const item of err) {
+                    const nested = findMessage(item);
+                    if (nested) return nested;
+                }
+            }
+            if (typeof err === 'object') {
+                for (const key of Object.keys(err)) {
+                    const nested = findMessage(err[key]);
+                    if (nested) return nested;
+                }
+            }
+            return null;
+        };
+        toast.error(findMessage(errors) || 'Please fix form errors before saving');
+    };
+
     const lineItems = watch('line_items');
     const paymentTerms = watch('payment_terms');
     const invoiceDate = watch('invoice_date');
@@ -73,27 +111,75 @@ export default function EditInvoicePage({ params }) {
     const discountValue = watch('discount_value');
     const coinsRedeemed = watch('coins_redeemed');
 
-    // Initialize form with invoice data
+    const onCustomerSelect = useCallback(
+        (customer) => {
+            setSelectedCustomer(customer);
+            if (customer) {
+                setValue('customer_id', customer.id ? String(customer.id) : '');
+                setValue('customer_name', customer.display_name || customer.name || '');
+                setValue('customer_email', customer.email || '');
+                setValue('customer_phone', customer.phone || '');
+                setValue(
+                    'customer_address',
+                    formatCustomerAddressForForm(customer.billing_address)
+                );
+            } else {
+                setValue('customer_id', '');
+                setValue('customer_name', '');
+                setValue('customer_email', '');
+                setValue('customer_phone', '');
+                setValue('customer_address', '');
+            }
+        },
+        [setValue]
+    );
+
+    // Initialize form once per invoice load (do not reset after user picks another customer)
     useEffect(() => {
-        if (invoice) {
-            reset({
-                customer_id: invoice.customer_id,
+        if (!invoice?.id) return;
+        if (invoiceFormSyncedId.current === invoice.id) return;
+        invoiceFormSyncedId.current = invoice.id;
+
+        const linkedId = invoice.customer_id || invoice.user_id;
+        reset({
+                customer_id: linkedId ? String(linkedId) : '',
                 customer_name: invoice.customer_name || '',
                 customer_email: invoice.customer_email || '',
                 customer_phone: invoice.customer_phone || '',
-                customer_address: invoice.customer_address || '',
-                invoice_date: invoice.invoice_date || new Date().toISOString().split('T')[0],
-                due_date: invoice.due_date || new Date().toISOString().split('T')[0],
+                customer_address: formatCustomerAddressForForm(invoice.customer_address),
+                invoice_date: invoice.invoice_date
+                    ? String(invoice.invoice_date).slice(0, 10)
+                    : new Date().toISOString().split('T')[0],
+                due_date: invoice.due_date
+                    ? String(invoice.due_date).slice(0, 10)
+                    : new Date().toISOString().split('T')[0],
                 payment_terms: invoice.payment_terms || 'DUE_ON_RECEIPT',
-                notes: invoice.customer_notes || '',
-                terms_conditions: invoice.terms_conditions || '',
-                discount_type: invoice.discount_type || 'PERCENTAGE',
+                notes: invoice.notes || '',
+                terms_conditions: invoice.terms || '',
+                discount_type: (invoice.discount_type === 'FIXED' ? 'FIXED' : 'PERCENTAGE'),
                 discount_value: invoice.discount_value || 0,
                 coins_redeemed: invoice.coins_redeemed || 0,
-                line_items: invoice.line_items ? invoice.line_items.map(item => ({ ...item })) : [],
+                line_items: invoice.line_items
+                    ? invoice.line_items.map((item) => ({
+                        id: item.id != null ? String(item.id) : undefined,
+                        service_id: item.service_id != null ? String(item.service_id) : null,
+                        service_name: item.service_name || null,
+                        description: item.description || '',
+                        quantity: Number(item.quantity) || 1,
+                        unit_price: Number(item.unit_price) || 0,
+                        tax_rate: Number(item.tax_rate) || 0,
+                    }))
+                    : [],
+            });
+        if (linkedId || invoice.customer_name) {
+            setSelectedCustomer({
+                id: linkedId,
+                display_name: invoice.customer_name || '',
+                email: invoice.customer_email || '',
+                phone: invoice.customer_phone || '',
             });
         }
-    }, [invoice, reset]);
+    }, [invoice?.id, invoice, reset]);
 
     // Calculate totals using utility function
     const calculations = useMemo(() => {
@@ -176,19 +262,22 @@ export default function EditInvoicePage({ params }) {
 
         try {
             const payload = {
+                customer_id: data.customer_id || undefined,
                 customer_name: data.customer_name,
                 customer_email: data.customer_email || undefined,
                 customer_phone: data.customer_phone || undefined,
-                customer_address: data.customer_address || undefined,
+                customer_address: parseCustomerAddressForPayload(
+                    data.customer_address
+                ),
                 invoice_date: data.invoice_date,
                 due_date: data.due_date,
                 payment_terms: data.payment_terms,
                 notes: data.notes || undefined,
-                terms_conditions: data.terms_conditions || undefined,
+                terms: data.terms_conditions || undefined,
                 discount_type: data.discount_type,
                 discount_value: data.discount_value,
                 coins_redeemed: data.coins_redeemed || 0,
-                status: asDraft ? 'DRAFT' : invoice?.status || 'PENDING',
+                status: asDraft ? 'DRAFT' : invoice?.status || 'DRAFT',
                 line_items: data.line_items.map(item => ({
                     description: item.description,
                     quantity: item.quantity,
@@ -204,6 +293,16 @@ export default function EditInvoicePage({ params }) {
             toast.error(error?.data?.detail || 'Failed to update invoice');
         }
     };
+
+    const handleSaveDraft = handleSubmit(
+        (data) => onSubmit(data, true),
+        onInvalid
+    );
+
+    const handleUpdateInvoice = handleSubmit(
+        (data) => onSubmit(data, false),
+        onInvalid
+    );
 
     if (isLoading) {
         return (
@@ -263,7 +362,7 @@ export default function EditInvoicePage({ params }) {
             label: 'Save as Draft',
             variant: 'flat',
             icon: <Save className="w-4 h-4" />,
-            onClick: () => handleSubmit((data) => onSubmit(data, true))(),
+            onPress: handleSaveDraft,
             loading: isUpdating,
         });
     }
@@ -271,7 +370,7 @@ export default function EditInvoicePage({ params }) {
         label: 'Update Invoice',
         color: 'primary',
         icon: <Save className="w-4 h-4" />,
-        onClick: () => handleSubmit((data) => onSubmit(data, false))(),
+        onPress: handleUpdateInvoice,
         loading: isUpdating,
     });
 
@@ -281,57 +380,45 @@ export default function EditInvoicePage({ params }) {
             onBack={() => router.push(`/finance/invoices/${invoice.id}`)}
             status={invoice.status}
             actions={actions}
+            compact
         >
-            <Form methods={methods} onSubmit={() => { }} className="contents">
+            <Form methods={methods} onSubmit={(data) => onSubmit(data, false)} className="contents">
                 {/* Warning for invoices with payments */}
                 {invoice.amount_paid > 0 && (
                     <InvoiceAlert
                         variant="warning"
-                        icon={<AlertCircle className="w-5 h-5" />}
-                        title="Payment Recorded"
-                        message={`This invoice has ${formatCurrency(invoice.amount_paid)} in payments recorded. Changes to line items will affect the balance due.`}
+                        icon={<AlertCircle className="w-4 h-4" />}
+                        title="Payment recorded"
+                        message={`${formatCurrency(invoice.amount_paid)} paid — line item edits change balance due.`}
+                        compact
                     />
                 )}
 
-                {/* Customer Information */}
-                <InvoiceSection title="Customer Information">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormInput
-                            name="customer_name"
-                            label="Customer Name"
-                            placeholder="Enter customer name"
-                            isRequired
-                            isDisabled={invoice.amount_paid > 0}
+                <InvoiceSection title="Customer & invoice" compact>
+                    <div className="space-y-3">
+                        <CustomerSelector
+                            value={selectedCustomer}
+                            onChange={onCustomerSelect}
+                            searchCustomers={handleSearchCustomers}
+                            createCustomer={handleCreateCustomer}
+                            isLoadingSearch={isSearchingCustomers}
+                            isLoadingCreate={isCreatingCustomer}
+                            readonly={customerLocked}
+                            showCreateButton={!customerLocked}
+                            hideSelectedPreview
+                            compact
                         />
-                        <FormInput
-                            name="customer_email"
-                            label="Email"
-                            type="email"
-                            placeholder="customer@example.com"
+                        <InvoiceCustomerBillingFields
+                            nameDisabled={customerLocked}
+                            fieldsDisabled={customerLocked}
                         />
-                        <FormInput
-                            name="customer_phone"
-                            label="Phone"
-                            placeholder="+91 98765 43210"
-                        />
-                        <div className="md:col-span-2">
-                            <FormTextarea
-                                name="customer_address"
-                                label="Address"
-                                placeholder="Enter customer address"
-                                rows={2}
-                            />
+                        <div className="border-t border-gray-100 pt-3">
+                            <InvoiceDetailsFields compact />
                         </div>
                     </div>
                 </InvoiceSection>
 
-                {/* Invoice Details */}
-                <InvoiceSection title="Invoice Details">
-                    <InvoiceDetailsFields />
-                </InvoiceSection>
-
-                {/* Line Items */}
-                <InvoiceSection title="Line Items">
+                <InvoiceSection title="Line Items" compact>
                     <Controller
                         name="line_items"
                         control={control}
@@ -340,16 +427,17 @@ export default function EditInvoicePage({ params }) {
                                 items={field.value}
                                 onChange={field.onChange}
                                 services={services}
+                                compact
                             />
                         )}
                     />
                 </InvoiceSection>
 
                 {/* Calculation & Notes */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Notes Section */}
-                    <InvoiceSection title="Additional Information">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <InvoiceSection title="Additional Information" compact>
                         <InvoiceNotesFields
+                            compact
                             notesLabel="Customer Notes"
                             notesPlaceholder="Add notes for the customer"
                             termsPlaceholder="Add terms and conditions"
@@ -360,11 +448,13 @@ export default function EditInvoicePage({ params }) {
                     <div className="space-y-4">
                         {invoice?.user_id && (
                             <CoinsRedemption
-                                walletBalance={walletData?.balance || 0}
-                                coinsRedeemed={coinsRedeemed}
-                                afterDiscount={calculations.subtotal - calculations.discount}
-                                onCoinsChange={(value) => setValue('coins_redeemed', value)}
+                                value={coinsRedeemed}
+                                onChange={(value) => setValue('coins_redeemed', value)}
+                                walletBalance={walletData?.balance ?? walletData?.coin_balance ?? 0}
+                                subtotal={calculations.subtotal}
+                                discount={calculations.discount}
                                 isLoadingWallet={isLoadingWallet}
+                                compact
                             />
                         )}
                         <CalculationSummary
@@ -374,6 +464,7 @@ export default function EditInvoicePage({ params }) {
                             coinsRedeemed={coinsRedeemed}
                             onDiscountTypeChange={(type) => setValue('discount_type', type)}
                             onDiscountValueChange={(value) => setValue('discount_value', value)}
+                            compact
                         />
                     </div>
                 </div>

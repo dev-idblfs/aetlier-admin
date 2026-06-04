@@ -22,6 +22,15 @@ import { Plus, Trash2, Search } from 'lucide-react';
 import { calculateLineItemTotal, calculateLineItemTax } from '@/utils/invoice/calculations';
 import { toast } from 'react-hot-toast';
 
+function resolveServiceDisplayName(item, services = []) {
+    if (item.service_name) return item.service_name;
+    const matched = services.find(
+        (s) => item.service_id && String(s.id) === String(item.service_id)
+    );
+    if (matched?.name) return matched.name;
+    return item.description || '-';
+}
+
 function LineItemsTable({
     items = [],
     onChange,
@@ -29,6 +38,7 @@ function LineItemsTable({
     isLoadingServices = false,
     readonly = false,
     showTax = true,
+    compact = false,
 }) {
     const handleAddItem = useCallback(() => {
         const newItem = {
@@ -51,28 +61,26 @@ function LineItemsTable({
     }, [items, onChange]);
 
     const handleItemChange = useCallback((index, field, value) => {
-        onChange(prevItems => {
-            const updated = [...prevItems];
+        const updated = [...items];
+        updated[index] = { ...updated[index], [field]: value };
 
-            // Service IDs are UUIDs (strings), not numbers - no conversion needed
-            updated[index] = { ...updated[index], [field]: value };
-
-            // Auto-fill from service if selected
-            if (field === 'service_id' && value) {
-                const service = services.find((s) => s.id === value);
-
-                if (service) {
-                    updated[index] = {
-                        ...updated[index],
-                        description: service.name,
-                        unit_price: parseFloat(service.price) || 0,
-                    };
-                }
+        if (field === 'service_id' && value) {
+            const service = services.find((s) => String(s.id) === String(value));
+            if (service) {
+                updated[index] = {
+                    ...updated[index],
+                    description: service.name,
+                    unit_price: parseFloat(service.price) || 0,
+                };
             }
+        }
 
-            return updated;
-        });
-    }, [services, onChange]);
+        if (field === 'quantity' || field === 'unit_price' || field === 'tax_rate') {
+            updated[index][field] = parseFloat(value) || 0;
+        }
+
+        onChange(updated);
+    }, [items, services, onChange]);
 
     const columns = useMemo(() => {
         const cols = [
@@ -94,10 +102,12 @@ function LineItemsTable({
         return cols.filter(col => col && col.key && col.label !== undefined);
     }, [showTax, readonly]);
 
+    const outerGap = compact ? 'space-y-2' : 'space-y-4';
+    const mobileGap = compact ? 'space-y-2' : 'space-y-3';
+
     return (
-        <div className="space-y-4">
-            {/* Mobile cards */}
-            <div className="space-y-3 md:hidden">
+        <div className={outerGap}>
+            <div className={`${mobileGap} md:hidden`}>
                 {items.map((item, index) => (
                     <div
                         key={item.id || index}
@@ -139,7 +149,7 @@ function LineItemsTable({
                                     </Select>
                                 ) : (
                                     <span className="text-sm text-gray-700">
-                                        {item.service_name || services.find((s) => s.id === item.service_id)?.name || '-'}
+                                        {resolveServiceDisplayName(item, services)}
                                     </span>
                                 )}
                             </div>
@@ -239,9 +249,10 @@ function LineItemsTable({
                         <Table
                             aria-label="Invoice line items"
                             removeWrapper
+                            size={compact ? 'sm' : 'md'}
                             classNames={{
-                                th: 'bg-gray-50 text-gray-700 font-semibold border-b border-gray-200',
-                                td: 'py-2',
+                                th: `bg-gray-50 text-gray-700 font-semibold border-b border-gray-200 ${compact ? 'text-xs' : ''}`,
+                                td: compact ? 'py-1' : 'py-2',
                             }}
                         >
                             <TableHeader>
@@ -291,7 +302,7 @@ function LineItemsTable({
                                                                 </Select>
                                                             ) : (
                                                                 <span className="text-sm text-gray-600">
-                                                                    {item.service_name || services.find((s) => s.id === item.service_id)?.name || '-'}
+                                                                    {resolveServiceDisplayName(item, services)}
                                                                 </span>
                                                             )}
                                                         </TableCell>
@@ -385,7 +396,7 @@ function LineItemsTable({
                                                     return (
                                                         <TableCell key={column.key}>
                                                             <div className="text-sm font-semibold">
-                                                                ₹{(calculateLineItemTotal(item) + calculateLineItemTax(item)).toFixed(2)}
+                                                                ₹{(Number(item.line_total) || (calculateLineItemTotal(item) + calculateLineItemTax(item))).toFixed(2)}
                                                             </div>
                                                         </TableCell>
                                                     );

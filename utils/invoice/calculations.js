@@ -8,7 +8,9 @@
  * @returns {number} Item total
  */
 export const calculateLineItemTotal = (item) => {
-  return (item.quantity || 0) * (item.unit_price || 0);
+  const qty = Number(item?.quantity) || 0;
+  const price = Number(item?.unit_price) || 0;
+  return qty * price;
 };
 
 /**
@@ -60,6 +62,19 @@ export const calculateDiscount = (
 };
 
 /**
+ * Round to nearest whole rupee; returns { total, roundOff, beforeRound }.
+ */
+export const applyRoundOff = (amount) => {
+  const beforeRound = Math.max(0, Number(amount) || 0);
+  if (beforeRound === 0) {
+    return { total: 0, roundOff: 0, beforeRound: 0 };
+  }
+  const total = Math.round(beforeRound);
+  const roundOff = Math.round((total - beforeRound) * 100) / 100;
+  return { total, roundOff, beforeRound };
+};
+
+/**
  * Calculate invoice total
  * @param {Object} params - Calculation parameters
  * @returns {Object} Complete calculations
@@ -73,13 +88,19 @@ export const calculateInvoiceTotal = ({
   const subtotal = calculateSubtotal(lineItems);
   const totalTax = calculateTotalTax(lineItems);
   const discount = calculateDiscount(subtotal, discountType, discountValue);
-  const total = Math.max(0, subtotal + totalTax - discount - coinsRedeemed);
+  const beforeRound = Math.max(
+    0,
+    subtotal + totalTax - discount - coinsRedeemed
+  );
+  const { total, roundOff } = applyRoundOff(beforeRound);
 
   return {
     subtotal,
     totalTax,
     discount,
     coinsRedeemed,
+    beforeRound,
+    roundOff,
     total,
     beforeTax: subtotal - discount - coinsRedeemed,
     afterDiscount: subtotal - discount,
@@ -106,4 +127,41 @@ export const getPaymentStatus = (total, amountPaid = 0) => {
   if (amountPaid === 0) return "UNPAID";
   if (amountPaid >= total) return "PAID";
   return "PARTIALLY_PAID";
+};
+
+/**
+ * Resolve grand total and balance due — prefer API values (incl. round-off), fallback to line-item math.
+ */
+export const resolveInvoiceBalance = (invoice, lineItems = []) => {
+  const amountPaid = Number(invoice?.amount_paid) || 0;
+  const computed = calculateInvoiceTotal({
+    lineItems,
+    discountType: invoice?.discount_type || "FIXED",
+    discountValue:
+      Number(invoice?.discount_value ?? invoice?.discount_amount) || 0,
+    coinsRedeemed: Number(invoice?.coins_redeemed) || 0,
+  });
+
+  const apiGrand = Number(invoice?.grand_total) || 0;
+  const grandTotal =
+    apiGrand > 0 && Math.abs(apiGrand - computed.total) <= 0.01
+      ? apiGrand
+      : computed.total;
+
+  const balanceFromGrand = calculateBalanceDue(grandTotal, amountPaid);
+  const apiBalance =
+    invoice?.balance_due != null ? Number(invoice.balance_due) : null;
+  const balanceDue =
+    apiBalance != null &&
+    !Number.isNaN(apiBalance) &&
+    Math.abs(apiBalance - balanceFromGrand) <= 0.01
+      ? Math.max(0, apiBalance)
+      : balanceFromGrand;
+
+  return {
+    grandTotal,
+    balanceDue,
+    amountPaid,
+    computed,
+  };
 };

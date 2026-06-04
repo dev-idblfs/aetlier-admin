@@ -377,13 +377,13 @@ function InvoiceStatusBadge({ status }) {
     const statusConfig = {
         PAID: { color: 'success', label: 'Paid' },
         PARTIALLY_PAID: { color: 'warning', label: 'Partial' },
-        PENDING: { color: 'default', label: 'Pending' },
+        SENT: { color: 'primary', label: 'Sent' },
         OVERDUE: { color: 'danger', label: 'Overdue' },
         CANCELLED: { color: 'default', label: 'Cancelled' },
         DRAFT: { color: 'default', label: 'Draft' },
     };
 
-    const config = statusConfig[status] || statusConfig.PENDING;
+    const config = statusConfig[status] || statusConfig.DRAFT;
 
     return (
         <Chip size="sm" color={config.color} variant="flat">

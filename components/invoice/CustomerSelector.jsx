@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
     Autocomplete,
     AutocompleteItem,
@@ -26,6 +26,7 @@ import { toast } from 'react-hot-toast';
 
 export default function CustomerSelector({
     value = null,
+    initialCustomer = null,
     onChange,
     onCustomerSelect,
     searchCustomers,
@@ -34,11 +35,20 @@ export default function CustomerSelector({
     isLoadingCreate = false,
     readonly = false,
     showCreateButton = true,
+    hideSelectedPreview = false,
+    compact = false,
     placeholder = 'Search customer by name, email, or phone',
 }) {
-    const [searchTerm, setSearchTerm] = useState('');
+    const seedCustomer = value ?? initialCustomer;
+    const [searchTerm, setSearchTerm] = useState(
+        seedCustomer?.display_name || ''
+    );
     const [customers, setCustomers] = useState([]);
-    const [selectedCustomer, setSelectedCustomer] = useState(value);
+    const [selectedCustomer, setSelectedCustomer] = useState(seedCustomer);
+    const [selectedKey, setSelectedKey] = useState(
+        seedCustomer?.id != null ? String(seedCustomer.id) : null
+    );
+    const didSeedFromInitial = useRef(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCustomer, setNewCustomer] = useState({
         display_name: '',
@@ -52,48 +62,96 @@ export default function CustomerSelector({
         customer_type: 'individual',
     });
 
-    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const searchRequestId = useRef(0);
+
+    // Controlled: parent `value` is source of truth (never override with initialCustomer)
+    useEffect(() => {
+        if (value == null) return;
+        const nextKey = value.id != null ? String(value.id) : null;
+        setSelectedKey(nextKey);
+        setSelectedCustomer(value);
+        setSearchTerm(value.display_name || '');
+    }, [value?.id, value?.display_name, value?.email, value?.phone]);
+
+    // One-time seed from initialCustomer before parent value is ready (edit invoice load)
+    useEffect(() => {
+        if (value != null || !initialCustomer) return;
+        if (didSeedFromInitial.current) return;
+        didSeedFromInitial.current = true;
+        const key = initialCustomer.id != null ? String(initialCustomer.id) : null;
+        setSelectedKey(key);
+        setSelectedCustomer(initialCustomer);
+        setSearchTerm(initialCustomer.display_name || '');
+    }, [initialCustomer, value]);
+
+    const listItems = useMemo(() => {
+        if (!selectedCustomer?.id) return customers;
+        const sid = String(selectedCustomer.id);
+        if (customers.some((c) => String(c.id) === sid)) return customers;
+        return [selectedCustomer, ...customers];
+    }, [customers, selectedCustomer]);
 
     // Search customers when debounced term changes
     useEffect(() => {
-        let mounted = true;
+        const term = debouncedSearchTerm?.trim() || '';
+        if (term.length < 2) {
+            setCustomers([]);
+            return undefined;
+        }
+
+        if (!searchCustomers) return undefined;
+
+        const requestId = ++searchRequestId.current;
 
         const fetchCustomers = async () => {
-            if (!debouncedSearchTerm) {
-                if (mounted) setCustomers([]);
-                return;
-            }
-
-            if (searchCustomers) {
-                try {
-                    const results = await searchCustomers(debouncedSearchTerm);
-                    if (mounted) setCustomers(results);
-                } catch (error) {
-                    console.error('Customer search error:', error);
-                    if (mounted) toast.error('Failed to search customers');
-                }
+            try {
+                const results = await searchCustomers(term);
+                if (searchRequestId.current !== requestId) return;
+                setCustomers(Array.isArray(results) ? results : []);
+            } catch (error) {
+                if (searchRequestId.current !== requestId) return;
+                console.error('Customer search error:', error);
             }
         };
 
         fetchCustomers();
-
-        return () => {
-            mounted = false;
-        };
+        return undefined;
     }, [debouncedSearchTerm, searchCustomers]);
 
-    const handleSelectionChange = (key) => {
-        if (!key) return;
-
-        const customer = customers.find((c) => c.id?.toString() === key.toString());
-        if (customer) {
-            setSelectedCustomer(customer);
-            setSearchTerm(customer.display_name || '');
-            onChange(customer);
-            if (onCustomerSelect) {
-                onCustomerSelect(customer);
-            }
+    const resolveSelectionKey = (key) => {
+        if (key == null || key === '') return null;
+        if (typeof key === 'string' || typeof key === 'number') return String(key);
+        if (key instanceof Set) {
+            const first = key.values().next().value;
+            return first != null ? String(first) : null;
         }
+        return String(key);
+    };
+
+    const handleInputChange = useCallback(
+        (term) => {
+            setSearchTerm(term);
+            const label = (selectedCustomer?.display_name || '').trim();
+            if (term.trim() !== label) {
+                setSelectedKey(null);
+            }
+        },
+        [selectedCustomer?.display_name]
+    );
+
+    const handleSelectionChange = (key) => {
+        const id = resolveSelectionKey(key);
+        if (!id) return;
+
+        const customer = listItems.find((c) => String(c.id) === id);
+        if (!customer) return;
+
+        setSelectedKey(id);
+        setSelectedCustomer(customer);
+        setSearchTerm(customer.display_name || '');
+        onChange?.(customer);
+        onCustomerSelect?.(customer);
     };
 
     const handleCreateCustomer = async () => {
@@ -136,11 +194,19 @@ export default function CustomerSelector({
             console.log('Creating customer with data:', customerData);
             const created = await createCustomer(customerData);
             toast.success('Customer created successfully');
-            setSelectedCustomer(created);
-            onChange(created);
-            if (onCustomerSelect) {
-                onCustomerSelect(created);
+            const row = created?.id != null ? created : null;
+            if (row) {
+                setSelectedKey(String(row.id));
+                setSelectedCustomer(row);
+                setSearchTerm(row.display_name || '');
+                setCustomers((prev) => {
+                    const sid = String(row.id);
+                    if (prev.some((c) => String(c.id) === sid)) return prev;
+                    return [row, ...prev];
+                });
             }
+            onChange?.(created);
+            onCustomerSelect?.(created);
             setIsCreateModalOpen(false);
             // Reset form
             setNewCustomer({
@@ -168,27 +234,32 @@ export default function CustomerSelector({
 
     return (
         <>
-            <div className="space-y-2">
+            <div className={compact ? 'space-y-0' : 'space-y-2'}>
                 {/* Customer Search */}
                 {!readonly ? (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-end">
                         <Autocomplete
-                            // label="Customer"
+                            label={compact ? 'Find customer' : undefined}
+                            labelPlacement="outside"
+                            size={compact ? 'sm' : 'md'}
                             placeholder={placeholder}
                             startContent={<Search className="w-4 h-4 text-gray-400" />}
                             inputValue={searchTerm}
-                            onInputChange={setSearchTerm}
-                            selectedKey={selectedCustomer?.id?.toString()}
+                            onInputChange={handleInputChange}
+                            selectedKey={selectedKey}
                             onSelectionChange={handleSelectionChange}
                             isLoading={isLoadingSearch}
-                            items={customers}
+                            items={listItems}
                             isRequired
                             classNames={{
                                 base: 'flex-1',
                             }}
                         >
                             {(customer) => (
-                                <AutocompleteItem key={customer.id} textValue={customer.display_name}>
+                                <AutocompleteItem
+                                    key={String(customer.id)}
+                                    textValue={customer.display_name || ''}
+                                >
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
                                             <User className="w-4 h-4 text-gray-400" />
@@ -217,8 +288,10 @@ export default function CustomerSelector({
                             <Button
                                 color="primary"
                                 variant="flat"
+                                size={compact ? 'sm' : 'md'}
                                 startContent={<Plus className="w-4 h-4" />}
                                 onPress={() => setIsCreateModalOpen(true)}
+                                className="shrink-0"
                             >
                                 New
                             </Button>
@@ -247,30 +320,25 @@ export default function CustomerSelector({
                     </div>
                 )}
 
-                {/* Selected Customer Details */}
-                {selectedCustomer && !readonly && (
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-blue-100 rounded-full">
-                                <User className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-base font-semibold text-blue-900">{selectedCustomer.display_name}</p>
-                                <div className="flex flex-wrap gap-4 mt-2 text-sm text-blue-700">
-                                    {selectedCustomer.email && (
-                                        <span className="flex items-center gap-1.5">
-                                            <Mail className="w-4 h-4" />
-                                            {selectedCustomer.email}
-                                        </span>
-                                    )}
-                                    {selectedCustomer.phone && (
-                                        <span className="flex items-center gap-1.5">
-                                            <Phone className="w-4 h-4" />
-                                            {selectedCustomer.phone}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
+                {/* Selected Customer Details — hidden when billing fields show same data */}
+                {selectedCustomer && !readonly && !hideSelectedPreview && (
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-blue-800">
+                            <span className="font-semibold text-blue-900">
+                                {selectedCustomer.display_name}
+                            </span>
+                            {selectedCustomer.email && (
+                                <span className="flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    {selectedCustomer.email}
+                                </span>
+                            )}
+                            {selectedCustomer.phone && (
+                                <span className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" />
+                                    {selectedCustomer.phone}
+                                </span>
+                            )}
                         </div>
                     </div>
                 )}

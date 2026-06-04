@@ -28,10 +28,6 @@ import {
     Button,
     Select,
     SelectItem,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
     useDisclosure,
     Chip,
     Input,
@@ -51,7 +47,7 @@ import { formatDate, formatCurrency } from '@/utils/dateFormatters';
 const statusOptions = [
     { value: '', label: 'All Status' },
     { value: 'DRAFT', label: 'Draft' },
-    { value: 'PENDING', label: 'Pending' },
+    { value: 'SENT', label: 'Sent' },
     { value: 'PAID', label: 'Paid' },
     { value: 'PARTIALLY_PAID', label: 'Partially Paid' },
     { value: 'OVERDUE', label: 'Overdue' },
@@ -181,43 +177,13 @@ export default function InvoicesPage() {
                 </span>
             ),
         },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (row) => (
-                <Dropdown>
-                    <DropdownTrigger>
-                        <Button variant="light" isIconOnly size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                        </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Invoice actions">
-                        <DropdownItem key="view" startContent={<Eye className="w-4 h-4" />} onPress={() => router.push(`/finance/invoices/${row.id}`)}>
-                            View Details
-                        </DropdownItem>
-                        <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onPress={() => router.push(`/finance/invoices/${row.id}/edit`)}>
-                            Edit Invoice
-                        </DropdownItem>
-                        <DropdownItem key="download" startContent={<Download className="w-4 h-4" />} onPress={() => handleDownloadPdf(row)}>
-                            Download PDF
-                        </DropdownItem>
-                        <DropdownItem key="send" startContent={<Send className="w-4 h-4" />} onPress={() => handleSendClick(row)}>
-                            Send to Customer
-                        </DropdownItem>
-                        <DropdownItem key="delete" startContent={<Trash2 className="w-4 h-4" />} className="text-danger" color="danger" onPress={() => handleDeleteClick(row)}>
-                            Cancel Invoice
-                        </DropdownItem>
-                    </DropdownMenu>
-                </Dropdown>
-            ),
-        },
     ];
 
     return (
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-3">
             <PageHeader
                 title="Invoices"
-                description="Manage customer invoices and payments"
+                description="Manage invoices and payments"
                 actions={
                     <LinkButton
                         href="/finance/invoices/new"
@@ -347,13 +313,13 @@ function InvoiceStatusBadge({ status }) {
     const statusConfig = {
         PAID: { color: 'success', label: 'Paid' },
         PARTIALLY_PAID: { color: 'warning', label: 'Partial' },
-        PENDING: { color: 'default', label: 'Pending' },
+        SENT: { color: 'primary', label: 'Sent' },
         OVERDUE: { color: 'danger', label: 'Overdue' },
         CANCELLED: { color: 'default', label: 'Cancelled' },
         DRAFT: { color: 'secondary', label: 'Draft' },
     };
 
-    const config = statusConfig[status] || statusConfig.PENDING;
+    const config = statusConfig[status] || statusConfig.DRAFT;
 
     return (
         <Chip size="sm" color={config.color} variant="flat">
@@ -379,7 +345,7 @@ function InvoiceMobileCard({ invoice, actions, onClick }) {
                     <MobileCard.Subtitle>{invoice.customer_name || 'No customer'}</MobileCard.Subtitle>
                 </div>
                 <div className="text-right">
-                    <p className="font-semibold text-gray-900">{formatCurrency(invoice.total_amount)}</p>
+                    <p className="font-semibold text-gray-900">{formatCurrency(invoice.grand_total)}</p>
                     <InvoiceStatusBadge status={invoice.status} />
                 </div>
             </MobileCard.Header>
