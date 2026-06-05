@@ -9,11 +9,13 @@ import config from "@/config";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: config.apiUrl,
+  credentials: "include",
   prepareHeaders: (headers) => {
     const token = Cookies.get(config.tokenKey);
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
+    headers.set("X-Client-App", "admin");
     return headers;
   },
 });

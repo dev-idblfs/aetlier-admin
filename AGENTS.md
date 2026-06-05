@@ -61,7 +61,9 @@ constants/ config/ hooks/ contexts/
 
 ## Auth & RBAC
 
-- Login is **redirect-based**: `/login` → main frontend with `adminRedirect` → `/auth/callback?token=...` stores the cookie and dispatches `setCredentials`. Do NOT build a separate login form here.
+- **Unified login plan:** see `aetlier-frontend/readme/UNIFIED_LOGIN_FLOW.md`. Admin `/login`
+  checks session only; unauthenticated users go to public `/login?from=admin&returnTo=...`.
+  Dev uses `/auth/callback?token=`; prod uses shared session cookie. Do NOT add a login form here.
 - `AdminLayout` loads the profile + permissions and gates access to roles `admin | super_admin | superadmin`.
 - **Client-side permission checks** use `utils/permissions.js`: `hasPermission`, `hasAnyPermission`, `hasAllPermissions`, `hasRole`, `isAdmin`, `isSuperAdmin`. Super admins bypass all checks.
 - Permission strings use the backend dot-notation in the `PERMISSIONS` object (e.g. `appointment.read.any`, `verification.verify.any`). Add new permissions there, keeping them aligned with the backend.

@@ -1,51 +1,115 @@
 /**
- * Admin Login Page - Redirects to Frontend Login
- * Admin panel uses unified login through the frontend
+ * Admin Login Page - unified login via the public app /login page
  */
 
 'use client';
 
-// Force dynamic rendering - no SSR/static optimization needed for admin
 export const dynamic = 'force-dynamic';
 
-import { useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Spinner } from '@heroui/react';
 import { canAccessAdminPortal } from '@/utils/permissions';
+import apiClient from '@/lib/apiClient';
+import { refreshAccessToken } from '@/services/sessionApi';
+import Cookies from 'js-cookie';
+import config from '@/config';
 
-export default function LoginPage() {
+function getFrontendLoginUrl(returnTo = '/') {
+    const frontendUrl = (
+        process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'
+    ).replace(/\/$/, '');
+    const params = new URLSearchParams({ from: 'admin' });
+    if (returnTo?.startsWith('/')) {
+        params.set('returnTo', returnTo);
+    }
+    return `${frontendUrl}/login?${params.toString()}`;
+}
+
+function LoginContent() {
     const router = useRouter();
-    const { isAuthenticated, user } = useSelector((state) => state.auth);
+    const searchParams = useSearchParams();
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // If already authenticated with admin portal access, go to dashboard
-        if (isAuthenticated && user) {
-            if (canAccessAdminPortal(user)) {
-                router.push('/');
-                return;
+        const bootstrap = async () => {
+            const returnTo = searchParams.get('returnTo') || '/';
+            try {
+                let accessToken = Cookies.get(config.tokenKey);
+                if (!accessToken) {
+                    try {
+                        const refreshed = await refreshAccessToken();
+                        accessToken = refreshed?.tokens?.access_token;
+                        if (accessToken) {
+                            Cookies.set(config.tokenKey, accessToken, { expires: 7 });
+                        }
+                    } catch {
+                        accessToken = null;
+                    }
+                }
+
+                if (!accessToken) {
+                    window.location.href = getFrontendLoginUrl(returnTo);
+                    return;
+                }
+
+                const { data: user } = await apiClient.get('/auth/me', {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                });
+
+                if (!canAccessAdminPortal(user)) {
+                    const frontendUrl =
+                        process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+                    window.location.href = `${frontendUrl.replace(/\/$/, '')}/`;
+                    return;
+                }
+
+                await apiClient.patch(
+                    '/auth/session',
+                    { active_context: 'admin' },
+                    { headers: { Authorization: `Bearer ${accessToken}` } }
+                );
+
+                const destination =
+                    returnTo.startsWith('/') && returnTo !== '/login'
+                        ? returnTo
+                        : '/';
+                router.push(destination);
+            } catch (err) {
+                console.error('Admin login bootstrap failed:', err);
+                setError('Unable to sign in. Redirecting to the public app...');
+                setTimeout(() => {
+                    window.location.href = getFrontendLoginUrl(returnTo);
+                }, 1500);
             }
-            // Valid frontend account without admin access — use the public app.
-            const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-            window.location.href = `${frontendUrl}?as=patient`;
-            return;
-        }
+        };
 
-        // Redirect to frontend login (admin cookie missing/expired)
-        const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-        const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
-        const callbackUrl = `${adminUrl}/auth/callback`;
-
-        window.location.href = `${frontendUrl}?login=true&adminRedirect=${encodeURIComponent(callbackUrl)}`;
-    }, [isAuthenticated, user, router]);
+        bootstrap();
+    }, [router, searchParams]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <div className="text-center space-y-4">
                 <Spinner size="lg" color="primary" />
-                <h2 className="text-xl font-semibold text-gray-900">Redirecting to Login...</h2>
-                <p className="text-gray-500">Please wait</p>
+                <h2 className="text-xl font-semibold text-gray-900">
+                    {error || 'Checking your session...'}
+                </h2>
+                {!error && <p className="text-gray-500">Please wait</p>}
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <Spinner size="lg" color="primary" />
+                </div>
+            }
+        >
+            <LoginContent />
+        </Suspense>
     );
 }

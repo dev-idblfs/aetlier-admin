@@ -6,8 +6,12 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import Cookies from "js-cookie";
 import config from "@/config";
 import apiClient from "@/lib/apiClient";
+import {
+  clearRefreshToken,
+  fetchAuthSession,
+  logoutAllSessions,
+} from "@/services/sessionApi";
 
-// Async thunk for fetching user profile
 export const fetchUserProfile = createAsyncThunk(
   "auth/fetchUserProfile",
   async (_, { rejectWithValue }) => {
@@ -26,18 +30,36 @@ export const fetchUserProfile = createAsyncThunk(
   }
 );
 
-// Unified logout — clear admin session, then clear the frontend session too.
 export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { dispatch }) => {
+    const token = Cookies.get(config.tokenKey);
+
+    const adminReturnPath =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "/";
+
+    try {
+      await logoutAllSessions(token);
+    } catch (error) {
+      console.warn("Server logout failed:", error);
+    }
+
     Cookies.remove(config.tokenKey);
     Cookies.remove(config.refreshTokenKey);
+    clearRefreshToken();
     dispatch(clearAuth());
 
     if (typeof window !== "undefined") {
-      const frontendUrl =
-        process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
-      window.location.href = `${frontendUrl}?unifiedLogout=1`;
+      const frontendUrl = (
+        process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"
+      ).replace(/\/$/, "");
+      const params = new URLSearchParams({ from: "admin" });
+      if (adminReturnPath.startsWith("/")) {
+        params.set("returnTo", adminReturnPath);
+      }
+      window.location.href = `${frontendUrl}/login?${params.toString()}`;
     }
   }
 );
@@ -62,7 +84,6 @@ const authSlice = createSlice({
     },
     setPermissions: (state, action) => {
       state.permissions = action.payload || [];
-      // Also attach to user object for convenience
       if (state.user) {
         state.user.permissions = action.payload || [];
       }
@@ -110,6 +131,7 @@ const authSlice = createSlice({
         if (action.payload?.status === 401) {
           Cookies.remove(config.tokenKey);
           Cookies.remove(config.refreshTokenKey);
+          clearRefreshToken();
           state.user = null;
           state.isAuthenticated = false;
         }

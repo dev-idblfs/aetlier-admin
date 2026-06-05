@@ -7,7 +7,7 @@
 
 import { useEffect, useState, createContext, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Spinner } from '@heroui/react';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -35,6 +35,8 @@ export const useSidebar = () => useContext(SidebarContext);
 export default function AdminLayout({ children }) {
     const dispatch = useDispatch();
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { user, isLoading, isAuthenticated } = useSelector((state) => state.auth);
     const [fetchPermissions] = useLazyGetUserPermissionsQuery();
     const { data: navPresets } = useGetNavigationPermissionPresetsQuery(undefined, {
@@ -78,13 +80,17 @@ export default function AdminLayout({ children }) {
     // Check authentication and role
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
-            router.push('/login');
+            const query = searchParams.toString();
+            const returnTo = encodeURIComponent(
+                `${pathname}${query ? `?${query}` : ''}`
+            );
+            router.push(`/login?returnTo=${returnTo}`);
         }
 
         if (!isLoading && user && !canAccessAdminPortal(user)) {
             router.push('/unauthorized');
         }
-    }, [isLoading, isAuthenticated, user, router]);
+    }, [isLoading, isAuthenticated, user, router, pathname, searchParams]);
 
     if (isLoading) {
         return (
