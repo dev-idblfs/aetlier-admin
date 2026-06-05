@@ -126,7 +126,7 @@ export default function Sidebar() {
     );
 
     const handleLogout = () => {
-        dispatch(logout());
+        dispatch(logout({ returnPath: pathname }));
     };
 
     const handleNavClick = () => {

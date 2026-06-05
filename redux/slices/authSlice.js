@@ -8,9 +8,12 @@ import config from "@/config";
 import apiClient from "@/lib/apiClient";
 import {
   clearRefreshToken,
-  fetchAuthSession,
   logoutAllSessions,
 } from "@/services/sessionApi";
+import {
+  clearStoredAdminReturnPath,
+  resolveAdminLogoutReturnPath,
+} from "@/utils/adminReturnPath";
 
 export const fetchUserProfile = createAsyncThunk(
   "auth/fetchUserProfile",
@@ -32,13 +35,16 @@ export const fetchUserProfile = createAsyncThunk(
 
 export const logout = createAsyncThunk(
   "auth/logout",
-  async (_, { dispatch }) => {
+  async ({ returnPath } = {}, { dispatch }) => {
     const token = Cookies.get(config.tokenKey);
 
-    const adminReturnPath =
+    const currentPath =
       typeof window !== "undefined"
         ? `${window.location.pathname}${window.location.search}`
-        : "/";
+        : null;
+    const adminReturnPath = resolveAdminLogoutReturnPath(
+      returnPath || currentPath
+    );
 
     try {
       await logoutAllSessions(token);
@@ -49,6 +55,7 @@ export const logout = createAsyncThunk(
     Cookies.remove(config.tokenKey);
     Cookies.remove(config.refreshTokenKey);
     clearRefreshToken();
+    clearStoredAdminReturnPath();
     dispatch(clearAuth());
 
     if (typeof window !== "undefined") {
@@ -56,7 +63,7 @@ export const logout = createAsyncThunk(
         process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"
       ).replace(/\/$/, "");
       const params = new URLSearchParams({ from: "admin" });
-      if (adminReturnPath.startsWith("/")) {
+      if (adminReturnPath) {
         params.set("returnTo", adminReturnPath);
       }
       window.location.href = `${frontendUrl}/login?${params.toString()}`;

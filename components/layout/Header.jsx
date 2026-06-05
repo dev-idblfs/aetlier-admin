@@ -30,7 +30,7 @@ export default function Header() {
     const isRoot = pathname === '/';
 
     const handleLogout = () => {
-        dispatch(logout());
+        dispatch(logout({ returnPath: pathname }));
     };
 
     return (
