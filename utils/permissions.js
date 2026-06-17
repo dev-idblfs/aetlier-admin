@@ -186,6 +186,8 @@ export const PERMISSIONS = {
   // Settings
   SETTINGS_READ: "settings.read.any",
   SETTINGS_UPDATE: "settings.update.any",
+  NAVIGATION_VIEW: "navigation.view.any",
+  NAVIGATION_UPDATE: "navigation.update.any",
   INTEGRATIONS_WHATSAPP_READ: "integrations.whatsapp.read.any",
   INTEGRATIONS_WHATSAPP_UPDATE: "integrations.whatsapp.update.any",
 
