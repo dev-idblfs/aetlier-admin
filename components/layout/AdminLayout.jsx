@@ -17,7 +17,6 @@ import { fetchUserProfile, setPermissions } from '@/redux/slices/authSlice';
 import { useLazyGetUserPermissionsQuery, useGetNavigationPermissionPresetsQuery, api } from '@/redux/services/api';
 import { canAccessAdminPortal } from '@/utils/permissions';
 import { setDynamicRouteRules } from '@/utils/routeAccess';
-import { persistAdminReturnPath } from '@/utils/adminReturnPath';
 
 // Context for sidebar state + page title + breadcrumbs
 export const SidebarContext = createContext({
@@ -54,13 +53,6 @@ export default function AdminLayout({ children }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [pageTitle, setPageTitle] = useState('');
     const [breadcrumbs, setBreadcrumbs] = useState([]);
-
-    // Remember last meaningful admin page for logout → re-login returnTo
-    useEffect(() => {
-        const query = searchParams.toString();
-        const path = `${pathname}${query ? `?${query}` : ''}`;
-        persistAdminReturnPath(path);
-    }, [pathname, searchParams]);
 
     // Fetch user profile on mount
     useEffect(() => {

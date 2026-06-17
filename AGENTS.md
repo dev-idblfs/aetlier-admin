@@ -28,7 +28,7 @@ yarn lint     # eslint (flat config: eslint.config.mjs)
 ```
 app/                       App Router (PRIMARY app code)
   layout.jsx               Root: Providers, force-dynamic, Inter font
-  login/  auth/callback/   Auth entry (redirect-based)
+  login/  auth/callback/   Auth entry (native login + SSO bootstrap)
   (dashboard)/             Route group — NOT part of the URL
     layout.jsx             AdminLayout shell
     appointments/ doctors/ users/ roles/ permissions/
@@ -61,9 +61,7 @@ constants/ config/ hooks/ contexts/
 
 ## Auth & RBAC
 
-- **Unified login plan:** see `aetlier-frontend/readme/UNIFIED_LOGIN_FLOW.md`. Admin `/login`
-  checks session only; unauthenticated users go to public `/login?from=admin&returnTo=...`.
-  Dev uses `/auth/callback?token=`; prod uses shared session cookie. Do NOT add a login form here.
+- **Separate login + SSO:** see `aetlier-frontend/readme/SEPARATE_LOGIN_AND_SSO.md`. Admin `/login` has email/password sign-in plus silent refresh SSO; unauthenticated users see the form (no redirect to public `/login`). Dev uses `/auth/callback?token=` when cookies are not shared.
 - `AdminLayout` loads the profile + permissions and gates access to roles `admin | super_admin | superadmin`.
 - **Client-side permission checks** use `utils/permissions.js`: `hasPermission`, `hasAnyPermission`, `hasAllPermissions`, `hasRole`, `isAdmin`, `isSuperAdmin`. Super admins bypass all checks.
 - Permission strings use the backend dot-notation in the `PERMISSIONS` object (e.g. `appointment.read.any`, `verification.verify.any`). Add new permissions there, keeping them aligned with the backend.

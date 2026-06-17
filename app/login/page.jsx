@@ -1,115 +1,150 @@
 /**
- * Admin Login Page - unified login via the public app /login page
+ * Admin login — native form + SSO via shared session cookie (prod).
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import { Spinner } from '@heroui/react';
-import { canAccessAdminPortal } from '@/utils/permissions';
-import apiClient from '@/lib/apiClient';
-import { refreshAccessToken } from '@/services/sessionApi';
 import Cookies from 'js-cookie';
+import AdminSignIn from '@/components/auth/AdminSignIn';
+import { canAccessAdminPortal } from '@/utils/permissions';
+import { refreshAccessToken, canRefreshSession } from '@/services/sessionApi';
+import apiClient from '@/lib/apiClient';
 import config from '@/config';
+import { setLoading } from '@/redux/slices/authSlice';
 
-function getFrontendLoginUrl(returnTo = '/') {
-    const frontendUrl = (
-        process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'
-    ).replace(/\/$/, '');
-    const params = new URLSearchParams({ from: 'admin' });
-    if (returnTo?.startsWith('/')) {
-        params.set('returnTo', returnTo);
-    }
-    return `${frontendUrl}/login?${params.toString()}`;
+function resolveReturnTo(searchParams) {
+  const raw = searchParams.get('returnTo');
+  if (raw?.startsWith('/') && !raw.startsWith('//') && raw !== '/login') {
+    return raw;
+  }
+  return '/';
 }
 
 function LoginContent() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const [error, setError] = useState(null);
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const searchParams = useSearchParams();
+  const [phase, setPhase] = useState('checking');
+  const [accessDenied, setAccessDenied] = useState(false);
 
-    useEffect(() => {
-        const bootstrap = async () => {
-            const returnTo = searchParams.get('returnTo') || '/';
-            try {
-                let accessToken = Cookies.get(config.tokenKey);
-                if (!accessToken) {
-                    try {
-                        const refreshed = await refreshAccessToken();
-                        accessToken = refreshed?.tokens?.access_token;
-                        if (accessToken) {
-                            Cookies.set(config.tokenKey, accessToken, { expires: 7 });
-                        }
-                    } catch {
-                        accessToken = null;
-                    }
-                }
+  const returnTo = resolveReturnTo(searchParams);
 
-                if (!accessToken) {
-                    window.location.href = getFrontendLoginUrl(returnTo);
-                    return;
-                }
+  const showLoginForm = useCallback(() => {
+    dispatch(setLoading(false));
+    setPhase('form');
+  }, [dispatch]);
 
-                const { data: user } = await apiClient.get('/auth/me', {
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                });
+  const enterDashboard = useCallback(() => {
+    router.replace(returnTo);
+  }, [router, returnTo]);
 
-                if (!canAccessAdminPortal(user)) {
-                    const frontendUrl =
-                        process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-                    window.location.href = `${frontendUrl.replace(/\/$/, '')}/`;
-                    return;
-                }
+  const trySsoBootstrap = useCallback(async () => {
+    setPhase('checking');
+    setAccessDenied(false);
 
-                await apiClient.patch(
-                    '/auth/session',
-                    { active_context: 'admin' },
-                    { headers: { Authorization: `Bearer ${accessToken}` } }
-                );
+    let accessToken = Cookies.get(config.tokenKey);
+    if (!accessToken && canRefreshSession()) {
+      try {
+        const refreshed = await refreshAccessToken();
+        accessToken = refreshed?.tokens?.access_token;
+        if (accessToken) {
+          Cookies.set(config.tokenKey, accessToken, { expires: 7 });
+        }
+      } catch {
+        accessToken = null;
+      }
+    }
 
-                const destination =
-                    returnTo.startsWith('/') && returnTo !== '/login'
-                        ? returnTo
-                        : '/';
-                router.push(destination);
-            } catch (err) {
-                console.error('Admin login bootstrap failed:', err);
-                setError('Unable to sign in. Redirecting to the public app...');
-                setTimeout(() => {
-                    window.location.href = getFrontendLoginUrl(returnTo);
-                }, 1500);
-            }
-        };
+    if (!accessToken) {
+      showLoginForm();
+      return;
+    }
 
-        bootstrap();
-    }, [router, searchParams]);
+    try {
+      const { data: user } = await apiClient.get('/auth/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
+      if (!canAccessAdminPortal(user)) {
+        setAccessDenied(true);
+        showLoginForm();
+        return;
+      }
+
+      enterDashboard();
+    } catch {
+      Cookies.remove(config.tokenKey);
+      showLoginForm();
+    }
+  }, [enterDashboard, showLoginForm]);
+
+  useEffect(() => {
+    trySsoBootstrap();
+  }, [trySsoBootstrap]);
+
+  const handleSignInSuccess = async (signInResult) => {
+    const user = signInResult?.user;
+    if (!user) {
+      setAccessDenied(false);
+      return;
+    }
+
+    if (!canAccessAdminPortal(user)) {
+      setAccessDenied(true);
+      return;
+    }
+
+    enterDashboard();
+  };
+
+  if (phase === 'checking') {
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-            <div className="text-center space-y-4">
-                <Spinner size="lg" color="primary" />
-                <h2 className="text-xl font-semibold text-gray-900">
-                    {error || 'Checking your session...'}
-                </h2>
-                {!error && <p className="text-gray-500">Please wait</p>}
-            </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Spinner size="lg" color="primary" />
+          <p className="text-gray-600">Checking your session...</p>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Aetlier Admin</h1>
+          <p className="mt-1 text-sm text-gray-500">Sign in to the staff portal</p>
+        </div>
+
+        {accessDenied && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            This account does not have admin portal access. Contact your
+            administrator if you believe this is an error.
+          </div>
+        )}
+
+        <AdminSignIn onSuccess={handleSignInSuccess} />
+      </div>
+    </div>
+  );
 }
 
 export default function LoginPage() {
-    return (
-        <Suspense
-            fallback={
-                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                    <Spinner size="lg" color="primary" />
-                </div>
-            }
-        >
-            <LoginContent />
-        </Suspense>
-    );
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Spinner size="lg" color="primary" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
+  );
 }

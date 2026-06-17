@@ -39,7 +39,17 @@ export function clearRefreshToken() {
   }
 }
 
+/** True when a refresh request can succeed (shared cookie or stored token). */
+export function canRefreshSession() {
+  if (usesCookieAuth()) return true;
+  return Boolean(getRefreshToken());
+}
+
 export async function refreshAccessToken() {
+  if (!canRefreshSession()) {
+    throw new Error('No refresh token available');
+  }
+
   const body = {};
   const stored = getRefreshToken();
   if (stored) body.refresh_token = stored;

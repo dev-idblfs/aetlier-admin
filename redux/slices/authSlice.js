@@ -8,12 +8,31 @@ import config from "@/config";
 import apiClient from "@/lib/apiClient";
 import {
   clearRefreshToken,
-  logoutAllSessions,
+  storeRefreshToken,
 } from "@/services/sessionApi";
-import {
-  clearStoredAdminReturnPath,
-  resolveAdminLogoutReturnPath,
-} from "@/utils/adminReturnPath";
+
+export const signIn = createAsyncThunk(
+  "auth/signIn",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post("/auth/signin", credentials);
+      const accessToken = response.data?.tokens?.access_token;
+      if (accessToken) {
+        Cookies.set(config.tokenKey, accessToken, { expires: 7 });
+      }
+      if (response.data?.tokens?.refresh_token) {
+        storeRefreshToken(response.data.tokens.refresh_token);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Invalid email or password"
+      );
+    }
+  }
+);
 
 export const fetchUserProfile = createAsyncThunk(
   "auth/fetchUserProfile",
@@ -36,37 +55,24 @@ export const fetchUserProfile = createAsyncThunk(
 export const logout = createAsyncThunk(
   "auth/logout",
   async ({ returnPath } = {}, { dispatch }) => {
-    const token = Cookies.get(config.tokenKey);
-
-    const currentPath =
-      typeof window !== "undefined"
-        ? `${window.location.pathname}${window.location.search}`
-        : null;
-    const adminReturnPath = resolveAdminLogoutReturnPath(
-      returnPath || currentPath
-    );
-
-    try {
-      await logoutAllSessions(token);
-    } catch (error) {
-      console.warn("Server logout failed:", error);
-    }
-
+    // Local admin logout only — do not revoke server sessions or the shared
+    // refresh cookie, so the user can re-enter admin via SSO from www.
     Cookies.remove(config.tokenKey);
     Cookies.remove(config.refreshTokenKey);
     clearRefreshToken();
-    clearStoredAdminReturnPath();
     dispatch(clearAuth());
 
     if (typeof window !== "undefined") {
-      const frontendUrl = (
-        process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"
-      ).replace(/\/$/, "");
-      const params = new URLSearchParams({ from: "admin" });
-      if (adminReturnPath) {
-        params.set("returnTo", adminReturnPath);
+      const params = new URLSearchParams();
+      const safePath =
+        returnPath?.startsWith("/") && !returnPath.startsWith("//")
+          ? returnPath
+          : null;
+      if (safePath && safePath !== "/login") {
+        params.set("returnTo", safePath);
       }
-      window.location.href = `${frontendUrl}/login?${params.toString()}`;
+      const qs = params.toString();
+      window.location.href = qs ? `/login?${qs}` : "/login";
     }
   }
 );
@@ -118,8 +124,28 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(signIn.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(signIn.fulfilled, (state, action) => {
+        state.user = action.payload?.user || null;
+        state.permissions = action.payload?.user?.permissions || [];
+        state.isAuthenticated = true;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(signIn.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error =
+          typeof action.payload === "string"
+            ? action.payload
+            : "Sign in failed";
+        state.isAuthenticated = false;
+      })
       .addCase(fetchUserProfile.pending, (state) => {
-        state.isLoading = true;
+        if (!state.isAuthenticated) {
+          state.isLoading = true;
+        }
         state.error = null;
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
