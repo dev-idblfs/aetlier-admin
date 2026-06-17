@@ -10,7 +10,6 @@ export const dynamic = 'force-dynamic';
 
 import { use } from 'react';
 import {
-    ArrowLeft,
     Edit,
     Trash2,
     Receipt,
@@ -36,7 +35,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { PageHeader, ConfirmModal } from '@/components/ui';
+import { ListPageLayout, ConfirmModal } from '@/components/ui';
 import {
     useGetExpenseQuery,
     useDeleteExpenseMutation,
@@ -106,45 +105,37 @@ export default function ExpenseDetailPage({ params }) {
     const totalAmount = (parseFloat(expense.amount) || 0) + (parseFloat(expense.tax_amount) || 0);
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <PageHeader
-                title="Expense Details"
-                subtitle={`${expense.category_name || 'Uncategorized'} - ${expense.vendor || 'N/A'}`}
-                actions={
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            size="sm"
-                            variant="flat"
-                            startContent={<ArrowLeft className="w-4 h-4" />}
-                            as={Link}
-                            href="/finance/expenses"
-                        >
-                            Back
-                        </Button>
-                        <Button
-                            size="sm"
-                            color="primary"
-                            variant="flat"
-                            startContent={<Edit className="w-4 h-4" />}
-                            as={Link}
-                            href={`/finance/expenses/${expense.id}/edit`}
-                        >
-                            Edit
-                        </Button>
-                        <Button
-                            size="sm"
-                            color="danger"
-                            variant="flat"
-                            startContent={<Trash2 className="w-4 h-4" />}
-                            onClick={onDeleteModalOpen}
-                        >
-                            Delete
-                        </Button>
-                    </div>
-                }
-            />
-
+        <ListPageLayout
+            title="Expense Details"
+            breadcrumbs={[
+                { label: 'Finance', href: '/finance' },
+                { label: 'Expenses', href: '/finance/expenses' },
+                { label: expense.category_name || 'Details' },
+            ]}
+            actions={
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        size="sm"
+                        color="primary"
+                        variant="flat"
+                        startContent={<Edit className="w-4 h-4" />}
+                        as={Link}
+                        href={`/finance/expenses/${expense.id}/edit`}
+                    >
+                        Edit
+                    </Button>
+                    <Button
+                        size="sm"
+                        color="danger"
+                        variant="flat"
+                        startContent={<Trash2 className="w-4 h-4" />}
+                        onClick={onDeleteModalOpen}
+                    >
+                        Delete
+                    </Button>
+                </div>
+            }
+        >
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Expense Details */}
                 <div className="lg:col-span-2 space-y-6">
@@ -401,6 +392,6 @@ export default function ExpenseDetailPage({ params }) {
                 confirmColor="danger"
                 isLoading={isDeleting}
             />
-        </div>
+        </ListPageLayout>
     );
 }

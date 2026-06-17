@@ -37,7 +37,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { PageHeader, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, LinkButton } from '@/components/ui';
+import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, LinkButton } from '@/components/ui';
 import {
     useGetExpensesQuery,
     useGetExpenseCategoriesQuery,
@@ -176,75 +176,78 @@ export default function ExpensesPage() {
     ];
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            <PageHeader
-                title="Expenses"
-                description="Track and manage business expenses"
-                actions={
-                    <div className="flex gap-2">
-                        <LinkButton
-                            href="/finance/expenses/categories"
-                            variant="flat"
-                            startContent={<Tag className="w-4 h-4" />}
-                        >
-                            Categories
-                        </LinkButton>
-                        <LinkButton
-                            href="/finance/expenses/new"
-                            color="primary"
-                            startContent={<Plus className="w-4 h-4" />}
-                        >
-                            New Expense
-                        </LinkButton>
-                    </div>
-                }
-            />
-
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <SearchInput
-                    value={search}
-                    onChange={setSearch}
-                    placeholder="Search expenses..."
-                    className="flex-1"
-                />
-                <div className="flex gap-2 flex-wrap">
-                    <Select
-                        placeholder="Category"
-                        selectedKeys={categoryFilter ? [categoryFilter] : []}
-                        onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0] || '')}
-                        className="w-full sm:w-40"
+        <ListPageLayout
+            title="Expenses"
+            breadcrumbs={[
+                { label: 'Finance', href: '/finance' },
+                { label: 'Expenses' },
+            ]}
+            actions={
+                <div className="flex gap-2">
+                    <LinkButton
+                        href="/finance/expenses/categories"
+                        variant="flat"
                         size="sm"
-                        classNames={{ trigger: 'bg-white' }}
+                        startContent={<Tag className="w-4 h-4" />}
                     >
-                        {categoryOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </Select>
-                    <Select
-                        placeholder="Status"
-                        selectedKeys={statusFilter ? [statusFilter] : []}
-                        onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] || '')}
-                        className="w-full sm:w-32"
+                        Categories
+                    </LinkButton>
+                    <LinkButton
+                        href="/finance/expenses/new"
+                        color="primary"
                         size="sm"
-                        classNames={{ trigger: 'bg-white' }}
+                        startContent={<Plus className="w-4 h-4" />}
                     >
-                        {paymentStatusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </Select>
-                    {(search || categoryFilter || statusFilter) && (
-                        <Button variant="flat" size="sm" onPress={() => { setSearch(''); setCategoryFilter(''); setStatusFilter(''); }}>
-                            Clear
-                        </Button>
-                    )}
+                        New Expense
+                    </LinkButton>
                 </div>
-            </div>
-
+            }
+            toolbar={(
+                <>
+                    <SearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search expenses..."
+                        className="flex-1"
+                    />
+                    <div className="flex gap-2 flex-wrap">
+                        <Select
+                            placeholder="Category"
+                            selectedKeys={categoryFilter ? [categoryFilter] : []}
+                            onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0] || '')}
+                            className="w-full sm:w-40"
+                            size="sm"
+                            classNames={{ trigger: 'bg-white' }}
+                        >
+                            {categoryOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </Select>
+                        <Select
+                            placeholder="Status"
+                            selectedKeys={statusFilter ? [statusFilter] : []}
+                            onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] || '')}
+                            className="w-full sm:w-32"
+                            size="sm"
+                            classNames={{ trigger: 'bg-white' }}
+                        >
+                            {paymentStatusOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </Select>
+                        {(search || categoryFilter || statusFilter) && (
+                            <Button variant="flat" size="sm" onPress={() => { setSearch(''); setCategoryFilter(''); setStatusFilter(''); }}>
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                </>
+            )}
+        >
             {/* Results count */}
             <div className="text-sm text-gray-500">
                 {data?.total || 0} expense{data?.total !== 1 ? 's' : ''}
@@ -303,7 +306,7 @@ export default function ExpensesPage() {
                 type="danger"
                 isLoading={isDeleting}
             />
-        </div>
+        </ListPageLayout>
     );
 }
 

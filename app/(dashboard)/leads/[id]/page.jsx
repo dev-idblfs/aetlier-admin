@@ -19,8 +19,8 @@ import {
     Spinner,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { Save, ArrowLeft, Mail, Phone, User } from 'lucide-react';
-import { PageHeader } from '@/components/ui';
+import { Save, Mail, Phone, User } from 'lucide-react';
+import { ListPageLayout } from '@/components/ui';
 import {
     useGetLeadQuery,
     useUpdateLeadMutation,
@@ -54,42 +54,38 @@ export default function LeadDetailPage() {
 
     if (!lead) {
         return (
-            <div className="text-center py-20">
-                <p className="text-gray-500">Lead not found.</p>
-                <Button
-                    variant="light"
-                    startContent={<ArrowLeft className="w-4 h-4" />}
-                    onPress={() => router.push('/leads')}
-                    className="mt-4"
-                >
-                    Back to Leads
-                </Button>
-            </div>
+            <ListPageLayout
+                title="Lead Details"
+                breadcrumbs={[
+                    { label: 'Leads', href: '/leads' },
+                    { label: 'Not found' },
+                ]}
+            >
+                <div className="text-center py-20">
+                    <p className="text-gray-500">Lead not found.</p>
+                    <Button
+                        variant="light"
+                        onPress={() => router.push('/leads')}
+                        className="mt-4"
+                    >
+                        Back to Leads
+                    </Button>
+                </div>
+            </ListPageLayout>
         );
     }
 
     const fullName = lead.user?.full_name || lead.user?.name || '—';
 
     return (
-        <div className="space-y-6 max-w-2xl">
-            <PageHeader
-                title="Lead Details"
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/' },
-                    { label: 'Leads', href: '/leads' },
-                    { label: fullName },
-                ]}
-                actions={
-                    <Button
-                        variant="light"
-                        startContent={<ArrowLeft className="w-4 h-4" />}
-                        onPress={() => router.push('/leads')}
-                    >
-                        Back
-                    </Button>
-                }
-            />
-
+        <ListPageLayout
+            title="Lead Details"
+            breadcrumbs={[
+                { label: 'Leads', href: '/leads' },
+                { label: fullName },
+            ]}
+            className="max-w-2xl"
+        >
             {/* Contact Info (read-only) */}
             <section className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
@@ -142,7 +138,7 @@ export default function LeadDetailPage() {
 
             {/* key prop re-mounts LeadForm if lead.id ever changes */}
             <LeadForm key={lead.id} lead={lead} canWrite={canWrite} />
-        </div>
+        </ListPageLayout>
     );
 }
 

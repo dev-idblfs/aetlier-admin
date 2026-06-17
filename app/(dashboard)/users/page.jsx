@@ -37,7 +37,7 @@ import {
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import {
-    PageHeader,
+    ListPageLayout,
     StatusBadge,
     Card,
     SearchInput,
@@ -338,56 +338,55 @@ export default function UsersPage() {
     ];
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            <PageHeader
-                title="Users"
-                description="Manage user accounts and roles"
-                actions={
-                    <Button
-                        color="primary"
-                        startContent={<UserPlus className="w-4 h-4" />}
-                        onPress={handleAddUser}
-                        className="w-full sm:w-auto"
-                    >
-                        Add User
-                    </Button>
-                }
-            />
-
-            {/* Search & Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <SearchInput
-                    value={search}
-                    onChange={setSearch}
-                    placeholder="Search users..."
-                    className="flex-1"
-                />
-                <div className="flex gap-2">
-                    <Select
-                        placeholder="Filter by role"
-                        selectedKeys={roleFilter ? [roleFilter] : []}
-                        onSelectionChange={(keys) => setRoleFilter(Array.from(keys)[0] || '')}
-                        className="w-full sm:w-40"
-                        size="sm"
-                        classNames={{ trigger: 'bg-white' }}
-                    >
-                        {roleOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </Select>
-                    {(search || roleFilter) && (
-                        <Button
-                            variant="flat"
+        <ListPageLayout
+            title="Users"
+            breadcrumbs={[{ label: 'Users' }]}
+            actions={(
+                <Button
+                    color="primary"
+                    size="sm"
+                    startContent={<UserPlus className="w-4 h-4" />}
+                    onPress={handleAddUser}
+                >
+                    Add User
+                </Button>
+            )}
+            toolbar={(
+                <>
+                    <SearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search users..."
+                        className="flex-1"
+                    />
+                    <div className="flex gap-2">
+                        <Select
+                            placeholder="Filter by role"
+                            selectedKeys={roleFilter ? [roleFilter] : []}
+                            onSelectionChange={(keys) => setRoleFilter(Array.from(keys)[0] || '')}
+                            className="w-full sm:w-40"
                             size="sm"
-                            onPress={() => { setSearch(''); setRoleFilter(''); }}
+                            classNames={{ trigger: 'bg-white' }}
                         >
-                            Clear
-                        </Button>
-                    )}
-                </div>
-            </div>
+                            {roleOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </Select>
+                        {(search || roleFilter) && (
+                            <Button
+                                variant="flat"
+                                size="sm"
+                                onPress={() => { setSearch(''); setRoleFilter(''); }}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                </>
+            )}
+        >
 
             {/* Results count */}
             <div className="text-sm text-gray-500">
@@ -548,7 +547,7 @@ export default function UsersPage() {
                 type="danger"
                 isLoading={isDeleting}
             />
-        </div>
+        </ListPageLayout>
     );
 }
 

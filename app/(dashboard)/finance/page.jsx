@@ -35,7 +35,7 @@ import {
 } from '@heroui/react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { PageHeader, StatusBadge, LinkButton } from '@/components/ui';
+import { ListPageLayout, StatusBadge, LinkButton } from '@/components/ui';
 import { useGetFinancialDashboardQuery, useGetInvoicesQuery, useGetExpensesQuery } from '@/redux/services/api';
 import { formatDate, formatCurrency } from '@/utils/dateFormatters';
 
@@ -107,29 +107,25 @@ export default function FinanceDashboardPage() {
     }, [dashboard]);
 
     return (
-        <div className="space-y-6">
-            <PageHeader
-                title="Finance Dashboard"
-                description="Overview of your financial performance"
-                actions={
-                    <div className="flex gap-2">
-                        <Select
-                            selectedKeys={[dateRange]}
-                            onSelectionChange={(keys) => setDateRange(Array.from(keys)[0])}
-                            className="w-40"
-                            size="sm"
-                            classNames={{ trigger: 'bg-white' }}
-                        >
-                            {dateRangeOptions.map((option) => (
-                                <SelectItem key={option.key} value={option.key}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </Select>
-                    </div>
-                }
-            />
-
+        <ListPageLayout
+            title="Finance Dashboard"
+            breadcrumbs={[{ label: 'Finance' }]}
+            actions={
+                <Select
+                    selectedKeys={[dateRange]}
+                    onSelectionChange={(keys) => setDateRange(Array.from(keys)[0])}
+                    className="w-40"
+                    size="sm"
+                    classNames={{ trigger: 'bg-white' }}
+                >
+                    {dateRangeOptions.map((option) => (
+                        <SelectItem key={option.key} value={option.key}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </Select>
+            }
+        >
             {/* Quick Actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <QuickActionCard
@@ -298,7 +294,7 @@ export default function FinanceDashboardPage() {
                     </CardBody>
                 </Card>
             </div>
-        </div>
+        </ListPageLayout>
     );
 }
 

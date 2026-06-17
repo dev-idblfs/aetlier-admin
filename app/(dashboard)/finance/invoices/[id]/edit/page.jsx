@@ -377,10 +377,14 @@ export default function EditInvoicePage({ params }) {
     return (
         <InvoiceLayout
             title={`Edit Invoice ${invoice.invoice_number}`}
-            onBack={() => router.push(`/finance/invoices/${invoice.id}`)}
             status={invoice.status}
-            actions={actions}
             compact
+            breadcrumbs={[
+                { label: 'Invoices', href: '/finance/invoices' },
+                { label: invoice.invoice_number, href: `/finance/invoices/${invoice.id}` },
+                { label: 'Edit' },
+            ]}
+            actions={actions}
         >
             <Form methods={methods} onSubmit={(data) => onSubmit(data, false)} className="contents">
                 {/* Warning for invoices with payments */}

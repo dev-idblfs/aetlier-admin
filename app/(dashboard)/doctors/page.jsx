@@ -33,7 +33,7 @@ import {
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import {
-    PageHeader,
+    ListPageLayout,
     StatusBadge,
     ResponsiveTable,
     MobileCard,
@@ -181,58 +181,37 @@ export default function DoctorsPage() {
     };
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            <PageHeader
-                title="Doctors"
-                description="Manage doctor profiles and schedules"
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/' },
-                    { label: 'Doctors' },
-                ]}
-                actions={
-                    canCreate ? (
-                    <div className="flex gap-2">
-                        <Button
-                            color="primary"
-                            startContent={<Plus className="w-4 h-4" />}
-                            onPress={handleAdd}
-                            className="w-full sm:w-auto"
-                        >
-                            <span className="hidden sm:inline">Add Doctor</span>
-                            <span className="sm:hidden">Add</span>
-                        </Button>
-                    </div>
-                    ) : null
-                }
-            />
-
+        <ListPageLayout
+            title="Doctors"
+            breadcrumbs={[{ label: 'Doctors' }]}
+            actions={
+                canCreate ? (
+                    <Button
+                        color="primary"
+                        size="sm"
+                        startContent={<Plus className="w-4 h-4" />}
+                        onPress={handleAdd}
+                    >
+                        <span className="hidden sm:inline">Add Doctor</span>
+                        <span className="sm:hidden">Add</span>
+                    </Button>
+                ) : null
+            }
+            toolbar={(
+                <SearchInput
+                    value={search}
+                    onChange={handleSearchChange}
+                    placeholder="Search doctors..."
+                    className="flex-1 max-w-md"
+                />
+            )}
+        >
             {isError && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     Failed to load doctors
                     {error?.data?.detail ? `: ${error.data.detail}` : '. Check that the API is running and NEXT_PUBLIC_API_URL is correct.'}
                 </div>
             )}
-
-            {/* Search Bar */}
-            <div className="flex items-center gap-3">
-                <SearchInput
-                    value={search}
-                    onChange={handleSearchChange}
-                    placeholder="Search doctors..."
-                    fullWidth
-                    className="flex-1"
-                />
-                {search && (
-                    <Button
-                        variant="flat"
-                        size="sm"
-                        isIconOnly
-                        onPress={() => handleSearchChange('')}
-                    >
-                        <X className="w-4 h-4" />
-                    </Button>
-                )}
-            </div>
 
             {/* Results count */}
             <div className="flex items-center justify-between text-sm text-gray-500">
@@ -419,7 +398,7 @@ export default function DoctorsPage() {
                 type="danger"
                 isLoading={isDeleting}
             />
-        </div>
+        </ListPageLayout>
     );
 }
 

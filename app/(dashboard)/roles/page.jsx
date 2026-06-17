@@ -35,7 +35,7 @@ import {
     ChevronRight,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { PageHeader, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal } from '@/components/ui';
+import { ListPageLayout, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal } from '@/components/ui';
 import {
     useGetRolesQuery,
     useCreateRoleMutation,
@@ -60,18 +60,10 @@ export default function RolesPage() {
     const [selectedTab, setSelectedTab] = useState('roles');
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            {/* Header */}
-            <PageHeader
-                title="Roles"
-                description="Manage user roles and permissions"
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/' },
-                    { label: 'Roles' },
-                ]}
-            />
-
-            {/* Tabs - Scrollable on mobile */}
+        <ListPageLayout
+            title="Roles"
+            breadcrumbs={[{ label: 'Roles' }]}
+        >
             <Tabs
                 selectedKey={selectedTab}
                 onSelectionChange={setSelectedTab}
@@ -105,7 +97,7 @@ export default function RolesPage() {
                     <UserRolesTab />
                 </Tab>
             </Tabs>
-        </div>
+        </ListPageLayout>
     );
 }
 

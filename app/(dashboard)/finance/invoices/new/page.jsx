@@ -225,6 +225,10 @@ export default function NewInvoicePage() {
         <InvoiceLayout
             title="New Invoice"
             compact
+            breadcrumbs={[
+                { label: 'Invoices', href: '/finance/invoices' },
+                { label: 'New Invoice' },
+            ]}
             actions={[
                 {
                     label: 'Save as Draft',

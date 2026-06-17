@@ -10,10 +10,8 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-    Target,
     Trash2,
     Eye,
-    X,
     Mail,
     Phone,
 } from 'lucide-react';
@@ -27,8 +25,7 @@ import {
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import {
-    PageHeader,
-    StatusBadge,
+    ListPageLayout,
     ResponsiveTable,
     ConfirmModal,
     SearchInput,
@@ -204,16 +201,19 @@ export default function LeadsPage() {
     ];
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            <PageHeader
-                title="Leads"
-                description="Manage and track potential customers"
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/' },
-                    { label: 'Leads' },
-                ]}
-            />
-
+        <ListPageLayout
+            title="Leads"
+            breadcrumbs={[{ label: 'Leads' }]}
+            toolbar={(
+                <SearchInput
+                    value={search}
+                    onChange={handleSearchChange}
+                    placeholder="Search by name, email or phone..."
+                    fullWidth
+                    className="flex-1"
+                />
+            )}
+        >
             {/* Status Filter Chips */}
             <div className="flex flex-wrap gap-2">
                 <Chip
@@ -236,27 +236,6 @@ export default function LeadsPage() {
                         {s}
                     </Chip>
                 ))}
-            </div>
-
-            {/* Search */}
-            <div className="flex items-center gap-3">
-                <SearchInput
-                    value={search}
-                    onChange={handleSearchChange}
-                    placeholder="Search by name, email or phone..."
-                    fullWidth
-                    className="flex-1"
-                />
-                {search && (
-                    <Button
-                        variant="flat"
-                        size="sm"
-                        isIconOnly
-                        onPress={() => handleSearchChange('')}
-                    >
-                        <X className="w-4 h-4" />
-                    </Button>
-                )}
             </div>
 
             {/* Count */}
@@ -319,6 +298,6 @@ export default function LeadsPage() {
                 onConfirm={handleDeleteConfirm}
                 isLoading={isDeleting}
             />
-        </div>
+        </ListPageLayout>
     );
 }

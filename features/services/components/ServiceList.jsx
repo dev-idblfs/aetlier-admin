@@ -26,13 +26,12 @@ import {
     Pagination,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { PageHeader, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal } from '@/components/ui';
+import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton } from '@/components/ui';
 import {
     useGetServicesQuery,
     useDeleteServiceMutation,
     useGetCategoriesQuery,
 } from '@/redux/services/api';
-import { LinkButton } from '@/components/ui';
 
 export default function ServiceList() {
     const router = useRouter();
@@ -187,94 +186,90 @@ export default function ServiceList() {
     };
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            <PageHeader
-                title="Services"
-                description="Manage available services and pricing"
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/' },
-                    { label: 'Services' },
-                ]}
-                actions={
-                    <div className="flex gap-2">
-                        <LinkButton
-                            href="/services/categories"
-                            variant="flat"
-                            startContent={<Briefcase className="w-4 h-4" />}
-                            className="hidden sm:flex"
-                        >
-                            Categories
-                        </LinkButton>
-                        <Button
-                            color="primary"
-                            startContent={<Plus className="w-4 h-4" />}
-                            onPress={handleAdd}
-                            className="w-full sm:w-auto"
-                        >
-                            <span className="hidden sm:inline">Add Service</span>
-                            <span className="sm:hidden">Add</span>
-                        </Button>
-                    </div>
-                }
-            />
-
-            {/* Search and Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <SearchInput
-                    value={search}
-                    onChange={setSearch}
-                    placeholder="Search services..."
-                    fullWidth
-                    className="flex-1"
-                />
+        <ListPageLayout
+            title="Services"
+            breadcrumbs={[{ label: 'Services' }]}
+            actions={
                 <div className="flex gap-2">
-                    <Select
-                        placeholder="Category"
-                        selectedKeys={categoryFilter ? [categoryFilter] : []}
-                        onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0] || '')}
-                        className="w-full sm:w-40"
+                    <LinkButton
+                        href="/services/categories"
+                        variant="flat"
                         size="sm"
-                        classNames={{
-                            trigger: 'bg-white',
-                        }}
+                        startContent={<Briefcase className="w-4 h-4" />}
+                        className="hidden sm:flex"
                     >
-                        {categoryOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </Select>
+                        Categories
+                    </LinkButton>
+                    <Button
+                        color="primary"
+                        size="sm"
+                        startContent={<Plus className="w-4 h-4" />}
+                        onPress={handleAdd}
+                        className="w-full sm:w-auto"
+                    >
+                        <span className="hidden sm:inline">Add Service</span>
+                        <span className="sm:hidden">Add</span>
+                    </Button>
+                </div>
+            }
+            toolbar={(
+                <>
+                    <SearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search services..."
+                        fullWidth
+                        className="flex-1"
+                    />
+                    <div className="flex gap-2">
+                        <Select
+                            placeholder="Category"
+                            selectedKeys={categoryFilter ? [categoryFilter] : []}
+                            onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0] || '')}
+                            className="w-full sm:w-40"
+                            size="sm"
+                            classNames={{
+                                trigger: 'bg-white',
+                            }}
+                        >
+                            {categoryOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </Select>
 
-                    {(search || categoryFilter) && (
+                        {(search || categoryFilter) && (
+                            <Button
+                                variant="flat"
+                                size="sm"
+                                isIconOnly
+                                className="sm:hidden"
+                                onPress={() => {
+                                    setSearch('');
+                                    setCategoryFilter('');
+                                }}
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        )}
+
                         <Button
                             variant="flat"
                             size="sm"
-                            isIconOnly
-                            className="sm:hidden"
+                            className="hidden sm:flex"
                             onPress={() => {
                                 setSearch('');
                                 setCategoryFilter('');
                             }}
+                            isDisabled={!search && !categoryFilter}
                         >
-                            <X className="w-4 h-4" />
+                            Clear
                         </Button>
-                    )}
-
-                    <Button
-                        variant="flat"
-                        size="sm"
-                        className="hidden sm:flex"
-                        onPress={() => {
-                            setSearch('');
-                            setCategoryFilter('');
-                        }}
-                        isDisabled={!search && !categoryFilter}
-                    >
-                        Clear
-                    </Button>
-                </div>
-            </div>
-
+                    </div>
+                </>
+            )}
+        >
             {/* Results count */}
             <div className="flex items-center justify-between text-sm text-gray-500">
                 <span>
@@ -419,7 +414,7 @@ export default function ServiceList() {
                 type="danger"
                 isLoading={isDeleting}
             />
-        </div >
+        </ListPageLayout>
     );
 }
 

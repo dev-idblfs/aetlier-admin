@@ -1,149 +1,99 @@
 /**
  * Invoice Layout Component
- * Provides consistent header, breadcrumbs, and action bar for invoice pages
+ * Syncs title, breadcrumbs, and actions to the global sticky header.
  */
 'use client';
 
-import { Button, Breadcrumbs, BreadcrumbItem } from '@heroui/react';
-import { ArrowLeft, Download, Printer, Mail, MoreVertical } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { Button } from '@heroui/react';
+import { Download, Printer, Mail } from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
+import { cn } from '@/utils/cn';
+
+function getStatusColor(status) {
+    switch (status?.toUpperCase()) {
+        case 'PAID':
+            return 'bg-success-100 text-success-700 border-success-300';
+        case 'PARTIALLY_PAID':
+            return 'bg-warning-100 text-warning-700 border-warning-300';
+        case 'UNPAID':
+            return 'bg-danger-100 text-danger-700 border-danger-300';
+        case 'DRAFT':
+            return 'bg-gray-100 text-gray-700 border-gray-300';
+        case 'CANCELLED':
+            return 'bg-gray-100 text-gray-700 border-gray-300';
+        default:
+            return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+}
 
 export default function InvoiceLayout({
     title,
     invoiceNumber = null,
     actions = [],
     breadcrumbs = [],
-    onBack,
     children,
-    showBackButton = true,
     status = null,
     className = '',
-    compact = false,
-    maxWidth = 'max-w-6xl',
+    compact = true,
 }) {
-    const router = useRouter();
+    const actionsKey = actions
+        .map((action, index) => `${index}:${action.label}:${action.loading}:${action.disabled}`)
+        .join('|');
 
-    const handleBack = () => {
-        if (onBack) {
-            onBack();
-        } else {
-            router.back();
-        }
-    };
+    const headerActions = useMemo(() => {
+        if (!actions.length) return null;
+        return (
+            <div className="flex flex-wrap items-center gap-2">
+                {actions.map((action, index) => (
+                    <Button
+                        key={index}
+                        color={action.color || 'default'}
+                        variant={action.variant || 'flat'}
+                        startContent={action.icon}
+                        onPress={action.onPress || action.onClick}
+                        isDisabled={action.disabled}
+                        isLoading={action.loading}
+                        className={`text-sm ${action.className || ''}`}
+                        size="sm"
+                    >
+                        {action.label}
+                    </Button>
+                ))}
+            </div>
+        );
+    }, [actionsKey]);
 
-    const getStatusColor = (status) => {
-        switch (status?.toUpperCase()) {
-            case 'PAID':
-                return 'bg-success-100 text-success-700 border-success-300';
-            case 'PARTIALLY_PAID':
-                return 'bg-warning-100 text-warning-700 border-warning-300';
-            case 'UNPAID':
-                return 'bg-danger-100 text-danger-700 border-danger-300';
-            case 'DRAFT':
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-            case 'CANCELLED':
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-            default:
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-        }
-    };
+    const resolvedBreadcrumbs = breadcrumbs.length > 0
+        ? breadcrumbs
+        : [{ label: 'Invoices', href: '/finance/invoices' }, { label: title }];
 
     return (
-        <div className={`min-h-screen bg-gray-50 ${className}`}>
-            {/* Header Section */}
-            <div
-                className={`bg-white border-b border-gray-200 sticky top-0 z-10 ${compact ? 'mb-0' : 'mb-2'}`}
-            >
-                <div className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8`}>
-                    {/* Breadcrumbs */}
-                    {breadcrumbs.length > 0 && (
-                        <div className="py-3 border-b border-gray-100">
-                            <Breadcrumbs>
-                                {breadcrumbs.map((crumb, index) => (
-                                    <BreadcrumbItem key={index} href={crumb.href}>
-                                        {crumb.label}
-                                    </BreadcrumbItem>
-                                ))}
-                            </Breadcrumbs>
-                        </div>
+        <div className={cn(compact ? 'space-y-3 pb-4' : 'space-y-4 pb-6', 'w-full', className)}>
+            <PageHeader
+                title={title}
+                breadcrumbs={resolvedBreadcrumbs}
+                actions={headerActions}
+                actionsKey={actionsKey}
+                syncActionsToHeader={actions.length > 0}
+            />
+
+            {(status || invoiceNumber) && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    {invoiceNumber && (
+                        <span className="text-xs font-mono text-gray-500">#{invoiceNumber}</span>
                     )}
-
-                    {/* Header Bar */}
-                    <div
-                        className={
-                            compact
-                                ? 'py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3'
-                                : 'py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4'
-                        }
-                    >
-                        {/* Left: Title and Back Button */}
-                        <div className="flex items-center gap-4">
-                            {showBackButton && (
-                                <Button
-                                    isIconOnly
-                                    variant="light"
-                                    onPress={handleBack}
-                                    aria-label="Go back"
-                                >
-                                    <ArrowLeft className="w-5 h-5" />
-                                </Button>
-                            )}
-                            <div>
-                                <div className="flex items-center gap-3 flex-wrap">
-                                    <h1
-                                        className={
-                                            compact
-                                                ? 'text-xl font-bold text-gray-900'
-                                                : 'text-2xl font-bold text-gray-900'
-                                        }
-                                    >
-                                        {title}
-                                    </h1>
-                                    {invoiceNumber && (
-                                        <span className="text-sm font-mono text-gray-500">
-                                            #{invoiceNumber}
-                                        </span>
-                                    )}
-                                    {status && (
-                                        <span
-                                            className={`px-3 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
-                                                status
-                                            )}`}
-                                        >
-                                            {status.replace('_', ' ')}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right: Action Buttons */}
-                        {actions.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2">
-                                {actions.map((action, index) => (
-                                    <Button
-                                        key={index}
-                                        color={action.color || 'default'}
-                                        variant={action.variant || 'flat'}
-                                        startContent={action.icon}
-                                        onPress={action.onPress || action.onClick}
-                                        isDisabled={action.disabled}
-                                        isLoading={action.loading}
-                                        className={`text-sm ${action.className || ''}`}
-                                        size="sm"
-                                    >
-                                        {action.label}
-                                    </Button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {status && (
+                        <span
+                            className={`px-2 py-0.5 text-xs font-semibold rounded-full border ${getStatusColor(status)}`}
+                        >
+                            {status.replace('_', ' ')}
+                        </span>
+                    )}
                 </div>
-            </div>
+            )}
 
-            <div
-                className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8 pb-6 ${compact ? 'pt-3 space-y-3' : 'pt-4 space-y-4'}`}
-            >
+            <div className={compact ? 'space-y-3' : 'space-y-4'}>
                 {children}
             </div>
         </div>

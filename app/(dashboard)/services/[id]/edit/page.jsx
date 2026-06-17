@@ -31,7 +31,7 @@ export default function EditServicePage() {
 
     if (isLoadingService) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="flex items-center justify-center py-24">
                 <Spinner size="lg" />
             </div>
         );
@@ -39,7 +39,7 @@ export default function EditServicePage() {
 
     if (!service) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center py-24">
                 <p className="text-gray-600 mb-4">Service not found</p>
                 <Button onPress={() => router.back()}>Go Back</Button>
             </div>
@@ -50,7 +50,10 @@ export default function EditServicePage() {
         <ServiceForm
             initialData={service}
             title="Edit Service"
-            subtitle="Update service information"
+            breadcrumbs={[
+                { label: 'Services', href: '/services' },
+                { label: service.name || 'Edit' },
+            ]}
             submitLabel="Save Changes"
             onSubmit={onSubmit}
             isLoading={isUpdating}

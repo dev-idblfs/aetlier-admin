@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { Button, Select, SelectItem, Pagination } from '@heroui/react';
-import { PageHeader, ResponsiveTable } from '@/components/ui';
+import { ListPageLayout, ResponsiveTable } from '@/components/ui';
 import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';
 import { useGetPendingVerificationsQuery } from '@/redux/services/api';
 import { useSelector } from 'react-redux';
@@ -98,13 +98,10 @@ export default function VerificationQueuePage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Doctor verification"
-        description="Review documents, then approve or reject each doctor onboarding request"
-        icon={Shield}
-      />
-
+    <ListPageLayout
+      title="Doctor verification"
+      breadcrumbs={[{ label: 'Verification' }]}
+    >
       <div className="bg-primary-50 border border-primary-100 rounded-lg p-4 text-sm text-gray-700 space-y-1">
         <p className="font-medium text-gray-900">Approval workflow</p>
         <ol className="list-decimal list-inside space-y-0.5 text-gray-600">
@@ -149,6 +146,6 @@ export default function VerificationQueuePage() {
           <Pagination total={totalPages} page={page} onChange={setPage} />
         </div>
       )}
-    </div>
+    </ListPageLayout>
   );
 }

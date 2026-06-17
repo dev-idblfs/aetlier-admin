@@ -43,7 +43,10 @@ export default function NewServicePage() {
     return (
         <ServiceForm
             title="Add New Service"
-            subtitle="Create a new service offering"
+            breadcrumbs={[
+                { label: 'Services', href: '/services' },
+                { label: 'Add New' },
+            ]}
             submitLabel="Create Service"
             onSubmit={onSubmit}
             isLoading={isLoading}

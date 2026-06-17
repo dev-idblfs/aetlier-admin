@@ -41,7 +41,7 @@ import {
     BarChart3,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { PageHeader, ConfirmModal, FormModal } from '@/components/ui';
+import { ListPageLayout, ConfirmModal, FormModal } from '@/components/ui';
 import {
     useGetAllNavigationQuery,
     useCreateNavigationItemMutation,
@@ -457,29 +457,26 @@ export default function NavigationManagementPage() {
     }
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            <PageHeader
-                title="Navigation Management"
-                description="Configure sidebar navigation items and permissions"
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/' },
-                    { label: 'Settings', href: '/settings' },
-                    { label: 'Navigation' },
-                ]}
-                actions={
-                    <Button
-                        color="primary"
-                        startContent={<Plus className="w-4 h-4" />}
-                        onPress={() => {
-                            resetForm();
-                            createModal.onOpen();
-                        }}
-                    >
-                        Add Item
-                    </Button>
-                }
-            />
-
+        <ListPageLayout
+            title="Navigation Management"
+            breadcrumbs={[
+                { label: 'Settings', href: '/settings' },
+                { label: 'Navigation' },
+            ]}
+            actions={
+                <Button
+                    color="primary"
+                    size="sm"
+                    startContent={<Plus className="w-4 h-4" />}
+                    onPress={() => {
+                        resetForm();
+                        createModal.onOpen();
+                    }}
+                >
+                    Add Item
+                </Button>
+            }
+        >
             {/* Navigation Items List */}
             <div className="space-y-2">
                 {navItems.length === 0 ? (
@@ -610,6 +607,6 @@ export default function NavigationManagementPage() {
                     )}
                 </div>
             </FormModal>
-        </div>
+        </ListPageLayout>
     );
 }

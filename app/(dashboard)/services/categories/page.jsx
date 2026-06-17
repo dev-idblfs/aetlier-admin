@@ -4,22 +4,22 @@
 export const dynamic = 'force-dynamic';
 
 import CategoryManager from '@/features/categories/components/CategoryManager';
-import { PageHeader } from '@/components/ui';
+import { ListPageLayout } from '@/components/ui';
 
 export default function ServiceCategoriesPage() {
     return (
-        <div className="space-y-6">
-            <PageHeader
-                title="Service Categories"
-                description="Manage categories for services offered"
-                backUrl="/services"
-            />
-
+        <ListPageLayout
+            title="Service Categories"
+            breadcrumbs={[
+                { label: 'Services', href: '/services' },
+                { label: 'Categories' },
+            ]}
+        >
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <CategoryManager
                     type="SERVICE"
                 />
             </div>
-        </div>
+        </ListPageLayout>
     );
 }

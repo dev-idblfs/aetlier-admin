@@ -34,7 +34,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { settingsSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormSwitchRow, FormTextarea } from '@/components/ui/FormFields';
-import { PageHeader } from '@/components/ui';
+import { ListPageLayout } from '@/components/ui';
 import {
     useGetInvoiceSettingsQuery,
     useUpdateInvoiceSettingsMutation,
@@ -170,31 +170,31 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="space-y-4 md:space-y-6">
+        <ListPageLayout
+            title="Settings"
+            breadcrumbs={[{ label: 'Settings' }]}
+            actions={
+                !isLoading ? (
+                    <Button
+                        color="primary"
+                        size="sm"
+                        startContent={<Save className="w-4 h-4" />}
+                        onPress={handleSubmit(onSubmit)}
+                        isLoading={isSaving}
+                        className="w-full sm:w-auto"
+                    >
+                        Save Changes
+                    </Button>
+                ) : null
+            }
+        >
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-12">
                     <Spinner size="lg" />
                     <p className="mt-4 text-gray-600">Loading settings...</p>
                 </div>
             ) : (
-                <>
-                    <PageHeader
-                        title="Settings"
-                        description="Manage your admin preferences"
-                        actions={
-                            <Button
-                                color="primary"
-                                startContent={<Save className="w-4 h-4" />}
-                                onPress={handleSubmit(onSubmit)}
-                                isLoading={isSaving}
-                                className="w-full sm:w-auto"
-                            >
-                                Save Changes
-                            </Button>
-                        }
-                    />
-
-                    <Form methods={methods} onSubmit={onSubmit}>
+                <Form methods={methods} onSubmit={onSubmit}>
                         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
                             <Tabs
                                 selectedKey={activeTab}
@@ -474,9 +474,8 @@ export default function SettingsPage() {
                             </Tabs>
                         </div>
                     </Form>
-                </>
             )}
-        </div>
+        </ListPageLayout>
     );
 }
 

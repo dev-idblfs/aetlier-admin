@@ -1,14 +1,15 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { Button, SelectItem } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
-import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
+import { FormInput, FormSelect, FormTextarea, FormRow, FormDivider } from '@/components/ui/FormFields';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
 import { useCreateCustomerMutation } from '@/redux/services/api';
 
 const CUSTOMER_TYPES = [
@@ -46,7 +47,6 @@ export default function NewCustomerPage() {
 
     const onSubmit = async (data) => {
         try {
-            // Validate JSON if present
             let billingAddr = null;
             let shippingAddr = null;
 
@@ -68,13 +68,11 @@ export default function NewCustomerPage() {
                 }
             }
 
-            const payload = {
+            await createCustomer({
                 ...data,
                 billing_address: billingAddr,
                 shipping_address: shippingAddr,
-            };
-
-            await createCustomer(payload).unwrap();
+            }).unwrap();
             toast.success('Customer created successfully');
             router.push('/finance/customers');
         } catch (error) {
@@ -83,146 +81,86 @@ export default function NewCustomerPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <div className="max-w-4xl mx-auto">
-                {/* Header */}
-                <div className="mb-6 flex items-center gap-4">
-                    <Button
-                        isIconOnly
-                        variant="light"
-                        onPress={() => router.back()}
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Add New Customer</h1>
-                        <p className="text-sm text-gray-600">Create a new customer profile</p>
-                    </div>
-                </div>
-
-                {/* Form */}
-                <Form methods={methods} onSubmit={onSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                    {/* Basic Information */}
-                    <div>
-                        <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormInput
-                                name="first_name"
-                                label="First Name"
-                                placeholder="Enter first name"
-                                isRequired
-                            />
-                            <FormInput
-                                name="last_name"
-                                label="Last Name"
-                                placeholder="Enter last name"
-                            />
-                            <FormInput
-                                name="email"
-                                label="Email"
-                                type="email"
-                                placeholder="customer@example.com"
-                                isRequired
-                            />
-                            <FormInput
-                                name="phone"
-                                label="Phone"
-                                type="tel"
-                                placeholder="+91 9876543210"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Business Information */}
-                    <div>
-                        <h2 className="text-lg font-semibold mb-4">Business Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormSelect
-                                name="customer_type"
-                                label="Customer Type"
-                                placeholder="Select type"
+        <FormPageLayout
+            title="Add New Customer"
+            breadcrumbs={[
+                { label: 'Customers', href: '/finance/customers' },
+                { label: 'Add New' },
+            ]}
+            cancelHref="/finance/customers"
+        >
+            <Form methods={methods} onSubmit={onSubmit}>
+                <FormCompactCard
+                    footer={(
+                        <FormActions inline>
+                            <Button
+                                color="primary"
+                                type="submit"
+                                isLoading={isLoading}
+                                startContent={!isLoading && <Save className="w-4 h-4" />}
+                                className="w-full sm:w-auto"
                             >
+                                Create Customer
+                            </Button>
+                        </FormActions>
+                    )}
+                >
+                    <FormSectionCard embedded title="Basic Information">
+                        <FormRow columns={3}>
+                            <FormInput name="first_name" label="First Name" placeholder="Enter first name" isRequired />
+                            <FormInput name="last_name" label="Last Name" placeholder="Enter last name" />
+                            <FormInput name="email" label="Email" type="email" placeholder="customer@example.com" isRequired />
+                            <FormInput name="phone" label="Phone" type="tel" placeholder="+91 9876543210" />
+                        </FormRow>
+                    </FormSectionCard>
+
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Business Information">
+                        <FormRow columns={3}>
+                            <FormSelect name="customer_type" label="Customer Type" placeholder="Select type">
                                 {CUSTOMER_TYPES.map((type) => (
-                                    <SelectItem key={type.key} value={type.key}>
-                                        {type.label}
-                                    </SelectItem>
+                                    <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>
                                 ))}
                             </FormSelect>
-                            <FormInput
-                                name="company_name"
-                                label="Company Name"
-                                placeholder="Enter company name"
-                            />
-                            <FormInput
-                                name="gstin"
-                                label="GSTIN"
-                                placeholder="Enter GSTIN"
-                            />
-                            <FormInput
-                                name="pan"
-                                label="PAN"
-                                placeholder="Enter PAN"
-                            />
-                        </div>
-                    </div>
+                            <FormInput name="company_name" label="Company Name" placeholder="Enter company name" />
+                            <FormInput name="gstin" label="GSTIN" placeholder="Enter GSTIN" />
+                            <FormInput name="pan" label="PAN" placeholder="Enter PAN" />
+                        </FormRow>
+                    </FormSectionCard>
 
-                    {/* Address Information */}
-                    <div>
-                        <h2 className="text-lg font-semibold mb-4">Address Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Address Information">
+                        <FormRow columns={2}>
                             <FormTextarea
                                 name="billing_address"
                                 label="Billing Address"
                                 placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
-                                minRows={3}
+                                minRows={2}
                                 description="Enter as JSON format"
                             />
                             <FormTextarea
                                 name="shipping_address"
                                 label="Shipping Address"
                                 placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
-                                minRows={3}
+                                minRows={2}
                                 description="Enter as JSON format"
                             />
-                        </div>
-                    </div>
+                        </FormRow>
+                    </FormSectionCard>
 
-                    {/* Payment Terms */}
-                    <div>
-                        <h2 className="text-lg font-semibold mb-4">Payment Terms</h2>
-                        <FormSelect
-                            name="payment_terms"
-                            label="Payment Terms"
-                            placeholder="Select payment terms"
-                            className="max-w-md"
-                        >
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Payment Terms">
+                        <FormSelect name="payment_terms" label="Payment Terms" placeholder="Select payment terms" className="max-w-sm">
                             {PAYMENT_TERMS.map((term) => (
-                                <SelectItem key={term.key} value={term.key}>
-                                    {term.label}
-                                </SelectItem>
+                                <SelectItem key={term.key} value={term.key}>{term.label}</SelectItem>
                             ))}
                         </FormSelect>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="mt-6 flex justify-end gap-3">
-                        <Button
-                            variant="flat"
-                            onPress={() => router.back()}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            color="primary"
-                            type="submit"
-                            isLoading={isLoading}
-                            startContent={!isLoading && <Save className="w-4 h-4" />}
-                        >
-                            Create Customer
-                        </Button>
-                    </div>
-                </Form>
-            </div>
-        </div>
+                    </FormSectionCard>
+                </FormCompactCard>
+            </Form>
+        </FormPageLayout>
     );
 }

@@ -5,8 +5,10 @@
 
 'use client';
 
-import { Input, Textarea, Select, SelectItem, Switch } from '@heroui/react';
+import { Input, Textarea, Select, SelectItem, Switch, Button } from '@heroui/react';
+import { X } from 'lucide-react';
 import { Controller, useFormContext } from 'react-hook-form';
+import { cn } from '@/utils/cn';
 
 /**
  * Helper to get control from props or context
@@ -22,11 +24,11 @@ const useFormControl = (control) => {
  */
 export function FormSection({ title, description, children, className = '' }) {
     return (
-        <div className={`space-y-4 ${className}`}>
+        <div className={cn('space-y-4', className)}>
             {(title || description) && (
-                <div className="mb-2">
+                <div>
                     {title && <h4 className="font-medium text-gray-900">{title}</h4>}
-                    {description && <p className="text-sm text-gray-500">{description}</p>}
+                    {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
                 </div>
             )}
             {children}
@@ -38,9 +40,15 @@ export function FormSection({ title, description, children, className = '' }) {
  * Form Row
  * Responsive grid for form fields
  */
+const ROW_COLUMNS = {
+    1: 'grid-cols-1',
+    2: 'sm:grid-cols-2 lg:grid-cols-2',
+    3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+};
+
 export function FormRow({ children, columns = 2, className = '' }) {
     return (
-        <div className={`grid grid-cols-1 sm:grid-cols-${columns} gap-4 ${className}`}>
+        <div className={cn('grid grid-cols-1 gap-3', ROW_COLUMNS[columns], className)}>
             {children}
         </div>
     );
@@ -345,5 +353,78 @@ export function FormSwitchRow({
  * Visual separator between form sections
  */
 export function FormDivider({ className = '' }) {
-    return <div className={`border-t border-gray-200 my-4 ${className}`} />;
+    return <div className={cn('border-t border-gray-100 my-4', className)} />;
+}
+
+/**
+ * FormTagInput
+ * Tag/chip list input for qualifications, skills, etc.
+ */
+export function FormTagInput({
+    label,
+    placeholder = 'Type and press Enter',
+    value,
+    onValueChange,
+    tags = [],
+    onAdd,
+    onRemove,
+    className = '',
+}) {
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            onAdd?.();
+        }
+    };
+
+    return (
+        <div className={className}>
+            {label && (
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {label}
+                </label>
+            )}
+            <div className="flex gap-2 mb-3">
+                <Input
+                    placeholder={placeholder}
+                    value={value}
+                    onValueChange={onValueChange}
+                    onKeyDown={handleKeyDown}
+                    labelPlacement="outside"
+                    classNames={{
+                        inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
+                    }}
+                />
+                <Button
+                    type="button"
+                    color="primary"
+                    variant="flat"
+                    className="shrink-0 self-end"
+                    onPress={onAdd}
+                >
+                    Add
+                </Button>
+            </div>
+            {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, idx) => (
+                        <span
+                            key={`${tag}-${idx}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm border border-primary-100"
+                        >
+                            {tag}
+                            <button
+                                type="button"
+                                onClick={() => onRemove?.(idx)}
+                                className="hover:text-primary-900 transition-colors"
+                                aria-label={`Remove ${tag}`}
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }

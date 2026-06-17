@@ -51,7 +51,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { PageHeader, DataTable, StatusBadge, Card, FormModal, DetailModal, DetailRow, DetailGrid, ConfirmModal } from '@/components/ui';
+import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, DetailModal, DetailRow, DetailGrid, ConfirmModal } from '@/components/ui';
 import {
     useGetAppointmentsQuery,
     useCreateAppointmentMutation,
@@ -493,15 +493,10 @@ export default function AppointmentsPage() {
     const activeFiltersCount = Object.values(filters).filter(Boolean).length;
 
     return (
-        <div className="space-y-4 sm:space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Appointments</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        {totalCount} total appointments
-                    </p>
-                </div>
+        <ListPageLayout
+            title="Appointments"
+            breadcrumbs={[{ label: 'Appointments' }]}
+            actions={
                 <div className="flex items-center gap-2">
                     {canCreate && (
                         <Button
@@ -531,6 +526,10 @@ export default function AppointmentsPage() {
                         <span className="hidden sm:inline">Export</span>
                     </Button>
                 </div>
+            }
+        >
+            <div className="text-sm text-gray-500">
+                {totalCount} total appointment{totalCount !== 1 ? 's' : ''}
             </div>
 
             {/* Mobile Filter Toggle */}
@@ -931,8 +930,8 @@ export default function AppointmentsPage() {
                     <SelectItem key="rescheduled" value="rescheduled">Rescheduled</SelectItem>
                     <SelectItem key="invoiced" value="invoiced">Invoiced</SelectItem>
                 </Select>
-            </FormModal >
-        </div >
+            </FormModal>
+        </ListPageLayout>
     );
 }
 

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { Button, Input, Textarea, Select, SelectItem, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useGetCustomerQuery, useUpdateCustomerMutation } from '@/redux/services/api';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
+import { FormDivider } from '@/components/ui/FormFields';
 
 const CUSTOMER_TYPES = [
     { key: 'individual', label: 'Individual' },
@@ -18,6 +20,10 @@ const PAYMENT_TERMS = [
     { key: 'net_30', label: 'Net 30' },
     { key: 'net_60', label: 'Net 60' },
 ];
+
+const fieldClassNames = {
+    inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
+};
 
 export default function EditCustomerPage() {
     const router = useRouter();
@@ -66,22 +72,17 @@ export default function EditCustomerPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validation
         if (!formData.email || !formData.first_name) {
             toast.error('Please fill in all required fields');
             return;
         }
 
         try {
-            const payload = {
+            await updateCustomer({
+                id: customerId,
                 ...formData,
                 billing_address: formData.billing_address ? JSON.parse(formData.billing_address) : null,
                 shipping_address: formData.shipping_address ? JSON.parse(formData.shipping_address) : null,
-            };
-
-            await updateCustomer({
-                id: customerId,
-                ...payload,
             }).unwrap();
 
             toast.success('Customer updated successfully');
@@ -93,7 +94,7 @@ export default function EditCustomerPage() {
 
     if (isLoadingCustomer) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="flex items-center justify-center py-24">
                 <Spinner size="lg" />
             </div>
         );
@@ -101,169 +102,84 @@ export default function EditCustomerPage() {
 
     if (!customer) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center py-24">
                 <p className="text-gray-600 mb-4">Customer not found</p>
                 <Button onPress={() => router.back()}>Go Back</Button>
             </div>
         );
     }
 
+    const displayName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || customer.email || 'Edit';
+
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <div className="max-w-4xl mx-auto">
-                {/* Header */}
-                <div className="mb-6 flex items-center gap-4">
-                    <Button
-                        isIconOnly
-                        variant="light"
-                        onPress={() => router.back()}
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Edit Customer</h1>
-                        <p className="text-sm text-gray-600">Update customer information</p>
-                    </div>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit}>
-                    <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                        {/* Basic Information */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                    label="First Name"
-                                    placeholder="Enter first name"
-                                    value={formData.first_name}
-                                    onValueChange={(value) => handleChange('first_name', value)}
-                                    isRequired
-                                />
-                                <Input
-                                    label="Last Name"
-                                    placeholder="Enter last name"
-                                    value={formData.last_name}
-                                    onValueChange={(value) => handleChange('last_name', value)}
-                                />
-                                <Input
-                                    label="Email"
-                                    type="email"
-                                    placeholder="customer@example.com"
-                                    value={formData.email}
-                                    onValueChange={(value) => handleChange('email', value)}
-                                    isRequired
-                                    isReadOnly
-                                    description="Email cannot be changed"
-                                />
-                                <Input
-                                    label="Phone"
-                                    type="tel"
-                                    placeholder="+91 9876543210"
-                                    value={formData.phone}
-                                    onValueChange={(value) => handleChange('phone', value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Business Information */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Business Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Select
-                                    label="Customer Type"
-                                    placeholder="Select type"
-                                    selectedKeys={[formData.customer_type]}
-                                    onSelectionChange={(keys) => handleChange('customer_type', Array.from(keys)[0])}
-                                >
-                                    {CUSTOMER_TYPES.map((type) => (
-                                        <SelectItem key={type.key} value={type.key}>
-                                            {type.label}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
-                                <Input
-                                    label="Company Name"
-                                    placeholder="Enter company name"
-                                    value={formData.company_name}
-                                    onValueChange={(value) => handleChange('company_name', value)}
-                                />
-                                <Input
-                                    label="GSTIN"
-                                    placeholder="Enter GSTIN"
-                                    value={formData.gstin}
-                                    onValueChange={(value) => handleChange('gstin', value)}
-                                />
-                                <Input
-                                    label="PAN"
-                                    placeholder="Enter PAN"
-                                    value={formData.pan}
-                                    onValueChange={(value) => handleChange('pan', value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Address Information */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Address Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Textarea
-                                    label="Billing Address"
-                                    placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
-                                    value={formData.billing_address}
-                                    onValueChange={(value) => handleChange('billing_address', value)}
-                                    minRows={3}
-                                    description="Enter as JSON format"
-                                />
-                                <Textarea
-                                    label="Shipping Address"
-                                    placeholder='{"street": "123 Main St", "city": "Mumbai", "state": "MH", "zip": "400001"}'
-                                    value={formData.shipping_address}
-                                    onValueChange={(value) => handleChange('shipping_address', value)}
-                                    minRows={3}
-                                    description="Enter as JSON format"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Payment Terms */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4">Payment Terms</h2>
-                            <Select
-                                label="Payment Terms"
-                                placeholder="Select payment terms"
-                                selectedKeys={[formData.payment_terms]}
-                                onSelectionChange={(keys) => handleChange('payment_terms', Array.from(keys)[0])}
-                                className="max-w-md"
+        <FormPageLayout
+            title="Edit Customer"
+            breadcrumbs={[
+                { label: 'Customers', href: '/finance/customers' },
+                { label: displayName },
+            ]}
+            cancelHref="/finance/customers"
+        >
+            <form onSubmit={handleSubmit}>
+                <FormCompactCard
+                    footer={(
+                        <FormActions inline>
+                            <Button
+                                color="primary"
+                                type="submit"
+                                isLoading={isUpdating}
+                                startContent={!isUpdating && <Save className="w-4 h-4" />}
+                                className="w-full sm:w-auto"
                             >
-                                {PAYMENT_TERMS.map((term) => (
-                                    <SelectItem key={term.key} value={term.key}>
-                                        {term.label}
-                                    </SelectItem>
+                                Save Changes
+                            </Button>
+                        </FormActions>
+                    )}
+                >
+                    <FormSectionCard embedded title="Basic Information">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <Input label="First Name" labelPlacement="outside" placeholder="Enter first name" value={formData.first_name} onValueChange={(v) => handleChange('first_name', v)} isRequired classNames={fieldClassNames} />
+                            <Input label="Last Name" labelPlacement="outside" placeholder="Enter last name" value={formData.last_name} onValueChange={(v) => handleChange('last_name', v)} classNames={fieldClassNames} />
+                            <Input label="Email" labelPlacement="outside" type="email" placeholder="customer@example.com" value={formData.email} onValueChange={(v) => handleChange('email', v)} isRequired isReadOnly description="Email cannot be changed" classNames={fieldClassNames} />
+                            <Input label="Phone" labelPlacement="outside" type="tel" placeholder="+91 9876543210" value={formData.phone} onValueChange={(v) => handleChange('phone', v)} classNames={fieldClassNames} />
+                        </div>
+                    </FormSectionCard>
+
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Business Information">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <Select label="Customer Type" labelPlacement="outside" placeholder="Select type" selectedKeys={[formData.customer_type]} onSelectionChange={(keys) => handleChange('customer_type', Array.from(keys)[0])} classNames={{ trigger: fieldClassNames.inputWrapper }}>
+                                {CUSTOMER_TYPES.map((type) => (
+                                    <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>
                                 ))}
                             </Select>
+                            <Input label="Company Name" labelPlacement="outside" placeholder="Enter company name" value={formData.company_name} onValueChange={(v) => handleChange('company_name', v)} classNames={fieldClassNames} />
+                            <Input label="GSTIN" labelPlacement="outside" placeholder="Enter GSTIN" value={formData.gstin} onValueChange={(v) => handleChange('gstin', v)} classNames={fieldClassNames} />
+                            <Input label="PAN" labelPlacement="outside" placeholder="Enter PAN" value={formData.pan} onValueChange={(v) => handleChange('pan', v)} classNames={fieldClassNames} />
                         </div>
-                    </div>
+                    </FormSectionCard>
 
-                    {/* Actions */}
-                    <div className="mt-6 flex justify-end gap-3">
-                        <Button
-                            variant="flat"
-                            onPress={() => router.back()}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            color="primary"
-                            type="submit"
-                            isLoading={isUpdating}
-                            startContent={!isUpdating && <Save className="w-4 h-4" />}
-                        >
-                            Save Changes
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Address Information">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            <Textarea label="Billing Address" labelPlacement="outside" placeholder='{"street": "123 Main St"}' value={formData.billing_address} onValueChange={(v) => handleChange('billing_address', v)} minRows={2} description="Enter as JSON format" classNames={fieldClassNames} />
+                            <Textarea label="Shipping Address" labelPlacement="outside" placeholder='{"street": "123 Main St"}' value={formData.shipping_address} onValueChange={(v) => handleChange('shipping_address', v)} minRows={2} description="Enter as JSON format" classNames={fieldClassNames} />
+                        </div>
+                    </FormSectionCard>
+
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Payment Terms">
+                        <Select label="Payment Terms" labelPlacement="outside" placeholder="Select payment terms" selectedKeys={[formData.payment_terms]} onSelectionChange={(keys) => handleChange('payment_terms', Array.from(keys)[0])} className="max-w-sm" classNames={{ trigger: fieldClassNames.inputWrapper }}>
+                            {PAYMENT_TERMS.map((term) => (
+                                <SelectItem key={term.key} value={term.key}>{term.label}</SelectItem>
+                            ))}
+                        </Select>
+                    </FormSectionCard>
+                </FormCompactCard>
+            </form>
+        </FormPageLayout>
     );
 }

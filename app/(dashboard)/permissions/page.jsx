@@ -24,7 +24,6 @@ import {
     Key,
     Plus,
     Lock,
-    Search,
     ChevronDown,
     ChevronUp,
 } from 'lucide-react';
@@ -34,7 +33,7 @@ import {
     useGetPermissionsQuery,
     useCreatePermissionMutation,
 } from '@/redux/services/api';
-import { PageHeader, SearchInput, EmptyState, FormModal } from '@/components/ui';
+import { ListPageLayout, SearchInput, EmptyState, FormModal } from '@/components/ui';
 
 export default function PermissionsPage() {
     const { data: permissions = [], isLoading, error } = useGetPermissionsQuery();
@@ -134,30 +133,28 @@ export default function PermissionsPage() {
     };
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            {/* Header */}
-            <PageHeader
-                title="Permissions"
-                description="View and manage system permissions"
-                actions={
-                    <Button
-                        color="primary"
-                        startContent={<Plus className="w-4 h-4" />}
-                        onPress={handleCreate}
-                        className="w-full sm:w-auto"
-                    >
-                        <span className="sm:inline">Create Permission</span>
-                    </Button>
-                }
-            />
-
-            {/* Search */}
-            <SearchInput
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Search permissions..."
-            />
-
+        <ListPageLayout
+            title="Permissions"
+            breadcrumbs={[{ label: 'Permissions' }]}
+            actions={
+                <Button
+                    color="primary"
+                    size="sm"
+                    startContent={<Plus className="w-4 h-4" />}
+                    onPress={handleCreate}
+                    className="w-full sm:w-auto"
+                >
+                    <span className="sm:inline">Create Permission</span>
+                </Button>
+            }
+            toolbar={(
+                <SearchInput
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Search permissions..."
+                />
+            )}
+        >
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <motion.div
@@ -253,7 +250,7 @@ export default function PermissionsPage() {
                     </div>
                 </div>
             </FormModal>
-        </div>
+        </ListPageLayout>
     );
 }
 

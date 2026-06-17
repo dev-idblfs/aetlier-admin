@@ -8,19 +8,14 @@
 export const dynamic = 'force-dynamic';
 import { use, useState, useEffect, useRef } from 'react';
 import {
-    ArrowLeft,
     Save,
     Upload,
     X,
-    Receipt,
     AlertCircle,
     Trash2,
 } from 'lucide-react';
 import {
     Button,
-    Card,
-    CardBody,
-    CardHeader,
     SelectItem,
     Spinner,
 } from '@heroui/react';
@@ -31,8 +26,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { expenseSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
-import { FormInput, FormTextarea, FormSelect, FormSwitchRow } from '@/components/ui/FormFields';
-import { PageHeader } from '@/components/ui';
+import { FormInput, FormTextarea, FormSelect, FormSwitchRow, FormRow, FormDivider } from '@/components/ui/FormFields';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
 import {
     useGetExpenseQuery,
     useUpdateExpenseMutation,
@@ -199,271 +194,116 @@ export default function EditExpensePage({ params }) {
     }
 
     return (
-        <div className="space-y-6 max-w-3xl mx-auto">
-            <PageHeader
-                title="Edit Expense"
-                description="Update expense details and receipt"
-                actions={
-                    <Link href={`/finance/expenses/${expense.id}`}>
-                        <Button variant="flat" startContent={<ArrowLeft className="w-4 h-4" />}>
-                            Cancel
-                        </Button>
-                    </Link>
-                }
-            />
-
+        <FormPageLayout
+            title="Edit Expense"
+            breadcrumbs={[
+                { label: 'Expenses', href: '/finance/expenses' },
+                { label: expense.description?.slice(0, 24) || 'Edit' },
+            ]}
+            cancelHref={`/finance/expenses/${expense.id}`}
+        >
             <Form methods={methods} onSubmit={onSubmit}>
-                <Card>
-                    <CardHeader>
-                        <h3 className="font-semibold">Expense Details</h3>
-                    </CardHeader>
-                    <CardBody className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormSelect
-                                name="category_id"
-                                label="Category"
-                                placeholder="Select category"
-                                isRequired
+                <FormCompactCard
+                    footer={(
+                        <FormActions inline>
+                            <Button
+                                color="primary"
+                                startContent={<Save className="w-4 h-4" />}
+                                type="submit"
+                                isLoading={isUpdating || isUploading}
+                                className="w-full sm:w-auto"
                             >
+                                Update Expense
+                            </Button>
+                        </FormActions>
+                    )}
+                >
+                    <FormSectionCard embedded title="Expense Details">
+                        <FormRow columns={3}>
+                            <FormSelect name="category_id" label="Category" placeholder="Select category" isRequired>
                                 {(categories || []).map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.id}>
-                                        {cat.name}
-                                    </SelectItem>
+                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                 ))}
                             </FormSelect>
-
-                            <FormInput
-                                name="vendor"
-                                label="Vendor/Payee"
-                                placeholder="Who was paid?"
-                            />
-
-                            <div className="md:col-span-2">
-                                <FormTextarea
-                                    name="description"
-                                    label="Description"
-                                    placeholder="What was the expense for?"
-                                    isRequired
-                                    minRows={3}
-                                />
+                            <FormInput name="vendor" label="Vendor/Payee" placeholder="Who was paid?" />
+                            <div className="lg:col-span-3">
+                                <FormTextarea name="description" label="Description" placeholder="What was the expense for?" isRequired minRows={2} />
                             </div>
-
-                            <FormInput
-                                name="amount"
-                                label="Amount"
-                                type="number"
-                                placeholder="0.00"
-                                startContent={<span className="text-default-400">₹</span>}
-                                isRequired
-                            />
-
-                            <FormInput
-                                name="tax_amount"
-                                label="Tax Amount (Optional)"
-                                type="number"
-                                placeholder="0.00"
-                                startContent={<span className="text-default-400">₹</span>}
-                            />
-
-                            <FormInput
-                                name="expense_date"
-                                label="Expense Date"
-                                type="date"
-                                isRequired
-                            />
-
-                            <FormSelect
-                                name="payment_method"
-                                label="Payment Method"
-                            >
+                            <FormInput name="amount" label="Amount" type="number" placeholder="0.00" startContent={<span className="text-default-400">₹</span>} isRequired />
+                            <FormInput name="tax_amount" label="Tax Amount (Optional)" type="number" placeholder="0.00" startContent={<span className="text-default-400">₹</span>} />
+                            <FormInput name="expense_date" label="Expense Date" type="date" isRequired />
+                            <FormSelect name="payment_method" label="Payment Method">
                                 {paymentMethods.map((method) => (
-                                    <SelectItem key={method.value} value={method.value}>
-                                        {method.label}
-                                    </SelectItem>
+                                    <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
                                 ))}
                             </FormSelect>
-
-                            <FormSelect
-                                name="payment_status"
-                                label="Payment Status"
-                            >
+                            <FormSelect name="payment_status" label="Payment Status">
                                 <SelectItem key="PAID" value="PAID">Paid</SelectItem>
                                 <SelectItem key="PENDING" value="PENDING">Pending</SelectItem>
                             </FormSelect>
+                            <FormInput name="reference_number" label="Reference Number (Optional)" placeholder="Receipt/Transaction #" />
+                            <div className="lg:col-span-3">
+                                <FormSwitchRow name="is_recurring" label="Recurring Expense" description="This is a recurring expense" />
+                            </div>
+                        </FormRow>
+                    </FormSectionCard>
 
-                            <FormInput
-                                name="reference_number"
-                                label="Reference Number (Optional)"
-                                placeholder="Receipt/Transaction #"
-                            />
-                        </div>
+                    <FormDivider />
 
-                        <div className="pt-2">
-                            <FormSwitchRow
-                                name="is_recurring"
-                                label="Recurring Expense"
-                                description="This is a recurring expense"
-                            />
-                        </div>
-                    </CardBody>
-                </Card>
-
-                {/* Receipt Upload */}
-                <Card className="mt-6">
-                    <CardHeader>
-                        <h3 className="font-semibold flex items-center gap-2">
-                            <Receipt className="w-5 h-5" />
-                            Receipt
-                        </h3>
-                    </CardHeader>
-                    <CardBody className="space-y-4">
-                        {/* Existing Receipt */}
+                    <FormSectionCard embedded title="Receipt">
                         {existingReceipt && !receiptFile && (
-                            <div className="space-y-3">
-                                <p className="text-sm text-gray-600">Current Receipt:</p>
+                            <div className="space-y-2 mb-3">
+                                <p className="text-xs text-gray-600">Current Receipt:</p>
                                 {existingReceipt.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                    <div className="relative">
-                                        <Image
-                                            src={existingReceipt}
-                                            alt="Current Receipt"
-                                            width={400}
-                                            height={300}
-                                            className="rounded-lg border"
-                                            style={{ maxHeight: '200px', objectFit: 'contain' }}
-                                        />
-                                    </div>
+                                    <Image src={existingReceipt} alt="Current Receipt" width={400} height={300} className="rounded-lg border" style={{ maxHeight: '160px', objectFit: 'contain' }} />
                                 ) : (
-                                    <div className="p-4 border-2 border-dashed rounded-lg">
-                                        <p className="text-sm text-gray-600">Receipt file attached</p>
-                                    </div>
+                                    <div className="p-3 border border-dashed rounded-lg text-sm text-gray-600">Receipt file attached</div>
                                 )}
-                                <Button
-                                    size="sm"
-                                    color="danger"
-                                    variant="flat"
-                                    startContent={<Trash2 className="w-4 h-4" />}
-                                    onPress={removeExistingReceipt}
-                                >
+                                <Button size="sm" color="danger" variant="flat" startContent={<Trash2 className="w-4 h-4" />} onPress={removeExistingReceipt}>
                                     Remove Receipt
                                 </Button>
                             </div>
                         )}
-
-                        {/* New Receipt Upload */}
                         {!receiptFile && !existingReceipt && (
                             <div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*,.pdf"
-                                    onChange={handleFileSelect}
-                                    className="hidden"
-                                />
-                                <Button
-                                    color="primary"
-                                    variant="flat"
-                                    startContent={<Upload className="w-4 h-4" />}
-                                    onPress={() => fileInputRef.current?.click()}
-                                >
+                                <input ref={fileInputRef} type="file" accept="image/*,.pdf" onChange={handleFileSelect} className="hidden" />
+                                <Button color="primary" variant="flat" size="sm" startContent={<Upload className="w-4 h-4" />} onPress={() => fileInputRef.current?.click()}>
                                     Upload Receipt
                                 </Button>
-                                <p className="text-xs text-gray-500 mt-2">
-                                    Accepted formats: JPG, PNG, PDF (Max 5MB)
-                                </p>
+                                <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (Max 5MB)</p>
                             </div>
                         )}
-
-                        {/* New Receipt Preview */}
                         {receiptFile && (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <p className="text-sm text-gray-600">New Receipt:</p>
-                                    <Button
-                                        size="sm"
-                                        color="danger"
-                                        variant="flat"
-                                        isIconOnly
-                                        onPress={removeReceipt}
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </Button>
+                                    <p className="text-xs text-gray-600">New Receipt:</p>
+                                    <Button size="sm" color="danger" variant="flat" isIconOnly onPress={removeReceipt}><X className="w-4 h-4" /></Button>
                                 </div>
                                 {receiptPreview ? (
-                                    <Image
-                                        src={receiptPreview}
-                                        alt="Receipt preview"
-                                        width={400}
-                                        height={300}
-                                        className="rounded-lg border"
-                                        style={{ maxHeight: '200px', objectFit: 'contain' }}
-                                    />
+                                    <Image src={receiptPreview} alt="Receipt preview" width={400} height={300} className="rounded-lg border" style={{ maxHeight: '160px', objectFit: 'contain' }} />
                                 ) : (
-                                    <div className="p-4 border-2 border-dashed rounded-lg bg-gray-50">
-                                        <p className="text-sm text-gray-600">{receiptFile.name}</p>
-                                        <p className="text-xs text-gray-500">
-                                            {(receiptFile.size / 1024).toFixed(2)} KB
-                                        </p>
-                                    </div>
+                                    <div className="p-3 border border-dashed rounded-lg bg-gray-50 text-sm">{receiptFile.name}</div>
                                 )}
                             </div>
                         )}
-
                         {existingReceipt && !receiptFile && (
-                            <div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*,.pdf"
-                                    onChange={handleFileSelect}
-                                    className="hidden"
-                                />
-                                <Button
-                                    color="primary"
-                                    variant="flat"
-                                    size="sm"
-                                    startContent={<Upload className="w-4 h-4" />}
-                                    onPress={() => fileInputRef.current?.click()}
-                                >
+                            <div className="mt-2">
+                                <input ref={fileInputRef} type="file" accept="image/*,.pdf" onChange={handleFileSelect} className="hidden" />
+                                <Button color="primary" variant="flat" size="sm" startContent={<Upload className="w-4 h-4" />} onPress={() => fileInputRef.current?.click()}>
                                     Replace Receipt
                                 </Button>
                             </div>
                         )}
-                    </CardBody>
-                </Card>
+                    </FormSectionCard>
 
-                {/* Notes */}
-                <Card className="mt-6">
-                    <CardHeader>
-                        <h3 className="font-semibold">Additional Notes</h3>
-                    </CardHeader>
-                    <CardBody>
-                        <FormTextarea
-                            name="notes"
-                            placeholder="Add any additional notes about this expense..."
-                            minRows={4}
-                        />
-                    </CardBody>
-                </Card>
+                    <FormDivider />
 
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-3 mt-6 pb-8">
-                    <Button
-                        variant="flat"
-                        onPress={() => router.push(`/finance/expenses/${expense.id}`)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        color="primary"
-                        startContent={<Save className="w-4 h-4" />}
-                        type="submit"
-                        isLoading={isUpdating || isUploading}
-                    >
-                        Update Expense
-                    </Button>
-                </div>
+                    <FormSectionCard embedded title="Additional Notes">
+                        <FormTextarea name="notes" placeholder="Add any additional notes about this expense..." minRows={3} />
+                    </FormSectionCard>
+                </FormCompactCard>
             </Form>
-        </div>
+        </FormPageLayout>
     );
 }
 

@@ -238,10 +238,13 @@ export default function InvoiceDetailPage({ params }) {
     return (
         <InvoiceLayout
             title={invoice.invoice_number}
-            onBack={() => router.push('/finance/invoices')}
             status={invoice.status}
-            actions={actions}
             compact
+            breadcrumbs={[
+                { label: 'Invoices', href: '/finance/invoices' },
+                { label: invoice.invoice_number },
+            ]}
+            actions={actions}
         >
             {isOverdue && (
                 <InvoiceAlert

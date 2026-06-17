@@ -21,13 +21,40 @@ import { logout } from '@/redux/slices/authSlice';
 import { getDisplayRole } from '@/utils/permissions';
 import { useSidebar } from './AdminLayout';
 
+function getBackHref(breadcrumbs) {
+    for (let i = breadcrumbs.length - 1; i >= 0; i -= 1) {
+        if (breadcrumbs[i]?.href) {
+            return breadcrumbs[i].href;
+        }
+    }
+    return null;
+}
+
+function getDisplayTitle(pageTitle, breadcrumbs) {
+    if (pageTitle) return pageTitle;
+    if (breadcrumbs.length > 0) {
+        return breadcrumbs[breadcrumbs.length - 1].label;
+    }
+    return '';
+}
+
 export default function Header() {
     const { user } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
     const router = useRouter();
     const pathname = usePathname();
-    const { pageTitle, breadcrumbs } = useSidebar();
+    const { pageTitle, breadcrumbs, headerActions } = useSidebar();
     const isRoot = pathname === '/';
+    const backHref = getBackHref(breadcrumbs);
+    const displayTitle = getDisplayTitle(pageTitle, breadcrumbs);
+
+    const handleBack = () => {
+        if (backHref) {
+            router.push(backHref);
+            return;
+        }
+        router.back();
+    };
 
     const handleLogout = () => {
         dispatch(logout({ returnPath: pathname }));
@@ -43,7 +70,7 @@ export default function Header() {
                     </div>
                 ) : (
                     <button
-                        onClick={() => router.back()}
+                        onClick={handleBack}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors -ml-1"
                         aria-label="Go back"
                     >
@@ -53,15 +80,15 @@ export default function Header() {
             </div>
 
             {/* ── Mobile center: page title ── */}
-            <p className="md:hidden absolute left-1/2 -translate-x-1/2 text-base font-semibold text-gray-900 truncate max-w-[52vw] pointer-events-none">
-                {pageTitle || 'Admin'}
+            <p className="md:hidden absolute left-1/2 -translate-x-1/2 text-sm font-semibold text-gray-900 truncate max-w-[46vw] pointer-events-none">
+                {displayTitle || 'Admin'}
             </p>
 
             {/* ── Desktop left: back button (when not root) + breadcrumb path + title ── */}
             <div className="hidden md:flex items-center gap-1 min-w-0 flex-1">
                 {!isRoot && (
                     <button
-                        onClick={() => router.back()}
+                        onClick={handleBack}
                         className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors shrink-0 mr-1"
                         aria-label="Go back"
                     >
@@ -85,14 +112,19 @@ export default function Header() {
                             ))}
                         </nav>
                     )}
-                    <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
-                        {pageTitle || 'Dashboard'}
-                    </p>
+                    {displayTitle && (
+                        <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
+                            {displayTitle}
+                        </p>
+                    )}
                 </div>
             </div>
 
-            {/* ── Desktop right: search + bell + user ── */}
+            {/* ── Desktop center-right: page actions + search ── */}
             <div className="hidden md:flex items-center gap-3">
+                {headerActions && (
+                    <div className="flex items-center gap-2 shrink-0">{headerActions}</div>
+                )}
                 <Input
                     placeholder="Search..."
                     startContent={<Search className="w-4 h-4 text-gray-400" />}

@@ -15,7 +15,7 @@ import {
     Clock,
     ChevronRight,
 } from 'lucide-react';
-import { PageHeader, StatsCard, Card, CardTitle, CardContent } from '@/components/ui';
+import { ListPageLayout, StatsCard, Card, CardTitle, CardContent } from '@/components/ui';
 import { useGetAppointmentsQuery, useGetUsersQuery, useGetDoctorsQuery } from '@/redux/services/api';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -78,19 +78,18 @@ export default function DashboardPage() {
         canViewAppointments || canViewUsers || canViewDoctors;
 
     return (
+        <ListPageLayout
+            title="Dashboard"
+            description="Welcome back! Here's an overview of your platform."
+            showDescription={true}
+            breadcrumbs={[{ label: 'Dashboard' }]}
+        >
         <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             className="space-y-4 md:space-y-6"
         >
-            <motion.div variants={itemVariants}>
-                <PageHeader
-                    title="Dashboard"
-                    description="Welcome back! Here's an overview of your platform."
-                />
-            </motion.div>
-
             {hasStats && (
                 <motion.div
                     variants={itemVariants}
@@ -225,6 +224,7 @@ export default function DashboardPage() {
                 )}
             </div>
         </motion.div>
+        </ListPageLayout>
     );
 }
 

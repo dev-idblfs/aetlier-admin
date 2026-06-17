@@ -32,7 +32,7 @@ import {
     Divider,
     Progress,
 } from '@heroui/react';
-import { PageHeader } from '@/components/ui';
+import { ListPageLayout } from '@/components/ui';
 import {
     useGetFinancialDashboardQuery,
     useGetRevenueReportQuery,
@@ -112,30 +112,33 @@ export default function ReportsPage() {
     };
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            <PageHeader
-                title="Financial Reports"
-                description="View and analyze your financial data"
-                actions={
-                    <div className="flex gap-2">
-                        <Button
-                            variant="flat"
-                            startContent={<Download className="w-4 h-4" />}
-                            onPress={() => handleExport('pdf')}
-                        >
-                            Export PDF
-                        </Button>
-                        <Button
-                            variant="flat"
-                            startContent={<Download className="w-4 h-4" />}
-                            onPress={() => handleExport('excel')}
-                        >
-                            Export Excel
-                        </Button>
-                    </div>
-                }
-            />
-
+        <ListPageLayout
+            title="Financial Reports"
+            breadcrumbs={[
+                { label: 'Finance', href: '/finance' },
+                { label: 'Reports' },
+            ]}
+            actions={
+                <div className="flex gap-2">
+                    <Button
+                        variant="flat"
+                        size="sm"
+                        startContent={<Download className="w-4 h-4" />}
+                        onPress={() => handleExport('pdf')}
+                    >
+                        Export PDF
+                    </Button>
+                    <Button
+                        variant="flat"
+                        size="sm"
+                        startContent={<Download className="w-4 h-4" />}
+                        onPress={() => handleExport('excel')}
+                    >
+                        Export Excel
+                    </Button>
+                </div>
+            }
+        >
             {/* Date Range Selector */}
             <Card>
                 <CardBody className="p-4">
@@ -190,7 +193,7 @@ export default function ReportsPage() {
                     <TaxSummaryTab data={taxSummary} isLoading={taxLoading} />
                 </Tab>
             </Tabs>
-        </div>
+        </ListPageLayout>
     );
 }
 

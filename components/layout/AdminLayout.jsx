@@ -28,6 +28,8 @@ export const SidebarContext = createContext({
     setPageTitle: () => { },
     breadcrumbs: [],
     setBreadcrumbs: () => { },
+    headerActions: null,
+    setHeaderActions: () => { },
 });
 
 export const useSidebar = () => useContext(SidebarContext);
@@ -53,6 +55,7 @@ export default function AdminLayout({ children }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [pageTitle, setPageTitle] = useState('');
     const [breadcrumbs, setBreadcrumbs] = useState([]);
+    const [headerActions, setHeaderActions] = useState(null);
 
     // Fetch user profile on mount
     useEffect(() => {
@@ -108,7 +111,7 @@ export default function AdminLayout({ children }) {
     }
 
     return (
-        <SidebarContext.Provider value={{ isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed, pageTitle, setPageTitle, breadcrumbs, setBreadcrumbs }}>
+        <SidebarContext.Provider value={{ isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed, pageTitle, setPageTitle, breadcrumbs, setBreadcrumbs, headerActions, setHeaderActions }}>
             <div className="min-h-screen bg-gray-50">
                 <Sidebar />
 
@@ -118,7 +121,7 @@ export default function AdminLayout({ children }) {
                     ${isCollapsed ? 'md:ml-[80px]' : 'md:ml-[280px]'}
                 `}>
                     <Header />
-                    <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
+                    <main className="flex-1 p-3 md:p-4 pb-24 md:pb-4">
                         <RoutePermissionGuard>{children}</RoutePermissionGuard>
                     </main>
                 </div>
