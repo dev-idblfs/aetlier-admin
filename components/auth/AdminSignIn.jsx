@@ -1,29 +1,32 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
-import { Input, Button } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { signIn } from '@/redux/slices/authSlice';
+import { Form, FormErrorSummary, FormInput, DEFAULT_FORM_OPTIONS } from '@/components/ui';
+import { loginSchema } from '@/lib/validation';
 
 export default function AdminSignIn({ onSuccess }) {
-  const [form, setForm] = useState({ email: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
   const { error } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  const methods = useForm({
+    ...DEFAULT_FORM_OPTIONS,
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.email || !form.password || submitting) return;
+  const onSubmit = async (values) => {
+    if (submitting) return;
 
     setSubmitting(true);
     try {
       const res = await dispatch(
-        signIn({ email: form.email, password: form.password })
+        signIn({ email: values.email, password: values.password })
       ).unwrap();
       await onSuccess?.(res);
     } catch {
@@ -34,35 +37,25 @@ export default function AdminSignIn({ onSuccess }) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
+    <Form methods={methods} onSubmit={onSubmit} className="space-y-4">
+      {(error || methods.formState.errors.root?.message) && (
+        <FormErrorSummary error={error || methods.formState.errors.root?.message} />
       )}
-      <Input
+      <FormInput
         name="email"
         label="Email"
         type="email"
-        variant="bordered"
-        value={form.email}
-        onChange={onChange}
-        required
         autoComplete="email"
       />
-      <Input
+      <FormInput
         name="password"
         label="Password"
         type="password"
-        variant="bordered"
-        value={form.password}
-        onChange={onChange}
-        required
         autoComplete="current-password"
       />
       <Button type="submit" color="primary" isLoading={submitting} className="w-full">
         Sign in
       </Button>
-    </form>
+    </Form>
   );
 }

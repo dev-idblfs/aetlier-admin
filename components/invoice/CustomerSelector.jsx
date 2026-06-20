@@ -23,6 +23,7 @@ import {
 import { Search, Plus, User, Mail, Phone, MapPin, Building2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { toast } from 'react-hot-toast';
+import { invoiceCustomerQuickSchema } from '@/lib/validation';
 
 export default function CustomerSelector({
     value = null,
@@ -50,6 +51,7 @@ export default function CustomerSelector({
     );
     const didSeedFromInitial = useRef(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [createFieldErrors, setCreateFieldErrors] = useState({});
     const [newCustomer, setNewCustomer] = useState({
         display_name: '',
         email: '',
@@ -155,43 +157,39 @@ export default function CustomerSelector({
     };
 
     const handleCreateCustomer = async () => {
-        // Validate
-        if (!newCustomer.display_name.trim()) {
-            toast.error('Customer name is required');
+        const parsed = invoiceCustomerQuickSchema.safeParse(newCustomer);
+        if (!parsed.success) {
+            const errors = {};
+            parsed.error.issues.forEach((issue) => {
+                const key = issue.path[0];
+                if (key && !errors[key]) errors[key] = issue.message;
+            });
+            setCreateFieldErrors(errors);
             return;
         }
+        setCreateFieldErrors({});
 
         try {
-            // Prepare data - remove empty strings for optional fields
+            const data = parsed.data;
             const customerData = {
-                display_name: newCustomer.display_name.trim(),
-                customer_type: newCustomer.customer_type,
+                display_name: data.display_name.trim(),
+                customer_type: data.customer_type,
             };
 
-            // Only include optional fields if they have values
-            if (newCustomer.email && newCustomer.email.trim()) {
-                customerData.email = newCustomer.email.trim();
+            if (data.email?.trim()) customerData.email = data.email.trim();
+            if (data.phone?.trim()) customerData.phone = data.phone.trim();
+            if (data.billing_address_line1?.trim()) {
+                customerData.billing_address_line1 = data.billing_address_line1.trim();
             }
-            if (newCustomer.phone && newCustomer.phone.trim()) {
-                customerData.phone = newCustomer.phone.trim();
+            if (data.billing_address_line2?.trim()) {
+                customerData.billing_address_line2 = data.billing_address_line2.trim();
             }
-            if (newCustomer.billing_address_line1 && newCustomer.billing_address_line1.trim()) {
-                customerData.billing_address_line1 = newCustomer.billing_address_line1.trim();
-            }
-            if (newCustomer.billing_address_line2 && newCustomer.billing_address_line2.trim()) {
-                customerData.billing_address_line2 = newCustomer.billing_address_line2.trim();
-            }
-            if (newCustomer.billing_city && newCustomer.billing_city.trim()) {
-                customerData.billing_city = newCustomer.billing_city.trim();
-            }
-            if (newCustomer.billing_state && newCustomer.billing_state.trim()) {
-                customerData.billing_state = newCustomer.billing_state.trim();
-            }
-            if (newCustomer.billing_pincode && newCustomer.billing_pincode.trim()) {
-                customerData.billing_pincode = newCustomer.billing_pincode.trim();
+            if (data.billing_city?.trim()) customerData.billing_city = data.billing_city.trim();
+            if (data.billing_state?.trim()) customerData.billing_state = data.billing_state.trim();
+            if (data.billing_pincode?.trim()) {
+                customerData.billing_pincode = data.billing_pincode.trim();
             }
 
-            console.log('Creating customer with data:', customerData);
             const created = await createCustomer(customerData);
             toast.success('Customer created successfully');
             const row = created?.id != null ? created : null;
@@ -208,6 +206,7 @@ export default function CustomerSelector({
             onChange?.(created);
             onCustomerSelect?.(created);
             setIsCreateModalOpen(false);
+            setCreateFieldErrors({});
             // Reset form
             setNewCustomer({
                 display_name: '',
@@ -290,7 +289,10 @@ export default function CustomerSelector({
                                 variant="flat"
                                 size={compact ? 'sm' : 'md'}
                                 startContent={<Plus className="w-4 h-4" />}
-                                onPress={() => setIsCreateModalOpen(true)}
+                                onPress={() => {
+                                    setCreateFieldErrors({});
+                                    setIsCreateModalOpen(true);
+                                }}
                                 className="shrink-0"
                             >
                                 New
@@ -387,11 +389,16 @@ export default function CustomerSelector({
                                 label={newCustomer.customer_type === 'business' ? 'Company Name' : 'Full Name'}
                                 placeholder="Enter name"
                                 value={newCustomer.display_name}
-                                onChange={(e) =>
-                                    setNewCustomer({ ...newCustomer, display_name: e.target.value })
-                                }
+                                onChange={(e) => {
+                                    setNewCustomer({ ...newCustomer, display_name: e.target.value });
+                                    if (createFieldErrors.display_name) {
+                                        setCreateFieldErrors((prev) => ({ ...prev, display_name: undefined }));
+                                    }
+                                }}
                                 startContent={<User className="w-4 h-4" />}
                                 isRequired
+                                isInvalid={!!createFieldErrors.display_name}
+                                errorMessage={createFieldErrors.display_name}
                             />
 
                             {/* Email */}
@@ -400,8 +407,15 @@ export default function CustomerSelector({
                                 label="Email"
                                 placeholder="customer@example.com"
                                 value={newCustomer.email}
-                                onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                                onChange={(e) => {
+                                    setNewCustomer({ ...newCustomer, email: e.target.value });
+                                    if (createFieldErrors.email) {
+                                        setCreateFieldErrors((prev) => ({ ...prev, email: undefined }));
+                                    }
+                                }}
                                 startContent={<Mail className="w-4 h-4" />}
+                                isInvalid={!!createFieldErrors.email}
+                                errorMessage={createFieldErrors.email}
                             />
 
                             {/* Phone */}
@@ -410,8 +424,15 @@ export default function CustomerSelector({
                                 label="Phone"
                                 placeholder="+91 XXXXX XXXXX"
                                 value={newCustomer.phone}
-                                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                                onChange={(e) => {
+                                    setNewCustomer({ ...newCustomer, phone: e.target.value });
+                                    if (createFieldErrors.phone) {
+                                        setCreateFieldErrors((prev) => ({ ...prev, phone: undefined }));
+                                    }
+                                }}
                                 startContent={<Phone className="w-4 h-4" />}
+                                isInvalid={!!createFieldErrors.phone}
+                                errorMessage={createFieldErrors.phone}
                             />
 
                             {/* Billing Address */}

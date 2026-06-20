@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { Save } from 'lucide-react';
 import { Button, SelectItem } from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { doctorSchema } from '@/lib/validation';
-import { Form } from '@/components/ui/Form';
+import { Form, DEFAULT_FORM_OPTIONS } from '@/components/ui/Form';
 import {
     FormInput,
     FormTextarea,
@@ -39,9 +38,8 @@ export default function DoctorForm({
     submitLabel = 'Save Doctor',
     emailReadOnly = false,
 }) {
-    const [qualificationInput, setQualificationInput] = useState('');
-
     const methods = useForm({
+        ...DEFAULT_FORM_OPTIONS,
         resolver: zodResolver(doctorSchema),
         defaultValues: {
             first_name: '',
@@ -59,19 +57,7 @@ export default function DoctorForm({
         },
     });
 
-    const { setValue, watch, formState: { isSubmitting } } = methods;
-    const qualifications = watch('qualifications') || [];
-
-    const handleAddQualification = () => {
-        if (qualificationInput.trim()) {
-            setValue('qualifications', [...qualifications, qualificationInput.trim()]);
-            setQualificationInput('');
-        }
-    };
-
-    const handleRemoveQualification = (index) => {
-        setValue('qualifications', qualifications.filter((_, i) => i !== index));
-    };
+    const { formState: { isSubmitting } } = methods;
 
     return (
         <Form methods={methods} onSubmit={onSubmit}>
@@ -140,13 +126,9 @@ export default function DoctorForm({
                         </FormSelect>
 
                         <FormTagInput
+                            name="qualifications"
                             label="Qualifications"
                             placeholder="Add qualification (e.g., MBBS, MD)"
-                            value={qualificationInput}
-                            onValueChange={setQualificationInput}
-                            tags={qualifications}
-                            onAdd={handleAddQualification}
-                            onRemove={handleRemoveQualification}
                         />
 
                         <FormInput

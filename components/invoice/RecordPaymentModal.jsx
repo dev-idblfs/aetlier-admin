@@ -13,9 +13,11 @@ import {
 } from '@heroui/react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { formatCurrency } from '@/utils/dateFormatters';
 import { cn } from '@/utils/cn';
+import { buildPaymentSchema } from '@/lib/validation';
+import { FormInput, FormTextarea } from '@/components/ui/FormFields';
+import { DEFAULT_FORM_OPTIONS } from '@/components/ui/Form';
 
 const PAYMENT_METHODS = [
     { value: 'CASH', label: 'Cash' },
@@ -27,22 +29,6 @@ const PAYMENT_METHODS = [
 ];
 
 const PAYMENT_METHOD_VALUES = PAYMENT_METHODS.map((m) => m.value);
-
-function buildPaymentSchema(maxAmount) {
-    return z.object({
-        amount: z.coerce
-            .number()
-            .min(0.01, 'Enter an amount greater than 0')
-            .max(
-                maxAmount,
-                `Amount cannot exceed ${formatCurrency(maxAmount)}`
-            ),
-        payment_method: z.enum(PAYMENT_METHOD_VALUES, {
-            errorMap: () => ({ message: 'Select a payment method' }),
-        }),
-        notes: z.string().optional(),
-    });
-}
 
 /**
  * Record payment against an invoice — self-contained modal with consistent layout.
@@ -59,7 +45,8 @@ export default function RecordPaymentModal({
     const schema = useMemo(() => buildPaymentSchema(maxAmount), [maxAmount]);
 
     const methods = useForm({
-        resolver: zodResolver(schema),
+        ...DEFAULT_FORM_OPTIONS,
+        resolver: zodResolver(buildPaymentSchema(maxAmount)),
         defaultValues: {
             amount: maxAmount,
             payment_method: 'CASH',

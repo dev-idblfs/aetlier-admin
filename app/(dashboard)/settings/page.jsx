@@ -32,7 +32,7 @@ import { useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { settingsSchema } from '@/lib/validation';
-import { Form } from '@/components/ui/Form';
+import { Form, DEFAULT_FORM_OPTIONS } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormSwitchRow, FormTextarea } from '@/components/ui/FormFields';
 import { ListPageLayout } from '@/components/ui';
 import {
@@ -59,6 +59,7 @@ export default function SettingsPage() {
     const isSaving = isSavingInvoice || isSavingPreferences;
 
     const methods = useForm({
+        ...DEFAULT_FORM_OPTIONS,
         resolver: zodResolver(settingsSchema),
         defaultValues: {
             clinicName: '',

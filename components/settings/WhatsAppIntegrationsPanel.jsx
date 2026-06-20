@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Button, Chip, Input, Switch, Spinner } from '@heroui/react';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, Chip, Switch, Spinner } from '@heroui/react';
 import { MessageCircle, Save, Zap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useSelector } from 'react-redux';
@@ -11,6 +13,9 @@ import {
   useTestWhatsAppIntegrationMutation,
 } from '@/redux/services/api';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import { whatsAppIntegrationSchema } from '@/lib/validation';
+import { Form, FormErrorSummary, FormInput, DEFAULT_FORM_OPTIONS } from '@/components/ui';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
 
 export default function WhatsAppIntegrationsPanel() {
   const user = useSelector((s) => s.auth.user);
@@ -25,18 +30,24 @@ export default function WhatsAppIntegrationsPanel() {
   const [testConnection, { isLoading: testing }] =
     useTestWhatsAppIntegrationMutation();
 
-  const [form, setForm] = useState({
-    whatsapp_enabled: false,
-    whatsapp_phone_number_id: '',
-    whatsapp_business_account_id: '',
-    whatsapp_access_token: '',
-    whatsapp_verify_token: '',
-    whatsapp_app_secret: '',
+  const methods = useForm({
+    ...DEFAULT_FORM_OPTIONS,
+    resolver: zodResolver(whatsAppIntegrationSchema),
+    defaultValues: {
+      whatsapp_enabled: false,
+      whatsapp_phone_number_id: '',
+      whatsapp_business_account_id: '',
+      whatsapp_access_token: '',
+      whatsapp_verify_token: '',
+      whatsapp_app_secret: '',
+    },
   });
+
+  const whatsappEnabled = methods.watch('whatsapp_enabled');
 
   useEffect(() => {
     if (data) {
-      setForm({
+      methods.reset({
         whatsapp_enabled: data.whatsapp_enabled ?? false,
         whatsapp_phone_number_id: data.whatsapp_phone_number_id || '',
         whatsapp_business_account_id: data.whatsapp_business_account_id || '',
@@ -45,7 +56,21 @@ export default function WhatsAppIntegrationsPanel() {
         whatsapp_app_secret: '',
       });
     }
-  }, [data]);
+  }, [data, methods]);
+
+  const { handleSubmit, isSubmitting } = useFormSubmit(methods, {
+    fallbackMessage: 'Failed to save WhatsApp settings',
+    onSubmit: async (values) => {
+      if (!canUpdate) return;
+      const payload = { ...values };
+      if (!payload.whatsapp_access_token) delete payload.whatsapp_access_token;
+      if (!payload.whatsapp_verify_token) delete payload.whatsapp_verify_token;
+      if (!payload.whatsapp_app_secret) delete payload.whatsapp_app_secret;
+      await updateIntegration(payload).unwrap();
+      await refetch();
+    },
+    onSuccess: () => toast.success('WhatsApp settings saved'),
+  });
 
   if (!canRead) {
     return (
@@ -63,21 +88,6 @@ export default function WhatsAppIntegrationsPanel() {
     );
   }
 
-  const handleSave = async () => {
-    if (!canUpdate) return;
-    try {
-      const payload = { ...form };
-      if (!payload.whatsapp_access_token) delete payload.whatsapp_access_token;
-      if (!payload.whatsapp_verify_token) delete payload.whatsapp_verify_token;
-      if (!payload.whatsapp_app_secret) delete payload.whatsapp_app_secret;
-      await updateIntegration(payload).unwrap();
-      await refetch();
-      toast.success('WhatsApp settings saved');
-    } catch (e) {
-      toast.error(e?.data?.detail || 'Failed to save WhatsApp settings');
-    }
-  };
-
   const handleTest = async () => {
     try {
       const res = await testConnection().unwrap();
@@ -89,7 +99,9 @@ export default function WhatsAppIntegrationsPanel() {
   };
 
   return (
-    <div className="space-y-6 pt-4 md:pt-6">
+    <Form methods={methods} onSubmit={handleSubmit} className="space-y-6 pt-4 md:pt-6">
+      <FormErrorSummary error={methods.formState.errors.root?.message} />
+
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
@@ -105,19 +117,14 @@ export default function WhatsAppIntegrationsPanel() {
               </p>
             </div>
           </div>
-          <Chip
-            color={form.whatsapp_enabled ? 'success' : 'default'}
-            variant="flat"
-          >
-            {form.whatsapp_enabled ? 'Active' : 'Disabled'}
+          <Chip color={whatsappEnabled ? 'success' : 'default'} variant="flat">
+            {whatsappEnabled ? 'Active' : 'Disabled'}
           </Chip>
         </div>
         <Switch
-          isSelected={form.whatsapp_enabled}
+          isSelected={whatsappEnabled}
           isDisabled={!canUpdate}
-          onValueChange={(v) =>
-            setForm((f) => ({ ...f, whatsapp_enabled: v }))
-          }
+          onValueChange={(v) => methods.setValue('whatsapp_enabled', v, { shouldValidate: true })}
         >
           WhatsApp notifications enabled
         </Switch>
@@ -131,69 +138,58 @@ export default function WhatsAppIntegrationsPanel() {
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Meta credentials</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
+          <FormInput
+            name="whatsapp_phone_number_id"
             label="Phone number ID"
-            value={form.whatsapp_phone_number_id}
             isDisabled={!canUpdate}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, whatsapp_phone_number_id: v }))
-            }
           />
-          <Input
+          <FormInput
+            name="whatsapp_business_account_id"
             label="Business account ID (WABA)"
-            value={form.whatsapp_business_account_id}
             isDisabled={!canUpdate}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, whatsapp_business_account_id: v }))
-            }
           />
-          <Input
+          <FormInput
+            name="whatsapp_access_token"
             label="Access token"
             type="password"
             placeholder={data?.has_access_token ? data.whatsapp_access_token : 'Enter token'}
             isDisabled={!canUpdate}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, whatsapp_access_token: v }))
-            }
           />
-          <Input
+          <FormInput
+            name="whatsapp_verify_token"
             label="Verify token"
             type="password"
             placeholder={data?.whatsapp_verify_token || 'Webhook verify token'}
             isDisabled={!canUpdate}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, whatsapp_verify_token: v }))
-            }
           />
-          <Input
+          <FormInput
+            name="whatsapp_app_secret"
             label="App secret"
             type="password"
             placeholder={data?.whatsapp_app_secret || 'Optional app secret'}
             isDisabled={!canUpdate}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, whatsapp_app_secret: v }))
-            }
           />
         </div>
         <div className="flex flex-wrap gap-3">
           <Button
+            type="submit"
             color="primary"
             startContent={<Save className="w-4 h-4" />}
-            isLoading={saving}
+            isLoading={saving || isSubmitting}
             isDisabled={!canUpdate}
-            onPress={handleSave}
           >
             Save integration
           </Button>
           <Button
+            type="button"
             variant="bordered"
             startContent={<Zap className="w-4 h-4" />}
             isLoading={testing}
             isDisabled={
               !canUpdate ||
-              !form.whatsapp_enabled ||
+              !whatsappEnabled ||
               !data?.has_access_token ||
-              !form.whatsapp_phone_number_id
+              !methods.getValues('whatsapp_phone_number_id')
             }
             onPress={handleTest}
           >
@@ -201,6 +197,6 @@ export default function WhatsAppIntegrationsPanel() {
           </Button>
         </div>
       </div>
-    </div>
+    </Form>
   );
 }

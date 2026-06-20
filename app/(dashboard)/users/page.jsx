@@ -54,8 +54,6 @@ import {
 import {
     useGetUsersQuery,
     useGetRolesQuery,
-    useCreateUserMutation,
-    useUpdateUserMutation,
     useDeleteUserMutation,
     useAssignUserRoleMutation,
     useRevokeUserRoleMutation,
@@ -159,38 +157,6 @@ export default function UsersPage() {
     const handleDeleteClick = (user) => {
         setSelectedUser(user);
         onDeleteOpen();
-    };
-
-    const handleFormSubmit = async () => {
-        if (!formData.name?.trim() || !formData.email?.trim()) {
-            toast.error('Name and email are required');
-            return;
-        }
-
-        try {
-            if (formMode === 'create') {
-                await createUser({
-                    email: formData.email,
-                    name: formData.name,
-                    phone: formData.phone || undefined,
-                    password: formData.password || undefined,
-                    is_active: formData.is_active,
-                }).unwrap();
-                toast.success('User created successfully');
-            } else {
-                await updateUser({
-                    id: selectedUser.id,
-                    name: formData.name,
-                    phone: formData.phone || undefined,
-                    is_active: formData.is_active,
-                }).unwrap();
-                toast.success('User updated successfully');
-            }
-            onFormClose();
-            refetch();
-        } catch (error) {
-            toast.error(error.data?.detail || `Failed to ${formMode} user`);
-        }
     };
 
     const handleDeleteConfirm = async () => {

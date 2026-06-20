@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { invoiceSchema } from '@/lib/validation';
-import { Form } from '@/components/ui/Form';
+import { Form, FormErrorSummary } from '@/components/ui/Form';
 import {
     useGetInvoiceQuery,
     useUpdateInvoiceMutation,
@@ -80,28 +80,10 @@ export default function EditInvoicePage({ params }) {
         },
     });
 
-    const { control, watch, setValue, handleSubmit, reset } = methods;
+    const { control, watch, setValue, handleSubmit, reset, setError, clearErrors } = methods;
 
-    const onInvalid = (errors) => {
-        const findMessage = (err) => {
-            if (!err) return null;
-            if (typeof err.message === 'string' && err.message) return err.message;
-            if (err.root?.message) return err.root.message;
-            if (Array.isArray(err)) {
-                for (const item of err) {
-                    const nested = findMessage(item);
-                    if (nested) return nested;
-                }
-            }
-            if (typeof err === 'object') {
-                for (const key of Object.keys(err)) {
-                    const nested = findMessage(err[key]);
-                    if (nested) return nested;
-                }
-            }
-            return null;
-        };
-        toast.error(findMessage(errors) || 'Please fix form errors before saving');
+    const onInvalid = () => {
+        // Field errors render inline via RHF + FormFields
     };
 
     const lineItems = watch('line_items');
@@ -243,20 +225,13 @@ export default function EditInvoicePage({ params }) {
 
     // Submit handler
     const onSubmit = async (data, asDraft = false) => {
-        // Validation handled by zodResolver mostly
-        if (!data.customer_name) {
-            toast.error('Customer name is required');
-            return;
-        }
+        clearErrors('root');
 
-        if (lineItems.some(item => !item.description || item.quantity <= 0)) {
-            toast.error('All line items must have a description and quantity');
-            return;
-        }
-
-        // Check if invoice can be edited
         if (invoice && invoice.status === 'PAID') {
-            toast.error('Cannot edit a paid invoice');
+            setError('root', {
+                type: 'manual',
+                message: 'Cannot edit a paid invoice',
+            });
             return;
         }
 
@@ -387,6 +362,8 @@ export default function EditInvoicePage({ params }) {
             actions={actions}
         >
             <Form methods={methods} onSubmit={(data) => onSubmit(data, false)} className="contents">
+                <FormErrorSummary error={methods.formState.errors.root?.message} className="mb-3" />
+
                 {/* Warning for invoices with payments */}
                 {invoice.amount_paid > 0 && (
                     <InvoiceAlert

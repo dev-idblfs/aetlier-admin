@@ -224,6 +224,7 @@ export default function NavigationManagementPage() {
         is_active: true,
     });
     const [selectedPermissions, setSelectedPermissions] = useState([]);
+    const [labelError, setLabelError] = useState('');
 
     // Get flat list of parent items for parent selection
     const parentOptions = useMemo(() => {
@@ -267,13 +268,15 @@ export default function NavigationManagementPage() {
             is_active: true,
         });
         setSelectedItem(null);
+        setLabelError('');
     };
 
     const handleCreate = async () => {
-        if (!formData.label) {
-            toast.error('Label is required');
+        if (!formData.label?.trim()) {
+            setLabelError('Label is required');
             return;
         }
+        setLabelError('');
 
         try {
             await createNavItem({
@@ -311,10 +314,11 @@ export default function NavigationManagementPage() {
     };
 
     const handleUpdate = async () => {
-        if (!selectedItem || !formData.label) {
-            toast.error('Label is required');
+        if (!selectedItem || !formData.label?.trim()) {
+            setLabelError('Label is required');
             return;
         }
+        setLabelError('');
 
         try {
             await updateNavItem({
@@ -389,8 +393,13 @@ export default function NavigationManagementPage() {
                 label="Label"
                 placeholder="e.g., Dashboard"
                 value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                onChange={(e) => {
+                    setFormData({ ...formData, label: e.target.value });
+                    if (labelError) setLabelError('');
+                }}
                 isRequired
+                isInvalid={!!labelError}
+                errorMessage={labelError}
             />
             <Input
                 label="URL Path"

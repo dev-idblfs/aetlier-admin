@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerSchema } from '@/lib/validation';
-import { Form } from '@/components/ui/Form';
+import { Form, DEFAULT_FORM_OPTIONS } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormTextarea, FormRow, FormDivider } from '@/components/ui/FormFields';
 import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
 import { useCreateCustomerMutation } from '@/redux/services/api';
@@ -29,6 +29,7 @@ export default function NewCustomerPage() {
     const [createCustomer, { isLoading }] = useCreateCustomerMutation();
 
     const methods = useForm({
+        ...DEFAULT_FORM_OPTIONS,
         resolver: zodResolver(customerSchema),
         defaultValues: {
             first_name: '',

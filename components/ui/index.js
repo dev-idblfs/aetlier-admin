@@ -41,7 +41,10 @@ export {
   FormSwitchRow,
   FormDivider,
   FormTagInput,
+  FormDatePicker,
+  FormFileUploadField,
 } from "./FormFields";
+export { Form, FormErrorSummary, DEFAULT_FORM_OPTIONS } from "./Form";
 export { default as FormFileUpload } from "./FormFileUpload";
 export { default as FormRepeater } from "./FormRepeater";
 export { default as ServiceThumbnail } from "./ServiceThumbnail";

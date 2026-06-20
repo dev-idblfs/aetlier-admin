@@ -76,6 +76,7 @@ export default function EditExpensePage({ params }) {
     const [receiptFile, setReceiptFile] = useState(null);
     const [receiptPreview, setReceiptPreview] = useState(null);
     const [existingReceipt, setExistingReceipt] = useState(null);
+    const [receiptFileError, setReceiptFileError] = useState('');
 
     // Initialize form with expense data
     useEffect(() => {
@@ -104,9 +105,10 @@ export default function EditExpensePage({ params }) {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
-                toast.error('File size must be less than 5MB');
+                setReceiptFileError('File size must be less than 5MB');
                 return;
             }
+            setReceiptFileError('');
             setReceiptFile(file);
 
             // Create preview for images
@@ -125,6 +127,7 @@ export default function EditExpensePage({ params }) {
     const removeReceipt = () => {
         setReceiptFile(null);
         setReceiptPreview(null);
+        setReceiptFileError('');
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -251,6 +254,11 @@ export default function EditExpensePage({ params }) {
                     <FormDivider />
 
                     <FormSectionCard embedded title="Receipt">
+                        {receiptFileError && (
+                            <p className="text-sm text-red-600 mb-2" role="alert">
+                                {receiptFileError}
+                            </p>
+                        )}
                         {existingReceipt && !receiptFile && (
                             <div className="space-y-2 mb-3">
                                 <p className="text-xs text-gray-600">Current Receipt:</p>

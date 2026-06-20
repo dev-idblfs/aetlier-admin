@@ -1,21 +1,13 @@
-/**
- * Permissions Management Page
- * View and manage system permissions
- */
-
 'use client';
 
-// Force dynamic rendering - no SSR/static optimization needed for admin
-export const dynamic = 'force-dynamic';
-
 import { useState } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
     Card,
     CardBody,
     CardHeader,
     Button,
-    Input,
-    Textarea,
     useDisclosure,
     Spinner,
     Chip,
@@ -33,42 +25,51 @@ import {
     useGetPermissionsQuery,
     useCreatePermissionMutation,
 } from '@/redux/services/api';
-import { ListPageLayout, SearchInput, EmptyState, FormModal } from '@/components/ui';
+import {
+    ListPageLayout,
+    SearchInput,
+    EmptyState,
+    FormModal,
+    FormInput,
+    FormTextarea,
+    DEFAULT_FORM_OPTIONS,
+} from '@/components/ui';
+import { permissionCreateSchema } from '@/lib/validation';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
 
 export default function PermissionsPage() {
     const { data: permissions = [], isLoading, error } = useGetPermissionsQuery();
     const [createPermission, { isLoading: isCreating }] = useCreatePermissionMutation();
 
     const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
-    const [formData, setFormData] = useState({ name: '', description: '' });
     const [searchQuery, setSearchQuery] = useState('');
 
+    const methods = useForm({
+        ...DEFAULT_FORM_OPTIONS,
+        resolver: zodResolver(permissionCreateSchema),
+        defaultValues: { name: '', description: '' },
+    });
+
     const handleCreate = () => {
-        setFormData({ name: '', description: '' });
+        methods.reset({ name: '', description: '' });
         onOpen();
     };
 
-    const handleSubmit = async () => {
-        if (!formData.name.trim()) {
-            toast.error('Permission name is required');
-            return;
-        }
-
-        // Validate format
-        const formatRegex = /^[a-z]+\.[a-z]+(\.[a-z]+)?$/;
-        if (!formatRegex.test(formData.name)) {
-            toast.error('Permission must be in format: resource.action or resource.action.scope');
-            return;
-        }
-
-        try {
-            await createPermission(formData).unwrap();
+    const { handleSubmit: submitHandler, isSubmitting } = useFormSubmit(methods, {
+        fallbackMessage: 'Failed to create permission',
+        onSubmit: async (data) => {
+            await createPermission({
+                name: data.name.toLowerCase(),
+                description: data.description || undefined,
+            }).unwrap();
+        },
+        onSuccess: () => {
             toast.success('Permission created successfully');
             onClose();
-        } catch (err) {
-            toast.error(err.data?.detail || 'Failed to create permission');
-        }
-    };
+        },
+    });
+
+    const onSubmit = methods.handleSubmit(submitHandler);
 
     if (isLoading) {
         return (
@@ -88,7 +89,6 @@ export default function PermissionsPage() {
         );
     }
 
-    // Group permissions by resource
     const groupedPermissions = permissions.reduce((acc, perm) => {
         const [resource] = perm.name.split('.');
         if (!acc[resource]) acc[resource] = [];
@@ -96,7 +96,6 @@ export default function PermissionsPage() {
         return acc;
     }, {});
 
-    // Filter by search query
     const filteredGroups = Object.entries(groupedPermissions).reduce((acc, [resource, perms]) => {
         if (!searchQuery) {
             acc[resource] = perms;
@@ -114,21 +113,18 @@ export default function PermissionsPage() {
         return acc;
     }, {});
 
-    // Get action color
     const getActionColor = (permName) => {
         if (permName.includes('.create')) return 'success';
         if (permName.includes('.read')) return 'primary';
         if (permName.includes('.update')) return 'warning';
         if (permName.includes('.delete')) return 'danger';
-        if (permName.includes('.manage')) return 'secondary';
         return 'default';
     };
 
-    // Get scope badge
     const getScopeBadge = (permName) => {
-        if (permName.includes('.any')) return { text: 'any', color: 'danger' };
-        if (permName.includes('.own')) return { text: 'own', color: 'primary' };
-        if (permName.includes('.assigned')) return { text: 'assigned', color: 'warning' };
+        if (permName.endsWith('.own')) return { text: 'own', color: 'secondary' };
+        if (permName.endsWith('.any')) return { text: 'any', color: 'primary' };
+        if (permName.endsWith('.assigned')) return { text: 'assigned', color: 'warning' };
         return null;
     };
 
@@ -136,17 +132,16 @@ export default function PermissionsPage() {
         <ListPageLayout
             title="Permissions"
             breadcrumbs={[{ label: 'Permissions' }]}
-            actions={
+            actions={(
                 <Button
                     color="primary"
                     size="sm"
                     startContent={<Plus className="w-4 h-4" />}
                     onPress={handleCreate}
-                    className="w-full sm:w-auto"
                 >
-                    <span className="sm:inline">Create Permission</span>
+                    Add Permission
                 </Button>
-            }
+            )}
             toolbar={(
                 <SearchInput
                     value={searchQuery}
@@ -155,47 +150,9 @@ export default function PermissionsPage() {
                 />
             )}
         >
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 md:gap-4">
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    <Card>
-                        <CardBody className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-4">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
-                                <Key className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
-                            </div>
-                            <div className="text-center sm:text-left">
-                                <p className="text-xl sm:text-2xl font-bold">{permissions.length}</p>
-                                <p className="text-xs sm:text-sm text-gray-500">Total Permissions</p>
-                            </div>
-                        </CardBody>
-                    </Card>
-                </motion.div>
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                >
-                    <Card>
-                        <CardBody className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-4">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-secondary-100 flex items-center justify-center shrink-0">
-                                <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-secondary-600" />
-                            </div>
-                            <div className="text-center sm:text-left">
-                                <p className="text-xl sm:text-2xl font-bold">{Object.keys(groupedPermissions).length}</p>
-                                <p className="text-xs sm:text-sm text-gray-500">Resource Types</p>
-                            </div>
-                        </CardBody>
-                    </Card>
-                </motion.div>
-            </div>
-
-            {/* Permissions by Resource */}
-            <div className="space-y-3 md:space-y-4">
+            <div className="space-y-4">
                 {Object.entries(filteredGroups).map(([resource, perms], index) => (
-                    <PermissionResourceCard
+                    <PermissionGroup
                         key={resource}
                         resource={resource}
                         permissions={perms}
@@ -214,7 +171,6 @@ export default function PermissionsPage() {
                 />
             )}
 
-            {/* Create Permission Modal */}
             <FormModal
                 isOpen={isOpen}
                 onOpenChange={onOpenChange}
@@ -222,65 +178,61 @@ export default function PermissionsPage() {
                 onSubmit={handleSubmit}
                 title="Create Permission"
                 submitLabel="Create"
-                isLoading={isCreating}
+                isLoading={isCreating || isSubmitting}
             >
-                <div className="space-y-4">
-                    <Input
-                        label="Permission Name"
-                        labelPlacement="outside"
-                        placeholder="e.g., appointment.create.any"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value.toLowerCase() }))}
-                        description="Format: resource.action.scope (e.g., appointment.read.own)"
-                    />
-                    <Textarea
-                        label="Description"
-                        labelPlacement="outside"
-                        placeholder="Describe what this permission allows..."
-                        value={formData.description}
-                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    />
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Permission Format Guide:</p>
-                        <ul className="text-xs text-gray-500 space-y-1">
-                            <li><strong>resource:</strong> appointment, user, doctor, service, etc.</li>
-                            <li><strong>action:</strong> create, read, update, delete, manage</li>
-                            <li><strong>scope:</strong> own (own records), any (all records), assigned (assigned records)</li>
-                        </ul>
+                <FormProvider {...methods}>
+                    <div className="space-y-4">
+                        <FormInput
+                            name="name"
+                            label="Permission Name"
+                            placeholder="e.g., appointment.create.any"
+                            description="Format: resource.action.scope (e.g., appointment.read.own)"
+                        />
+                        <FormTextarea
+                            name="description"
+                            label="Description"
+                            placeholder="Describe what this permission allows..."
+                            minRows={2}
+                        />
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Permission Format Guide:</p>
+                            <ul className="text-xs text-gray-500 space-y-1">
+                                <li><strong>resource:</strong> appointment, user, doctor, service, etc.</li>
+                                <li><strong>action:</strong> create, read, update, delete, manage</li>
+                                <li><strong>scope:</strong> own (own records), any (all records), assigned (assigned records)</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
+                </FormProvider>
             </FormModal>
         </ListPageLayout>
     );
 }
 
-// Collapsible Permission Resource Card Component
-function PermissionResourceCard({ resource, permissions, getActionColor, getScopeBadge, index }) {
+function PermissionGroup({ resource, permissions, getActionColor, getScopeBadge, index }) {
     const [isExpanded, setIsExpanded] = useState(true);
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
         >
-            <Card>
-                <CardHeader
-                    className="pb-2 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                >
-                    <div className="flex items-center justify-between w-full">
-                        <h3 className="text-base md:text-lg font-semibold capitalize flex items-center gap-2">
-                            <Key className="w-4 h-4 md:w-5 md:h-5 text-primary-500" />
-                            {resource}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            <Chip size="sm" variant="flat">{permissions.length}</Chip>
-                            <Button size="sm" variant="light" isIconOnly>
-                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </Button>
-                        </div>
+            <Card className="border border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+                    <div className="flex items-center gap-2">
+                        <Key className="w-5 h-5 text-primary-600" />
+                        <h3 className="text-lg font-semibold capitalize">{resource}</h3>
+                        <Chip size="sm" variant="flat">{permissions.length}</Chip>
                     </div>
+                    <Button
+                        isIconOnly
+                        variant="light"
+                        size="sm"
+                        onPress={() => setIsExpanded(!isExpanded)}
+                    >
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
                 </CardHeader>
                 <AnimatePresence>
                     {isExpanded && (

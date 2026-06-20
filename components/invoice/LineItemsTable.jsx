@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useMemo, useCallback, memo } from 'react';
+import { useMemo, useCallback, memo, useState } from 'react';
 import {
     Table,
     TableHeader,
@@ -20,7 +20,6 @@ import {
 } from '@heroui/react';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { calculateLineItemTotal, calculateLineItemTax } from '@/utils/invoice/calculations';
-import { toast } from 'react-hot-toast';
 
 function resolveServiceDisplayName(item, services = []) {
     if (item.service_name) return item.service_name;
@@ -40,7 +39,10 @@ function LineItemsTable({
     showTax = true,
     compact = false,
 }) {
+    const [tableError, setTableError] = useState('');
+
     const handleAddItem = useCallback(() => {
+        setTableError('');
         const newItem = {
             id: Date.now(),
             service_id: null,
@@ -54,9 +56,10 @@ function LineItemsTable({
 
     const handleRemoveItem = useCallback((index) => {
         if (items.length === 1) {
-            toast.error('At least one line item is required');
+            setTableError('At least one line item is required');
             return;
         }
+        setTableError('');
         onChange(items.filter((_, i) => i !== index));
     }, [items, onChange]);
 
@@ -435,15 +438,22 @@ function LineItemsTable({
 
             {/* Add Item Button */}
             {!readonly && (
-                <Button
-                    color="primary"
-                    variant="flat"
-                    startContent={<Plus className="w-4 h-4" />}
-                    onPress={handleAddItem}
-                    fullWidth
-                >
-                    Add Line Item
-                </Button>
+                <div className="space-y-2">
+                    {tableError && (
+                        <p className="text-sm text-red-600" role="alert">
+                            {tableError}
+                        </p>
+                    )}
+                    <Button
+                        color="primary"
+                        variant="flat"
+                        startContent={<Plus className="w-4 h-4" />}
+                        onPress={handleAddItem}
+                        fullWidth
+                    >
+                        Add Line Item
+                    </Button>
+                </div>
             )}
         </div>
     );

@@ -7,20 +7,28 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
     Button,
-    Input,
-    Textarea,
-    Select,
     SelectItem,
     Chip,
     Spinner,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { Save, Mail, Phone, User } from 'lucide-react';
-import { ListPageLayout } from '@/components/ui';
+import {
+    ListPageLayout,
+    Form,
+    FormErrorSummary,
+    FormInput,
+    FormTextarea,
+    FormSelect,
+    DEFAULT_FORM_OPTIONS,
+} from '@/components/ui';
+import { leadUpdateSchema } from '@/lib/validation';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
 import {
     useGetLeadQuery,
     useUpdateLeadMutation,
@@ -157,32 +165,32 @@ export default function LeadDetailPage() {
 function LeadForm({ lead, canWrite }) {
     const [updateLead, { isLoading: isSaving }] = useUpdateLeadMutation();
 
-    const [form, setForm] = useState({
-        status: lead.status || 'NEW',
-        interest: lead.interest || '',
-        notes: lead.notes || '',
-        scheduled_call_at: lead.scheduled_call_at
-            ? lead.scheduled_call_at.slice(0, 16)
-            : '',
+    const methods = useForm({
+        ...DEFAULT_FORM_OPTIONS,
+        resolver: zodResolver(leadUpdateSchema),
+        defaultValues: {
+            status: lead.status || 'NEW',
+            interest: lead.interest || '',
+            notes: lead.notes || '',
+            scheduled_call_at: lead.scheduled_call_at
+                ? lead.scheduled_call_at.slice(0, 16)
+                : '',
+        },
     });
 
-    const handleChange = (field) => (e) =>
-        setForm((prev) => ({ ...prev, [field]: e.target.value }));
-
-    const handleSave = async () => {
-        try {
+    const { handleSubmit, isSubmitting } = useFormSubmit(methods, {
+        fallbackMessage: 'Failed to update lead',
+        onSubmit: async (values) => {
             await updateLead({
                 id: lead.id,
-                status: form.status,
-                interest: form.interest || undefined,
-                notes: form.notes || undefined,
-                scheduled_call_at: form.scheduled_call_at || undefined,
+                status: values.status,
+                interest: values.interest || undefined,
+                notes: values.notes || undefined,
+                scheduled_call_at: values.scheduled_call_at || undefined,
             }).unwrap();
-            toast.success('Lead updated');
-        } catch {
-            toast.error('Failed to update lead');
-        }
-    };
+        },
+        onSuccess: () => toast.success('Lead updated'),
+    });
 
     return (
         <section className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
@@ -190,60 +198,57 @@ function LeadForm({ lead, canWrite }) {
                 Lead Details
             </h2>
 
-            <Select
-                label="Status"
-                selectedKeys={[form.status]}
-                onSelectionChange={(keys) =>
-                    setForm((p) => ({ ...p, status: [...keys][0] || p.status }))
-                }
-                isDisabled={!canWrite}
-                variant="bordered"
-            >
-                {LEAD_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                        {s}
-                    </SelectItem>
-                ))}
-            </Select>
+            <Form methods={methods} onSubmit={handleSubmit}>
+                <FormErrorSummary error={methods.formState.errors.root?.message} />
 
-            <Input
-                label="Interest / Service"
-                placeholder="e.g. Skin care, Hair removal..."
-                value={form.interest}
-                onChange={handleChange('interest')}
-                isDisabled={!canWrite}
-                variant="bordered"
-            />
+                <div className="space-y-4">
+                    <FormSelect
+                        name="status"
+                        label="Status"
+                        isDisabled={!canWrite}
+                    >
+                        {LEAD_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                                {s}
+                            </SelectItem>
+                        ))}
+                    </FormSelect>
 
-            <Input
-                label="Schedule Call At"
-                type="datetime-local"
-                value={form.scheduled_call_at}
-                onChange={handleChange('scheduled_call_at')}
-                isDisabled={!canWrite}
-                variant="bordered"
-            />
+                    <FormInput
+                        name="interest"
+                        label="Interest / Service"
+                        placeholder="e.g. Skin care, Hair removal..."
+                        isDisabled={!canWrite}
+                    />
 
-            <Textarea
-                label="Message / Notes"
-                placeholder="User message and internal notes about this lead..."
-                value={form.notes}
-                onChange={handleChange('notes')}
-                isDisabled={!canWrite}
-                minRows={3}
-                variant="bordered"
-            />
+                    <FormInput
+                        name="scheduled_call_at"
+                        label="Schedule Call At"
+                        type="datetime-local"
+                        isDisabled={!canWrite}
+                    />
 
-            {canWrite && (
-                <Button
-                    color="primary"
-                    startContent={<Save className="w-4 h-4" />}
-                    onPress={handleSave}
-                    isLoading={isSaving}
-                >
-                    Save Changes
-                </Button>
-            )}
+                    <FormTextarea
+                        name="notes"
+                        label="Message / Notes"
+                        placeholder="User message and internal notes about this lead..."
+                        isDisabled={!canWrite}
+                        minRows={3}
+                    />
+                </div>
+
+                {canWrite && (
+                    <Button
+                        type="submit"
+                        color="primary"
+                        startContent={<Save className="w-4 h-4" />}
+                        isLoading={isSubmitting || isSaving}
+                        className="mt-4"
+                    >
+                        Save Changes
+                    </Button>
+                )}
+            </Form>
         </section>
     );
 }

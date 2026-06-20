@@ -49,6 +49,7 @@ import {
     useDeleteCustomerMutation,
 } from '@/redux/services/api';
 import { formatDate } from '@/utils/dateFormatters';
+import { customerListModalSchema } from '@/lib/validation';
 
 const customerTypeOptions = [
     { value: '', label: 'All Types' },
@@ -97,6 +98,7 @@ export default function CustomersPage() {
     const [createCustomer, { isLoading: isCreating }] = useCreateCustomerMutation();
     const [updateCustomer, { isLoading: isUpdating }] = useUpdateCustomerMutation();
     const [deleteCustomer, { isLoading: isDeleting }] = useDeleteCustomerMutation();
+    const [formErrors, setFormErrors] = useState({});
 
     const customers = data?.items || [];
     const totalPages = data?.total_pages || 1;
@@ -120,16 +122,19 @@ export default function CustomersPage() {
             currency: 'INR',
             notes: '',
         });
+        setFormErrors({});
     };
 
     const handleAddCustomer = () => {
         setFormMode('create');
         resetForm();
+        setFormErrors({});
         onFormOpen();
     };
 
     const handleEditCustomer = (customer) => {
         setFormMode('edit');
+        setFormErrors({});
         setSelectedCustomer(customer);
         setFormData({
             customer_type: customer.customer_type || 'individual',
@@ -163,10 +168,20 @@ export default function CustomersPage() {
     };
 
     const handleFormSubmit = async () => {
-        if (!formData.display_name?.trim()) {
-            toast.error('Display name is required');
+        const parsed = customerListModalSchema.safeParse({
+            display_name: formData.display_name,
+            email: formData.email || '',
+        });
+        if (!parsed.success) {
+            const errors = {};
+            parsed.error.issues.forEach((issue) => {
+                const key = issue.path[0];
+                if (key && !errors[key]) errors[key] = issue.message;
+            });
+            setFormErrors(errors);
             return;
         }
+        setFormErrors({});
 
         try {
             // Helper to sanitize empty strings to null
@@ -445,8 +460,15 @@ export default function CustomersPage() {
                         labelPlacement="outside"
                         placeholder="Name to display on invoices"
                         value={formData.display_name}
-                        onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                        onChange={(e) => {
+                            setFormData({ ...formData, display_name: e.target.value });
+                            if (formErrors.display_name) {
+                                setFormErrors((prev) => ({ ...prev, display_name: undefined }));
+                            }
+                        }}
                         isRequired
+                        isInvalid={!!formErrors.display_name}
+                        errorMessage={formErrors.display_name}
                         description="This name will appear on invoices and documents"
                     />
 
@@ -457,7 +479,14 @@ export default function CustomersPage() {
                             labelPlacement="outside"
                             type="email"
                             value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            onChange={(e) => {
+                                setFormData({ ...formData, email: e.target.value });
+                                if (formErrors.email) {
+                                    setFormErrors((prev) => ({ ...prev, email: undefined }));
+                                }
+                            }}
+                            isInvalid={!!formErrors.email}
+                            errorMessage={formErrors.email}
                             startContent={<Mail className="w-4 h-4 text-gray-400" />}
                         />
                         <Input

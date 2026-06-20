@@ -1,13 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Save } from 'lucide-react';
-import { Button, Input, Textarea, Checkbox, CheckboxGroup, Spinner } from '@heroui/react';
+import { Button, Checkbox, CheckboxGroup, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { useGetRolesQuery, useUpdateRoleMutation, useGetPermissionsQuery } from '@/redux/services/api';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { roleSchema } from '@/lib/validation';
+import {
+    Form,
+    FormErrorSummary,
+    FormInput,
+    FormTextarea,
+    FormDivider,
+    DEFAULT_FORM_OPTIONS,
+} from '@/components/ui';
 import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
-import { FormDivider } from '@/components/ui/FormFields';
+import { useGetRolesQuery, useUpdateRoleMutation, useGetPermissionsQuery } from '@/redux/services/api';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
+import { z } from 'zod';
+
+const roleEditSchema = roleSchema.extend({
+    permissions: z.array(z.string()).default([]),
+});
 
 export default function EditRolePage() {
     const router = useRouter();
@@ -19,51 +35,48 @@ export default function EditRolePage() {
     const [updateRole, { isLoading: isUpdating }] = useUpdateRoleMutation();
 
     const roles = rolesData?.roles || rolesData || [];
-    const role = roles.find(r => r.id === parseInt(roleId));
+    const role = roles.find((r) => r.id === parseInt(roleId));
     const permissions = permissionsData?.permissions || permissionsData || [];
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        permissions: [],
+    const methods = useForm({
+        ...DEFAULT_FORM_OPTIONS,
+        resolver: zodResolver(roleEditSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+            grants_admin_portal: false,
+            prefer_admin_redirect_on_login: false,
+            permissions: [],
+        },
     });
 
     useEffect(() => {
         if (role) {
-            setFormData({
+            methods.reset({
                 name: role.name || '',
                 description: role.description || '',
-                permissions: (role.permissions || []).map(p => p.id.toString()),
+                grants_admin_portal: role.grants_admin_portal || false,
+                prefer_admin_redirect_on_login: role.prefer_admin_redirect_on_login || false,
+                permissions: (role.permissions || []).map((p) => p.id.toString()),
             });
         }
-    }, [role]);
+    }, [role, methods]);
 
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (!formData.name) {
-            toast.error('Please enter role name');
-            return;
-        }
-
-        try {
+    const { handleSubmit, isSubmitting } = useFormSubmit(methods, {
+        fallbackMessage: 'Failed to update role',
+        onSubmit: async (data) => {
             await updateRole({
                 id: roleId,
-                name: formData.name,
-                description: formData.description,
-                permission_ids: formData.permissions.map(id => parseInt(id)),
+                name: data.name,
+                description: data.description,
+                permission_ids: data.permissions.map((id) => parseInt(id, 10)),
             }).unwrap();
-
+        },
+        onSuccess: () => {
             toast.success('Role updated successfully');
             router.push('/roles');
-        } catch (error) {
-            toast.error(error?.data?.detail || 'Failed to update role');
-        }
-    };
+        },
+    });
 
     if (isLoadingRole) {
         return (
@@ -91,15 +104,15 @@ export default function EditRolePage() {
             ]}
             cancelHref="/roles"
         >
-            <form onSubmit={handleSubmit}>
+            <Form methods={methods} onSubmit={handleSubmit}>
                 <FormCompactCard
                     footer={(
                         <FormActions inline>
                             <Button
                                 color="primary"
                                 type="submit"
-                                isLoading={isUpdating}
-                                startContent={!isUpdating && <Save className="w-4 h-4" />}
+                                isLoading={isSubmitting || isUpdating}
+                                startContent={!isSubmitting && !isUpdating && <Save className="w-4 h-4" />}
                                 className="w-full sm:w-auto"
                             >
                                 Save Changes
@@ -107,29 +120,21 @@ export default function EditRolePage() {
                         </FormActions>
                     )}
                 >
+                    <FormErrorSummary error={methods.formState.errors.root?.message} />
+
                     <FormSectionCard embedded title="Basic Information">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                            <Input
+                            <FormInput
+                                name="name"
                                 label="Role Name"
-                                labelPlacement="outside"
                                 placeholder="e.g., Manager, Editor, Viewer"
-                                value={formData.name}
-                                onValueChange={(value) => handleChange('name', value)}
                                 isRequired
-                                classNames={{
-                                    inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
-                                }}
                             />
-                            <Textarea
+                            <FormTextarea
+                                name="description"
                                 label="Description"
-                                labelPlacement="outside"
-                                placeholder="Describe the role and its responsibilities"
-                                value={formData.description}
-                                onValueChange={(value) => handleChange('description', value)}
+                                placeholder="Describe this role..."
                                 minRows={2}
-                                classNames={{
-                                    inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300',
-                                }}
                             />
                         </div>
                     </FormSectionCard>
@@ -137,28 +142,31 @@ export default function EditRolePage() {
                     <FormDivider />
 
                     <FormSectionCard embedded title="Permissions">
-                        <CheckboxGroup
-                            value={formData.permissions}
-                            onValueChange={(value) => handleChange('permissions', value)}
-                            className="gap-2"
-                        >
-                            {permissions.map((permission) => (
-                                <Checkbox key={permission.id} value={permission.id.toString()}>
-                                    <div>
-                                        <p className="font-medium text-sm">{permission.name}</p>
-                                        {permission.description && (
-                                            <p className="text-xs text-gray-600">{permission.description}</p>
-                                        )}
-                                    </div>
-                                </Checkbox>
-                            ))}
-                        </CheckboxGroup>
-                        {permissions.length === 0 && (
-                            <p className="text-sm text-gray-500">No permissions available</p>
-                        )}
+                        <Controller
+                            name="permissions"
+                            control={methods.control}
+                            render={({ field, fieldState: { error } }) => (
+                                <div>
+                                    <CheckboxGroup
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        className="gap-2"
+                                    >
+                                        {permissions.map((permission) => (
+                                            <Checkbox key={permission.id} value={permission.id.toString()}>
+                                                {permission.name}
+                                            </Checkbox>
+                                        ))}
+                                    </CheckboxGroup>
+                                    {error?.message && (
+                                        <p className="mt-1 text-sm text-red-600">{error.message}</p>
+                                    )}
+                                </div>
+                            )}
+                        />
                     </FormSectionCard>
                 </FormCompactCard>
-            </form>
+            </Form>
         </FormPageLayout>
     );
 }

@@ -8,6 +8,7 @@ import {
     useUploadServiceImageMutation,
 } from '@/redux/services/api';
 import ServiceForm from '@/features/services/components/ServiceForm';
+import { applyServerErrors, parseApiValidationErrors, getApiErrorMessage } from '@/lib/apiErrors';
 
 export default function NewServicePage() {
     const router = useRouter();
@@ -31,26 +32,14 @@ export default function NewServicePage() {
             router.push('/services');
         } catch (error) {
             console.error('Service creation error:', error);
-            if (error?.status === 422 && error?.data?.detail) {
-                const details = Array.isArray(error.data.detail)
-                    ? error.data.detail
-                    : [error.data.detail];
-                details.forEach((err) => {
-                    const fieldName = err.loc?.[1];
-                    if (fieldName && methods.getValues(fieldName) !== undefined) {
-                        methods.setError(fieldName, {
-                            type: 'server',
-                            message: err.msg || 'Invalid value',
-                        });
-                    } else {
-                        toast.error(err.msg || 'Validation error');
-                    }
-                });
-                if (!details.some((err) => err.loc?.[1])) {
-                    toast.error('Please check the form for errors');
+            if (error?.status === 422) {
+                const { fieldErrors, formError } = parseApiValidationErrors(error?.data);
+                applyServerErrors(methods, fieldErrors);
+                if (formError) {
+                    methods.setError('root', { type: 'server', message: formError });
                 }
             } else {
-                toast.error(error?.data?.detail || 'Failed to create service');
+                toast.error(getApiErrorMessage(error, 'Failed to create service'));
             }
         }
     };

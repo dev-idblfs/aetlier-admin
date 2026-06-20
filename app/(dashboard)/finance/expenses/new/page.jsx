@@ -63,14 +63,16 @@ export default function NewExpensePage() {
 
     const [receiptFile, setReceiptFile] = useState(null);
     const [receiptPreview, setReceiptPreview] = useState(null);
+    const [receiptFileError, setReceiptFileError] = useState('');
 
     const handleFileSelect = (e) => {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
-                toast.error('File size must be less than 5MB');
+                setReceiptFileError('File size must be less than 5MB');
                 return;
             }
+            setReceiptFileError('');
             setReceiptFile(file);
 
             // Create preview for images
@@ -89,6 +91,7 @@ export default function NewExpensePage() {
     const removeReceipt = () => {
         setReceiptFile(null);
         setReceiptPreview(null);
+        setReceiptFileError('');
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -211,10 +214,20 @@ export default function NewExpensePage() {
 
                     <FormSectionCard embedded title="Receipt Attachment">
                         <input ref={fileInputRef} type="file" accept="image/*,.pdf" onChange={handleFileSelect} className="hidden" />
+                        {receiptFileError && (
+                            <p className="text-sm text-red-600 mb-2" role="alert">
+                                {receiptFileError}
+                            </p>
+                        )}
                         {!receiptFile ? (
                             <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors"
+                                onClick={() => {
+                                    setReceiptFileError('');
+                                    fileInputRef.current?.click();
+                                }}
+                                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors ${
+                                    receiptFileError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                }`}
                             >
                                 <Upload className="w-7 h-7 text-gray-400 mx-auto mb-2" />
                                 <p className="text-sm text-gray-600">Click to upload receipt</p>
