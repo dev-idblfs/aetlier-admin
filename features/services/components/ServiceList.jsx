@@ -12,11 +12,9 @@ import {
     Edit,
     Trash2,
     Eye,
-    DollarSign,
     Clock,
     X,
     Briefcase,
-    IndianRupee,
 } from 'lucide-react';
 import {
     Button,
@@ -26,12 +24,14 @@ import {
     Pagination,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton } from '@/components/ui';
+import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton, ServiceThumbnail } from '@/components/ui';
 import {
     useGetServicesQuery,
+    useGetServiceQuery,
     useDeleteServiceMutation,
     useGetCategoriesQuery,
 } from '@/redux/services/api';
+import { formatCurrency } from '@/utils/dateFormatters';
 
 export default function ServiceList() {
     const router = useRouter();
@@ -46,6 +46,10 @@ export default function ServiceList() {
 
     const { data, isLoading, refetch } = useGetServicesQuery();
     const { data: categories } = useGetCategoriesQuery({ type: 'SERVICE' });
+    const { data: detailService, isLoading: isDetailLoading } = useGetServiceQuery(
+        selectedService?.id,
+        { skip: !selectedService?.id || !isDetailOpen }
+    );
 
     const [deleteService, { isLoading: isDeleting }] = useDeleteServiceMutation();
 
@@ -74,14 +78,20 @@ export default function ServiceList() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const services = filteredServices.slice(startIndex, startIndex + itemsPerPage);
 
+    const getDisplayPrice = (service) =>
+        service?.selling_price ?? service?.price;
+
     const columns = [
         {
             key: 'name',
             label: 'Service',
             render: (row) => (
-                <div>
-                    <p className="font-medium text-gray-900">{row.name}</p>
-                    <p className="text-sm text-gray-500 line-clamp-1">{row.description}</p>
+                <div className="flex items-center gap-3">
+                    <ServiceThumbnail src={row.image_url} alt={row.name} size="sm" />
+                    <div>
+                        <p className="font-medium text-gray-900">{row.name}</p>
+                        <p className="text-sm text-gray-500 line-clamp-1">{row.description}</p>
+                    </div>
                 </div>
             ),
         },
@@ -96,10 +106,11 @@ export default function ServiceList() {
             key: 'price',
             label: 'Price',
             render: (row) => (
-                <div className="flex items-center gap-1 text-gray-900">
-                    <IndianRupee className="w-4 h-4" />
-                    <span>{row.price || 'N/A'}</span>
-                </div>
+                <span className="text-gray-900">
+                    {getDisplayPrice(row)
+                        ? formatCurrency(getDisplayPrice(row))
+                        : 'N/A'}
+                </span>
             ),
         },
         {
@@ -358,47 +369,106 @@ export default function ServiceList() {
             >
                 {selectedService && (
                     <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
-                                <Briefcase className="w-6 h-6 text-primary-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-base md:text-lg font-semibold">{selectedService.name}</h3>
-                                <p className="text-sm text-gray-500 capitalize">{selectedService.category || 'Uncategorized'}</p>
-                            </div>
-                            <StatusBadge
-                                status={selectedService.is_active !== false ? 'active' : 'inactive'}
-                                className="ml-auto"
-                            />
-                        </div>
+                        {isDetailLoading ? (
+                            <p className="text-sm text-gray-500">Loading details...</p>
+                        ) : (
+                            <>
+                                <div className="flex items-start gap-3">
+                                    <ServiceThumbnail
+                                        src={detailService?.image_url || selectedService.image_url}
+                                        alt={selectedService.name}
+                                        size="md"
+                                    />
+                                    <div>
+                                        <h3 className="text-base md:text-lg font-semibold">{selectedService.name}</h3>
+                                        <p className="text-sm text-gray-500 capitalize">{selectedService.category || 'Uncategorized'}</p>
+                                    </div>
+                                    <StatusBadge
+                                        status={selectedService.is_active !== false ? 'active' : 'inactive'}
+                                        className="ml-auto"
+                                    />
+                                </div>
 
-                        {selectedService.description && (
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                                <span className="block text-xs text-gray-500 mb-1">Description</span>
-                                <p className="text-sm text-gray-900">{selectedService.description}</p>
-                            </div>
+                                {(detailService?.description || selectedService.description) && (
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <span className="block text-xs text-gray-500 mb-1">Description</span>
+                                        <p className="text-sm text-gray-900">
+                                            {detailService?.description || selectedService.description}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <p className="text-xs text-gray-500">Selling price</p>
+                                        <p className="text-sm font-medium text-gray-900">
+                                            {getDisplayPrice(detailService || selectedService)
+                                                ? formatCurrency(getDisplayPrice(detailService || selectedService))
+                                                : 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <p className="text-xs text-gray-500">Duration</p>
+                                        <p className="text-sm font-medium text-gray-900">
+                                            {selectedService.duration ? `${selectedService.duration} min` : 'N/A'}
+                                        </p>
+                                    </div>
+                                    {detailService?.base_price != null && (
+                                        <div className="p-3 bg-gray-50 rounded-lg">
+                                            <p className="text-xs text-gray-500">Base price</p>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {formatCurrency(detailService.base_price)}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {detailService?.total_amount != null && (
+                                        <div className="p-3 bg-gray-50 rounded-lg">
+                                            <p className="text-xs text-gray-500">Total amount</p>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {formatCurrency(detailService.total_amount)}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {detailService?.fees?.length > 0 && (
+                                    <div className="p-3 bg-gray-50 rounded-lg space-y-2">
+                                        <span className="block text-xs text-gray-500">Additional charges</span>
+                                        {detailService.fees.map((fee, index) => (
+                                            <div key={`${fee.name}-${index}`} className="flex justify-between text-sm">
+                                                <span className="text-gray-700">{fee.name}</span>
+                                                <span className="font-medium text-gray-900">
+                                                    {formatCurrency(fee.amount)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {detailService?.content_blocks?.length > 0 && (
+                                    <div className="space-y-3">
+                                        {[...detailService.content_blocks]
+                                            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                                            .map((block, index) => (
+                                                <div key={`${block.title}-${index}`} className="p-3 bg-gray-50 rounded-lg">
+                                                    <span className="block text-xs text-gray-500 mb-1">{block.title}</span>
+                                                    {block.type === 'list' ? (
+                                                        <ul className="list-disc list-inside text-sm text-gray-900 space-y-1">
+                                                            {(block.items || []).map((item, itemIndex) => (
+                                                                <li key={`${item}-${itemIndex}`}>{item}</li>
+                                                            ))}
+                                                        </ul>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                                                            {block.body}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
+                            </>
                         )}
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                                <DollarSign className="w-4 h-4 text-green-500" />
-                                <div>
-                                    <p className="text-xs text-gray-500">Price</p>
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {selectedService.price ? `$${selectedService.price}` : 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                                <Clock className="w-4 h-4 text-blue-500" />
-                                <div>
-                                    <p className="text-xs text-gray-500">Duration</p>
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {selectedService.duration ? `${selectedService.duration} min` : 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 )}
             </DetailModal>
@@ -420,12 +490,12 @@ export default function ServiceList() {
 
 // Service Mobile Card Component
 function ServiceMobileCard({ service, onClick, actions }) {
+    const displayPrice = service.selling_price ?? service.price;
+
     return (
         <MobileCard onClick={onClick} actions={actions}>
             <MobileCard.Header>
-                <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center shrink-0">
-                    <Briefcase className="w-5 h-5 text-primary-600" />
-                </div>
+                <ServiceThumbnail src={service.image_url} alt={service.name} size="sm" />
                 <div className="flex-1 min-w-0">
                     <MobileCard.Title>{service.name}</MobileCard.Title>
                     <MobileCard.Subtitle className="capitalize">{service.category || 'Uncategorized'}</MobileCard.Subtitle>
@@ -435,9 +505,8 @@ function ServiceMobileCard({ service, onClick, actions }) {
                 />
             </MobileCard.Header>
             <MobileCard.Meta>
-                <span className="flex items-center gap-1">
-                    <DollarSign className="w-3 h-3 text-green-500" />
-                    {service.price ? `$${service.price}` : 'N/A'}
+                <span>
+                    {displayPrice ? formatCurrency(displayPrice) : 'N/A'}
                 </span>
                 <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3 text-blue-500" />

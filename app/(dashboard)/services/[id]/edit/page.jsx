@@ -49,6 +49,7 @@ export default function EditServicePage() {
     return (
         <ServiceForm
             initialData={service}
+            serviceId={serviceId}
             title="Edit Service"
             breadcrumbs={[
                 { label: 'Services', href: '/services' },

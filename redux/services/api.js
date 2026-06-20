@@ -523,6 +523,19 @@ export const api = createApi({
       invalidatesTags: ["Service"],
     }),
 
+    // POST /services/:id/image - Upload service image
+    uploadServiceImage: builder.mutation({
+      query: ({ id, formData }) => ({
+        url: `/services/${id}/image`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Service", id },
+        "Service",
+      ],
+    }),
+
     // =========================================================================
     // GENERIC CATEGORY ENDPOINTS
     // =========================================================================
@@ -1174,6 +1187,7 @@ export const {
   useCreateServiceMutation,
   useUpdateServiceMutation,
   useDeleteServiceMutation,
+  useUploadServiceImageMutation,
   // Invoices
   useGetInvoiceSettingsQuery,
   useUpdateInvoiceSettingsMutation,
