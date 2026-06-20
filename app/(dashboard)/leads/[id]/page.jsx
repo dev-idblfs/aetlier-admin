@@ -33,6 +33,8 @@ const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'CONVERTED', 'LOST'];
 const SOURCE_LABELS = {
     WEBSITE_POPUP: 'Website Popup',
     GOOGLE_ONE_TAP: 'Google One Tap',
+    CONTACT_FORM: 'Contact Form',
+    HOMEPAGE_FORM: 'Homepage Form',
     MANUAL: 'Manual',
 };
 
@@ -103,7 +105,16 @@ export default function LeadDetailPage() {
                         <Mail className="w-4 h-4 text-gray-400 shrink-0" />
                         <div>
                             <p className="text-xs text-gray-400">Email</p>
-                            <p className="text-sm text-gray-900">{lead.user?.email || '—'}</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm text-gray-900">{lead.user?.email || '—'}</p>
+                                <Chip
+                                    size="sm"
+                                    variant="flat"
+                                    color={lead.user?.is_verified ? 'success' : 'default'}
+                                >
+                                    {lead.user?.is_verified ? 'Verified' : 'Unverified'}
+                                </Chip>
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -214,8 +225,8 @@ function LeadForm({ lead, canWrite }) {
             />
 
             <Textarea
-                label="Notes"
-                placeholder="Internal notes about this lead..."
+                label="Message / Notes"
+                placeholder="User message and internal notes about this lead..."
                 value={form.notes}
                 onChange={handleChange('notes')}
                 isDisabled={!canWrite}

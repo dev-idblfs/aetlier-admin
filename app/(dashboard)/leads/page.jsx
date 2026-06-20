@@ -51,6 +51,8 @@ const STATUS_COLORS = {
 const SOURCE_LABELS = {
     WEBSITE_POPUP: 'Website Popup',
     GOOGLE_ONE_TAP: 'Google One Tap',
+    CONTACT_FORM: 'Contact Form',
+    HOMEPAGE_FORM: 'Homepage Form',
     MANUAL: 'Manual',
 };
 
@@ -142,6 +144,19 @@ export default function LeadsPage() {
                     </div>
                 );
             },
+        },
+        {
+            key: 'verified',
+            label: 'Verified',
+            render: (row) => (
+                <Chip
+                    size="sm"
+                    variant="flat"
+                    color={row.user?.is_verified ? 'success' : 'default'}
+                >
+                    {row.user?.is_verified ? 'Verified' : 'Unverified'}
+                </Chip>
+            ),
         },
         {
             key: 'interest',
