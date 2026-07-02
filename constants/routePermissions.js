@@ -19,6 +19,7 @@ export const ADMIN_ROUTE_RULES = [
   { prefix: '/permissions', any: [PERMISSIONS.PERMISSION_READ] },
   { prefix: '/settings', any: [PERMISSIONS.SETTINGS_READ] },
   { prefix: '/leads', any: [PERMISSIONS.LEAD_READ_ANY] },
+  { prefix: '/audit', any: [PERMISSIONS.AUDIT_READ_ANY] },
 ];
 
 /** Dashboard home — any authenticated admin portal user. */

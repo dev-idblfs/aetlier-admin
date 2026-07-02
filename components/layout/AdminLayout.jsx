@@ -13,8 +13,8 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import BottomNav from './BottomNav';
 import RoutePermissionGuard from '@/components/RoutePermissionGuard';
-import { fetchUserProfile, setPermissions } from '@/redux/slices/authSlice';
-import { useLazyGetUserPermissionsQuery, useGetNavigationPermissionPresetsQuery, api } from '@/redux/services/api';
+import { fetchUserProfile } from '@/redux/slices/authSlice';
+import { useGetNavigationPermissionPresetsQuery, api } from '@/redux/services/api';
 import { canAccessAdminPortal } from '@/utils/permissions';
 import { setDynamicRouteRules } from '@/utils/routeAccess';
 
@@ -39,8 +39,7 @@ export default function AdminLayout({ children }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { user, isLoading, isAuthenticated } = useSelector((state) => state.auth);
-    const [fetchPermissions] = useLazyGetUserPermissionsQuery();
+    const { user, permissions, isLoading, isAuthenticated } = useSelector((state) => state.auth);
     const { data: navPresets } = useGetNavigationPermissionPresetsQuery(undefined, {
         skip: !isAuthenticated,
     });
@@ -62,23 +61,21 @@ export default function AdminLayout({ children }) {
         dispatch(fetchUserProfile());
     }, [dispatch]);
 
-    // Fetch permissions after user is loaded
+    // Hydrate permissions via /auth/me (works for doctors). Admin-only
+    // GET /admin/users/:id/permissions is not available to staff roles.
     useEffect(() => {
-        const loadPermissions = async () => {
-            if (user?.id && !user?.permissions?.length) {
-                try {
-                    const result = await fetchPermissions(user.id).unwrap();
-                    const permissionNames = result?.permissions || [];
-                    dispatch(setPermissions(permissionNames));
+        const hasPerms = Boolean(user?.permissions?.length || permissions?.length);
+        if (user?.id && !hasPerms) {
+            dispatch(fetchUserProfile())
+                .unwrap()
+                .then(() => {
                     dispatch(api.util.invalidateTags(['Navigation']));
-                } catch (error) {
-                    console.error('Failed to fetch permissions:', error);
-                }
-            }
-        };
-
-        loadPermissions();
-    }, [user?.id, dispatch, fetchPermissions]);
+                })
+                .catch((error) => {
+                    console.error('Failed to refresh user permissions:', error);
+                });
+        }
+    }, [user?.id, user?.permissions?.length, permissions?.length, dispatch]);
 
     // Check authentication and role
     useEffect(() => {

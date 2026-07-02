@@ -53,6 +53,8 @@ export default function DoctorForm({
             experience_years: 0,
             languages: [],
             is_active: true,
+            accepts_online_consultation: false,
+            can_prescribe: false,
             ...defaultValues,
         },
     });
@@ -178,6 +180,16 @@ export default function DoctorForm({
                         name="is_active"
                         label="Active Status"
                         description="Doctor will be visible to patients"
+                    />
+                    <FormSwitchRow
+                        name="accepts_online_consultation"
+                        label="Online consultations"
+                        description="Patients can book video/audio teleconsult with this doctor"
+                    />
+                    <FormSwitchRow
+                        name="can_prescribe"
+                        label="E-prescriptions"
+                        description="Doctor can create and send structured prescriptions"
                     />
                 </FormSectionCard>
             </FormCompactCard>

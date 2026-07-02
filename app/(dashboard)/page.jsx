@@ -21,6 +21,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { canAccessNavHref, withUserPermissions } from '@/utils/navAccess';
+import { getAppointmentListScope } from '@/utils/permissions';
 
 const QUICK_ACTIONS = [
     { href: '/appointments', icon: Calendar, label: 'Appointments', showPending: true },
@@ -50,8 +51,13 @@ export default function DashboardPage() {
     const canViewUsers = canAccessNavHref('/users', authUser);
     const canViewDoctors = canAccessNavHref('/doctors', authUser);
 
+    const appointmentListScope = getAppointmentListScope(authUser);
+
     const { data: appointmentsData } = useGetAppointmentsQuery(
-        { size: 100 },
+        {
+            page_size: 100,
+            ...(appointmentListScope ? { scope: appointmentListScope } : {}),
+        },
         { skip: !canViewAppointments },
     );
     const { data: usersData } = useGetUsersQuery({ size: 1 }, { skip: !canViewUsers });

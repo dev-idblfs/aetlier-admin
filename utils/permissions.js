@@ -140,6 +140,7 @@ export const PERMISSIONS = {
   APPOINTMENT_DELETE_ANY: "appointment.delete.any",
   APPOINTMENT_APPROVE: "appointment.approve.any",
   APPOINTMENT_CHANGE_STATUS: "appointment.change_status.any",
+  APPOINTMENT_CHANGE_STATUS_ASSIGNED: "appointment.change_status.assigned",
   APPOINTMENT_CANCEL: "appointment.cancel.any",
   APPOINTMENT_RESCHEDULE: "appointment.reschedule.any",
 
@@ -198,6 +199,10 @@ export const PERMISSIONS = {
   REPORTS_VIEW: "reports.view.any",
   REPORTS_EXPORT: "reports.export.any",
 
+  // Audit
+  AUDIT_READ_ANY: "audit.read.any",
+  AUDIT_READ_OWN: "audit.read.own",
+
   // === FINANCE ===
   // Invoices (backend: invoice.view.any)
   INVOICE_VIEW_ANY: "invoice.view.any",
@@ -231,6 +236,26 @@ export const PERMISSIONS = {
   LEAD_WRITE: "lead.write.any",
   LEAD_DELETE: "lead.delete.any",
 };
+
+/** Whether the user may list appointments in the admin portal. */
+export function canReadAppointments(user) {
+  return hasAnyPermission(user, [
+    PERMISSIONS.APPOINTMENT_READ_ANY,
+    PERMISSIONS.APPOINTMENT_READ_OWN,
+    PERMISSIONS.APPOINTMENT_READ_ASSIGNED,
+  ]);
+}
+
+/**
+ * Backend list scope: admins see all; doctors with read.assigned need scope=assigned.
+ * @returns {'assigned' | undefined}
+ */
+export function getAppointmentListScope(user) {
+  if (!user) return undefined;
+  if (hasPermission(user, PERMISSIONS.APPOINTMENT_READ_ANY)) return undefined;
+  if (hasPermission(user, PERMISSIONS.APPOINTMENT_READ_ASSIGNED)) return "assigned";
+  return undefined;
+}
 
 const permissionsModule = {
   hasPermission,

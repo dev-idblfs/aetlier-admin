@@ -175,7 +175,7 @@ export default function PermissionsPage() {
                 isOpen={isOpen}
                 onOpenChange={onOpenChange}
                 onClose={onClose}
-                onSubmit={handleSubmit}
+                onSubmit={onSubmit}
                 title="Create Permission"
                 submitLabel="Create"
                 isLoading={isCreating || isSubmitting}

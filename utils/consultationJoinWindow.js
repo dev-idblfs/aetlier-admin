@@ -1,0 +1,68 @@
+import config from '@/config';
+
+export const JOIN_WINDOW_BEFORE_MIN = 15;
+export const JOIN_WINDOW_AFTER_MIN = 60;
+
+const JOINABLE_STATUSES = new Set([
+  'confirmed',
+  'ready',
+  'scheduled',
+  'in_progress',
+]);
+
+export function getAppointmentDateTime(appointment) {
+  if (!appointment) return { date: null, time: null };
+  return {
+    date: appointment.appointment_date || appointment.preferred_date,
+    time: appointment.appointment_time || appointment.preferred_time,
+  };
+}
+
+export function canJoinConsultation(appointment) {
+  if (!appointment || appointment.consultation_mode !== 'online') return false;
+
+  const status = String(
+    appointment.consultation_status || appointment.status || ''
+  ).toLowerCase();
+  if (!JOINABLE_STATUSES.has(status)) return false;
+
+  const { date, time } = getAppointmentDateTime(appointment);
+  if (!date || !time) return false;
+
+  const [h, m] = time.split(':').map(Number);
+  const start = new Date(date);
+  start.setHours(h, m || 0, 0, 0);
+  const windowStart = new Date(
+    start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60 * 1000
+  );
+  const windowEnd = new Date(
+    start.getTime() + JOIN_WINDOW_AFTER_MIN * 60 * 1000
+  );
+  const now = new Date();
+  return now >= windowStart && now <= windowEnd;
+}
+
+export function getJoinWindowHint() {
+  return `Join window: ${JOIN_WINDOW_BEFORE_MIN} min before – ${JOIN_WINDOW_AFTER_MIN} min after`;
+}
+
+export function buildConsultationJoinUrl(appointmentId) {
+  const base = (config.frontendUrl || 'http://localhost:3000').replace(/\/$/, '');
+  return `${base}/consultation/${appointmentId}`;
+}
+
+export const DOCTOR_JOIN_TOOLTIP =
+  'Opens the secure Aetlier consultation room. Sign in to the patient app (frontend) with your doctor account first.';
+
+export const ACCESS_LOCK_TOOLTIP =
+  'Only the booked patient and assigned doctor can join this consultation.';
+
+export function isOnlineConsultation(appointment) {
+  return appointment?.consultation_mode === 'online';
+}
+
+export function isToday(dateStr) {
+  if (!dateStr) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return String(dateStr).slice(0, 10) === today;
+}

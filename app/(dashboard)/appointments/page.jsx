@@ -29,6 +29,7 @@ import {
     MoreVertical,
     FileText,
     Plus,
+    Video,
 } from 'lucide-react';
 import {
     Button,
@@ -60,9 +61,21 @@ import {
     useGetServicesQuery,
     useGetDoctorsQuery,
     useCompleteAppointmentMutation,
+    useGetConsultationQuery,
 } from '@/redux/services/api';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
-import { hasPermission, hasAnyPermission, hasAllPermissions, PERMISSIONS } from '@/utils/permissions';
+import {
+    hasAnyPermission,
+    hasAllPermissions,
+    hasRole,
+    PERMISSIONS,
+    canReadAppointments,
+    getAppointmentListScope,
+} from '@/utils/permissions';
+import ConsultationJoinCard from '@/components/consultation/ConsultationJoinCard';
+import ConsultationJoinButton from '@/components/consultation/ConsultationJoinButton';
+import { isOnlineConsultation, isToday } from '@/utils/consultationJoinWindow';
+import { withUserPermissions } from '@/utils/navAccess';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { appointmentSchema, appointmentUpdateSchema } from '@/lib/validation';
@@ -89,7 +102,9 @@ const STATUS_COLORS = {
 
 export default function AppointmentsPage() {
     const router = useRouter();
-    const { user } = useSelector((state) => state.auth);
+    const { user, permissions } = useSelector((state) => state.auth);
+    const authUser = withUserPermissions(user, permissions);
+    const appointmentListScope = getAppointmentListScope(authUser);
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
@@ -97,6 +112,7 @@ export default function AppointmentsPage() {
         date_from: '',
         date_to: '',
     });
+    const [onlineTodayOnly, setOnlineTodayOnly] = useState(false);
 
     // Modal states
     const { isOpen: isCreateOpen, onOpen: onCreateOpen, onOpenChange: onCreateOpenChange } = useDisclosure();
@@ -142,14 +158,20 @@ export default function AppointmentsPage() {
         handleSubmit: handleEditHookSubmit,
     } = editMethods;
 
-    // API hooks
-    const { data, isLoading, refetch, isFetching } = useGetAppointmentsQuery({
-        page,
-        page_size: 10,
-        status: filters.status || undefined,
-        date_from: filters.date_from || undefined,
-        date_to: filters.date_to || undefined,
-    });
+    const canViewAppointments = canReadAppointments(authUser);
+
+    // API hooks — doctors must pass scope=assigned to see booked consultations
+    const { data, isLoading, refetch, isFetching } = useGetAppointmentsQuery(
+        {
+            page,
+            page_size: 10,
+            status: filters.status || undefined,
+            date_from: filters.date_from || undefined,
+            date_to: filters.date_to || undefined,
+            ...(appointmentListScope ? { scope: appointmentListScope } : {}),
+        },
+        { skip: !canViewAppointments },
+    );
 
     const { data: servicesData } = useGetServicesQuery();
     const { data: doctorsData } = useGetDoctorsQuery();
@@ -161,18 +183,49 @@ export default function AppointmentsPage() {
 
     const services = servicesData?.services || servicesData || [];
     const doctors = doctorsData?.doctors || doctorsData || [];
-    const appointments = data?.appointments || [];
+    const rawAppointments = data?.appointments || [];
+
+    const isDoctorUser = hasRole(authUser, ['doctor']);
+
+    const appointments = useMemo(() => {
+        let list = rawAppointments;
+        if (onlineTodayOnly) {
+            list = list.filter(
+                (apt) =>
+                    isOnlineConsultation(apt) &&
+                    isToday(apt.preferred_date || apt.appointment_date)
+            );
+        }
+        if (isDoctorUser) {
+            const upcomingOnline = list.filter(
+                (apt) =>
+                    isOnlineConsultation(apt) &&
+                    ['confirmed', 'ready', 'scheduled', 'in_progress'].includes(
+                        String(apt.status).toLowerCase()
+                    )
+            );
+            if (upcomingOnline.length > 0) {
+                const pinned = upcomingOnline[0];
+                list = [pinned, ...list.filter((a) => a.id !== pinned.id)];
+            }
+        }
+        return list;
+    }, [rawAppointments, onlineTodayOnly, isDoctorUser]);
     const totalPages = data?.total_pages || 1;
     const totalCount = data?.total || 0;
 
     // Permission checks
-    const canCreate = hasAnyPermission(user, [PERMISSIONS.APPOINTMENT_CREATE, PERMISSIONS.APPOINTMENT_UPDATE_ANY]);
-    const canView = hasAnyPermission(user, [PERMISSIONS.APPOINTMENT_READ_ANY, PERMISSIONS.APPOINTMENT_READ_OWN]);
-    const canEdit = hasAnyPermission(user, [PERMISSIONS.APPOINTMENT_UPDATE_ANY, PERMISSIONS.APPOINTMENT_UPDATE_OWN]);
-    const canDelete = hasAnyPermission(user, [PERMISSIONS.APPOINTMENT_DELETE_ANY, PERMISSIONS.APPOINTMENT_CANCEL]);
-    const canChangeStatus = hasAnyPermission(user, [PERMISSIONS.APPOINTMENT_APPROVE, PERMISSIONS.APPOINTMENT_UPDATE_ANY]);
-    const canGenerateInvoice = hasAnyPermission(user, [PERMISSIONS.INVOICE_CREATE, PERMISSIONS.INVOICE_READ_ANY]);
-    const canComplete = hasAllPermissions(user, [
+    const canCreate = hasAnyPermission(authUser, [PERMISSIONS.APPOINTMENT_CREATE, PERMISSIONS.APPOINTMENT_UPDATE_ANY]);
+    const canView = canViewAppointments;
+    const canEdit = hasAnyPermission(authUser, [PERMISSIONS.APPOINTMENT_UPDATE_ANY, PERMISSIONS.APPOINTMENT_UPDATE_OWN]);
+    const canDelete = hasAnyPermission(authUser, [PERMISSIONS.APPOINTMENT_DELETE_ANY, PERMISSIONS.APPOINTMENT_CANCEL]);
+    const canChangeStatus = hasAnyPermission(authUser, [
+        PERMISSIONS.APPOINTMENT_APPROVE,
+        PERMISSIONS.APPOINTMENT_UPDATE_ANY,
+        PERMISSIONS.APPOINTMENT_CHANGE_STATUS_ASSIGNED,
+    ]);
+    const canGenerateInvoice = hasAnyPermission(authUser, [PERMISSIONS.INVOICE_CREATE, PERMISSIONS.INVOICE_READ_ANY]);
+    const canComplete = hasAllPermissions(authUser, [
         PERMISSIONS.APPOINTMENT_CHANGE_STATUS,
         PERMISSIONS.INVOICE_CREATE,
     ]);
@@ -244,6 +297,23 @@ export default function AppointmentsPage() {
             ),
         },
         {
+            key: 'consultation_mode',
+            label: 'Mode',
+            render: (row) => {
+                const mode = row.consultation_mode || 'in_person';
+                return (
+                    <Chip
+                        size="sm"
+                        variant="flat"
+                        color={mode === 'online' ? 'secondary' : 'default'}
+                        className="capitalize"
+                    >
+                        {mode === 'online' ? 'Online' : 'In-clinic'}
+                    </Chip>
+                );
+            },
+        },
+        {
             key: 'date',
             label: 'Date & Time',
             sortable: true,
@@ -274,6 +344,16 @@ export default function AppointmentsPage() {
                     {row.status?.replace('_', ' ')}
                 </Chip>
             ),
+        },
+        {
+            key: 'consultation_join',
+            label: 'Video',
+            render: (row) =>
+                isOnlineConsultation(row) ? (
+                    <ConsultationJoinButton appointment={row} size="sm" />
+                ) : (
+                    <span className="text-gray-400 text-xs">—</span>
+                ),
         },
         {
             key: 'actions',
@@ -487,10 +567,12 @@ export default function AppointmentsPage() {
 
     const clearFilters = () => {
         setFilters({ status: '', date_from: '', date_to: '' });
+        setOnlineTodayOnly(false);
         setPage(1);
     };
 
-    const activeFiltersCount = Object.values(filters).filter(Boolean).length;
+    const activeFiltersCount =
+        Object.values(filters).filter(Boolean).length + (onlineTodayOnly ? 1 : 0);
 
     return (
         <ListPageLayout
@@ -528,8 +610,38 @@ export default function AppointmentsPage() {
                 </div>
             }
         >
-            <div className="text-sm text-gray-500">
-                {totalCount} total appointment{totalCount !== 1 ? 's' : ''}
+            <div className="text-sm text-gray-500 flex flex-wrap items-center gap-3">
+                <span>
+                    {totalCount} total appointment{totalCount !== 1 ? 's' : ''}
+                </span>
+                {isDoctorUser && appointmentListScope === 'assigned' && (
+                    <Chip
+                        as="button"
+                        type="button"
+                        size="sm"
+                        variant={onlineTodayOnly ? 'solid' : 'flat'}
+                        color={onlineTodayOnly ? 'warning' : 'default'}
+                        className="cursor-pointer"
+                        startContent={<Video className="w-3.5 h-3.5" />}
+                        onClick={() => {
+                            const today = new Date().toISOString().slice(0, 10);
+                            setOnlineTodayOnly((v) => {
+                                const next = !v;
+                                if (next) {
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        date_from: today,
+                                        date_to: today,
+                                    }));
+                                }
+                                return next;
+                            });
+                            setPage(1);
+                        }}
+                    >
+                        Online today
+                    </Chip>
+                )}
             </div>
 
             {/* Mobile Filter Toggle */}
@@ -584,13 +696,25 @@ export default function AppointmentsPage() {
                         onChange={(e) => handleFilterChange('date_to', e.target.value)}
                         size="sm"
                     />
-                    <div className="flex items-end">
+                    <div className="flex items-end gap-2">
+                        <Button
+                            variant={onlineTodayOnly ? 'solid' : 'flat'}
+                            color={onlineTodayOnly ? 'warning' : 'default'}
+                            size="sm"
+                            className={onlineTodayOnly ? 'bg-[#db924b] text-white' : ''}
+                            onPress={() => {
+                                setOnlineTodayOnly((v) => !v);
+                                setPage(1);
+                            }}
+                        >
+                            Online today
+                        </Button>
                         <Button
                             variant="light"
                             size="sm"
                             startContent={<X className="w-4 h-4" />}
                             onPress={clearFilters}
-                            isDisabled={activeFiltersCount === 0}
+                            isDisabled={activeFiltersCount === 0 && !onlineTodayOnly}
                             className="w-full sm:w-auto"
                         >
                             Clear Filters
@@ -598,6 +722,21 @@ export default function AppointmentsPage() {
                     </div>
                 </div>
             </Card>
+
+            {/* Desktop — online consultation cards */}
+            {appointments.some(isOnlineConsultation) && (
+                <div className="hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {appointments
+                        .filter(isOnlineConsultation)
+                        .map((apt) => (
+                            <ConsultationJoinCard
+                                key={`online-${apt.id}`}
+                                appointment={apt}
+                                variant="compact"
+                            />
+                        ))}
+                </div>
+            )}
 
             {/* Desktop Table View */}
             <div className="hidden lg:block">
@@ -826,6 +965,14 @@ export default function AppointmentsPage() {
                                 {selectedAppointment.doctor?.name && (
                                     <DetailRow label="Doctor" value={selectedAppointment.doctor.name} />
                                 )}
+                                <DetailRow
+                                    label="Consultation mode"
+                                    value={
+                                        selectedAppointment.consultation_mode === 'online'
+                                            ? 'Online'
+                                            : 'In-clinic'
+                                    }
+                                />
                             </div>
                         </div>
 
@@ -840,6 +987,13 @@ export default function AppointmentsPage() {
                                         {selectedAppointment.special_notes}
                                     </p>
                                 </div>
+                            </>
+                        )}
+
+                        {isOnlineConsultation(selectedAppointment) && (
+                            <>
+                                <Divider />
+                                <ConsultationJoinCardSection appointment={selectedAppointment} />
                             </>
                         )}
                     </div>
@@ -935,6 +1089,20 @@ export default function AppointmentsPage() {
     );
 }
 
+function ConsultationJoinCardSection({ appointment }) {
+    const { data: consultation } = useGetConsultationQuery(appointment.id, {
+        skip: !appointment?.id,
+    });
+
+    return (
+        <ConsultationJoinCard
+            appointment={appointment}
+            consultation={consultation}
+            variant="detail"
+        />
+    );
+}
+
 // Mobile Appointment Card Component
 function AppointmentCard({
     appointment,
@@ -972,6 +1140,11 @@ function AppointmentCard({
                             >
                                 {apt.status?.replace('_', ' ')}
                             </Chip>
+                            {(apt.consultation_mode === 'online') && (
+                                <Chip size="sm" color="secondary" variant="flat">
+                                    Online
+                                </Chip>
+                            )}
                         </div>
                         <p className="text-sm text-gray-500 truncate">
                             {apt.patient_info?.email || apt.user?.email}
@@ -1029,6 +1202,12 @@ function AppointmentCard({
                 </div>
 
                 <Divider className="my-3" />
+
+                {isOnlineConsultation(apt) && (
+                    <div className="mb-3">
+                        <ConsultationJoinCard appointment={apt} variant="compact" />
+                    </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>

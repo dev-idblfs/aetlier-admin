@@ -57,6 +57,8 @@ export const api = createApi({
     "Wallet",
     "Category",
     "Lead",
+    "AuditLog",
+    "Consultation",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -96,6 +98,7 @@ export const api = createApi({
       query: ({
         page = 1,
         page_size = 10,
+        size,
         status,
         date_from,
         date_to,
@@ -103,7 +106,7 @@ export const api = createApi({
       } = {}) => {
         const params = new URLSearchParams({
           page: page.toString(),
-          page_size: page_size.toString(),
+          size: String(size ?? page_size),
         });
         if (status) params.append("status", status);
         if (date_from) params.append("date_from", date_from);
@@ -118,6 +121,14 @@ export const api = createApi({
     getAppointment: builder.query({
       query: (id) => `/appointments/${id}`,
       providesTags: (result, error, id) => [{ type: "Appointment", id }],
+    }),
+
+    // GET /appointments/:id/consultation - Consultation status & join metadata
+    getConsultation: builder.query({
+      query: (appointmentId) => `/appointments/${appointmentId}/consultation`,
+      providesTags: (result, error, appointmentId) => [
+        { type: "Consultation", id: appointmentId },
+      ],
     }),
 
     // POST /appointments - Create new appointment
@@ -203,10 +214,12 @@ export const api = createApi({
 
     // PATCH /admin/users/:id - Update user
     updateUser: builder.mutation({
-      query: ({ id, name, phone, is_active, is_verified }) => {
+      query: ({ id, name, phone, password, is_active, is_verified }) => {
         const params = new URLSearchParams();
         if (name !== undefined) params.append("name", name);
         if (phone !== undefined) params.append("phone", phone);
+        if (password !== undefined && password !== "")
+          params.append("password", password);
         if (is_active !== undefined) params.append("is_active", is_active);
         if (is_verified !== undefined)
           params.append("is_verified", is_verified);
@@ -458,6 +471,40 @@ export const api = createApi({
     getVerificationAudit: builder.query({
       query: (verificationId) => `/verification/${verificationId}/audit`,
       providesTags: (result, error, id) => [{ type: "Verification", id: `audit-${id}` }],
+    }),
+
+    getAuditLogs: builder.query({
+      query: ({
+        page = 1,
+        page_size = 20,
+        entity_type,
+        entity_id,
+        action,
+        actor_user_id,
+        date_from,
+        date_to,
+      } = {}) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          page_size: String(page_size),
+        });
+        if (entity_type) params.append("entity_type", entity_type);
+        if (entity_id) params.append("entity_id", entity_id);
+        if (action) params.append("action", action);
+        if (actor_user_id) params.append("actor_user_id", actor_user_id);
+        if (date_from) params.append("date_from", date_from);
+        if (date_to) params.append("date_to", date_to);
+        return `/admin/audit-logs?${params.toString()}`;
+      },
+      providesTags: ["AuditLog"],
+    }),
+
+    getEntityAuditLogs: builder.query({
+      query: ({ entityType, entityId }) =>
+        `/audit-logs/${entityType}/${entityId}`,
+      providesTags: (result, error, { entityId }) => [
+        { type: "AuditLog", id: entityId },
+      ],
     }),
 
     getVerificationStatistics: builder.query({
@@ -1148,6 +1195,7 @@ export const {
   // Appointments
   useGetAppointmentsQuery,
   useGetAppointmentQuery,
+  useGetConsultationQuery,
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
   useDeleteAppointmentMutation,
@@ -1262,6 +1310,8 @@ export const {
   useGetAdminVerificationRecordQuery,
   useVerifyDocumentMutation,
   useGetVerificationAuditQuery,
+  useGetAuditLogsQuery,
+  useGetEntityAuditLogsQuery,
   useGetVerificationStatisticsQuery,
   useGetDocumentDownloadUrlQuery,
   useLazyGetDocumentDownloadUrlQuery,

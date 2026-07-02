@@ -149,6 +149,8 @@ export default function EditDoctorPage() {
                     experience_years: doctor.experience_years || 0,
                     languages: doctor.languages || [],
                     is_active: doctor.is_active ?? true,
+                    accepts_online_consultation: doctor.accepts_online_consultation ?? false,
+                    can_prescribe: doctor.can_prescribe ?? false,
                 }}
                 onSubmit={onSubmit}
                 isLoading={isUpdating}
