@@ -16,9 +16,12 @@ const config = {
   appName: "Aetlier Admin",
   appVersion: "1.0.0",
 
-  // Authentication
+  // Authentication (clinic admin — host-only cookie)
   tokenKey: "admin_access_token",
   refreshTokenKey: "admin_refresh_token",
+
+  // Platform console operator JWT (aud=platform) — separate from clinic
+  platformTokenKey: "platform_access_token",
 
   // Pagination defaults
   defaultPageSize: 10,
