@@ -43,6 +43,7 @@ export const api = createApi({
     "Appointment",
     "User",
     "Doctor",
+    "DoctorService",
     "Verification",
     "Service",
     "Role",
@@ -386,6 +387,28 @@ export const api = createApi({
       providesTags: (result, error, id) => [{ type: "Doctor", id }],
     }),
 
+    // GET /doctors/:id/services - Doctor service assignments
+    getDoctorServices: builder.query({
+      query: (doctorId) => `/doctors/${doctorId}/services`,
+      providesTags: (result, error, doctorId) => [
+        { type: "Doctor", id: doctorId },
+        "DoctorService",
+      ],
+    }),
+
+    // PUT /doctors/:id/services - Replace doctor service assignments
+    updateDoctorServices: builder.mutation({
+      query: ({ doctorId, assignments }) => ({
+        url: `/doctors/${doctorId}/services`,
+        method: "PUT",
+        body: assignments,
+      }),
+      invalidatesTags: (result, error, { doctorId }) => [
+        { type: "Doctor", id: doctorId },
+        "DoctorService",
+      ],
+    }),
+
     // POST /doctors - Create doctor
     createDoctor: builder.mutation({
       query: (data) => ({
@@ -607,7 +630,7 @@ export const api = createApi({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["Category"],
+      invalidatesTags: ["Category", "Service"],
     }),
 
     // PATCH /categories/:id - Update category
@@ -620,6 +643,7 @@ export const api = createApi({
       invalidatesTags: (result, error, { id }) => [
         { type: "Category", id },
         "Category",
+        "Service",
       ],
     }),
 
@@ -629,7 +653,7 @@ export const api = createApi({
         url: `/categories/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Category"],
+      invalidatesTags: ["Category", "Service"],
     }),
 
     // =========================================================================
@@ -1304,6 +1328,8 @@ export const {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   // Doctor Verifications
+  useGetDoctorServicesQuery,
+  useUpdateDoctorServicesMutation,
   useGetDoctorVerificationQuery,
   useUpdateVerificationStatusMutation,
   useGetPendingVerificationsQuery,

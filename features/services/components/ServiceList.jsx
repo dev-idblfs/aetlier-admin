@@ -207,7 +207,6 @@ export default function ServiceList() {
                         variant="flat"
                         size="sm"
                         startContent={<Briefcase className="w-4 h-4" />}
-                        className="hidden sm:flex"
                     >
                         Categories
                     </LinkButton>

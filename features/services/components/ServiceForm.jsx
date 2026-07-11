@@ -84,7 +84,7 @@ export default function ServiceForm({
     const defaultValues = {
         name: initialData?.name || '',
         description: initialData?.description || '',
-        category: initialData?.category || '',
+        category_id: initialData?.category_id || '',
         duration: initialData?.duration?.toString() || '',
         base_price:
             initialData?.base_price != null
@@ -219,13 +219,13 @@ export default function ServiceForm({
                                         className="sm:col-span-1"
                                     />
                                     <FormSelect
-                                        name="category"
+                                        name="category_id"
                                         label="Category"
                                         placeholder="Select category"
                                         isRequired
                                     >
                                         {(categories || []).map((cat) => (
-                                            <SelectItem key={cat.name} value={cat.name}>
+                                            <SelectItem key={cat.id} value={cat.id}>
                                                 {cat.name}
                                             </SelectItem>
                                         ))}

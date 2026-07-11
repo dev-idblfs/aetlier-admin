@@ -11,6 +11,7 @@ import {
 } from '@/redux/services/api';
 import { FormPageLayout, FormCompactCard, FormSectionCard } from '@/components/ui';
 import DoctorForm from '@/features/doctors/components/DoctorForm';
+import DoctorServiceAssignments from '@/features/doctors/components/DoctorServiceAssignments';
 import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';
 import DocumentReviewCard from '@/components/verification/DocumentReviewCard';
 import VerificationActions from '@/components/verification/VerificationActions';
@@ -159,7 +160,8 @@ export default function EditDoctorPage() {
             />
 
             {(doctor?.user_id || doctor?.id) && (
-                <div className="mt-3">
+                <div className="mt-3 space-y-3">
+                    <DoctorServiceAssignments doctorId={doctor.user_id || doctor.id} />
                     <VerificationSection doctorUserId={doctor.user_id || doctor.id} />
                 </div>
             )}
