@@ -53,6 +53,7 @@ const SOURCE_LABELS = {
     GOOGLE_ONE_TAP: 'Google One Tap',
     CONTACT_FORM: 'Contact Form',
     HOMEPAGE_FORM: 'Homepage Form',
+    CLINIC_CAMP: 'Clinic Camp',
     MANUAL: 'Manual',
 };
 
