@@ -1,6 +1,6 @@
 /**
  * Admin Sidebar Navigation
- * Mobile-first responsive with overlay on mobile
+ * Desktop: fixed left rail. Mobile: left drawer overlay opened from the header menu.
  * Dynamic navigation fetched from backend API based on user permissions
  */
 
@@ -157,6 +157,16 @@ export default function Sidebar() {
         });
     }, [pathname, visibleNavItems]);
 
+    // Close mobile drawer when viewport crosses to desktop
+    useEffect(() => {
+        const media = window.matchMedia('(min-width: 768px)');
+        const handleChange = (event) => {
+            if (event.matches) setIsMobileOpen(false);
+        };
+        media.addEventListener('change', handleChange);
+        return () => media.removeEventListener('change', handleChange);
+    }, [setIsMobileOpen]);
+
     // Lock body scroll while the mobile drawer is open
     useEffect(() => {
         if (!isMobileOpen) return undefined;
@@ -179,7 +189,7 @@ export default function Sidebar() {
 
     const showLabels = !isCollapsed || isMobileOpen;
 
-    const sidebarContent = (
+    const renderSidebarContent = () => (
         <>
             {/* Logo */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
@@ -397,7 +407,7 @@ export default function Sidebar() {
                 animate={{ width: isCollapsed ? 80 : 280 }}
                 className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col"
             >
-                {sidebarContent}
+                {renderSidebarContent()}
             </motion.aside>
 
             {/* Mobile left drawer */}
@@ -423,7 +433,7 @@ export default function Sidebar() {
                             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
                             className="md:hidden fixed left-0 top-0 h-screen w-[min(280px,85vw)] bg-white border-r border-gray-100 z-50 flex flex-col shadow-xl"
                         >
-                            {sidebarContent}
+                            {renderSidebarContent()}
                         </motion.aside>
                     </>
                 )}

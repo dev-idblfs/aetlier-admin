@@ -1,6 +1,6 @@
 /**
  * Admin Layout Component
- * Mobile-first responsive layout with collapsible sidebar
+ * Desktop sidebar + mobile left-drawer navigation
  */
 
 'use client';
