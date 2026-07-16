@@ -44,6 +44,8 @@ export default function WhatsAppIntegrationsPanel() {
   });
 
   const whatsappEnabled = methods.watch('whatsapp_enabled');
+  const phoneNumberId = methods.watch('whatsapp_phone_number_id');
+  const accessTokenInput = methods.watch('whatsapp_access_token');
 
   useEffect(() => {
     if (data) {
@@ -51,6 +53,7 @@ export default function WhatsAppIntegrationsPanel() {
         whatsapp_enabled: data.whatsapp_enabled ?? false,
         whatsapp_phone_number_id: data.whatsapp_phone_number_id || '',
         whatsapp_business_account_id: data.whatsapp_business_account_id || '',
+        // Never put masked secrets into inputs — leave blank to keep existing
         whatsapp_access_token: '',
         whatsapp_verify_token: '',
         whatsapp_app_secret: '',
@@ -63,13 +66,13 @@ export default function WhatsAppIntegrationsPanel() {
     onSubmit: async (values) => {
       if (!canUpdate) return;
       const payload = { ...values };
-      if (!payload.whatsapp_access_token) delete payload.whatsapp_access_token;
-      if (!payload.whatsapp_verify_token) delete payload.whatsapp_verify_token;
-      if (!payload.whatsapp_app_secret) delete payload.whatsapp_app_secret;
+      if (!payload.whatsapp_access_token?.trim()) delete payload.whatsapp_access_token;
+      if (!payload.whatsapp_verify_token?.trim()) delete payload.whatsapp_verify_token;
+      if (!payload.whatsapp_app_secret?.trim()) delete payload.whatsapp_app_secret;
       await updateIntegration(payload).unwrap();
       await refetch();
     },
-    onSuccess: () => toast.success('WhatsApp settings saved'),
+    onSuccess: () => toast.success('WhatsApp settings saved to database'),
   });
 
   if (!canRead) {
@@ -88,8 +91,26 @@ export default function WhatsAppIntegrationsPanel() {
     );
   }
 
+  const hasToken =
+    Boolean(accessTokenInput?.trim()) || Boolean(data?.has_access_token);
+  const canTest =
+    canUpdate &&
+    whatsappEnabled &&
+    Boolean(phoneNumberId?.trim()) &&
+    hasToken;
+
   const handleTest = async () => {
     try {
+      // Persist draft credentials first so the test uses DB/env merge after reload
+      if (canUpdate) {
+        const values = methods.getValues();
+        const payload = { ...values };
+        if (!payload.whatsapp_access_token?.trim()) delete payload.whatsapp_access_token;
+        if (!payload.whatsapp_verify_token?.trim()) delete payload.whatsapp_verify_token;
+        if (!payload.whatsapp_app_secret?.trim()) delete payload.whatsapp_app_secret;
+        await updateIntegration(payload).unwrap();
+        await refetch();
+      }
       const res = await testConnection().unwrap();
       if (res.success) toast.success(res.message);
       else toast.error(res.message);
@@ -98,9 +119,19 @@ export default function WhatsAppIntegrationsPanel() {
     }
   };
 
+  const isEnvSource = data?.whatsapp_enabled_source === 'environment';
+
   return (
     <Form methods={methods} onSubmit={handleSubmit} className="space-y-6 pt-4 md:pt-6">
       <FormErrorSummary error={methods.formState.errors.root?.message} />
+
+      {isEnvSource && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Currently using <strong>environment</strong> fallback for the master
+          switch. Click <strong>Save integration</strong> to store credentials and
+          enable/disable in the database (recommended for production).
+        </div>
+      )}
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -124,49 +155,75 @@ export default function WhatsAppIntegrationsPanel() {
         <Switch
           isSelected={whatsappEnabled}
           isDisabled={!canUpdate}
-          onValueChange={(v) => methods.setValue('whatsapp_enabled', v, { shouldValidate: true })}
+          onValueChange={(v) =>
+            methods.setValue('whatsapp_enabled', v, { shouldValidate: true })
+          }
         >
           WhatsApp notifications enabled
         </Switch>
         {data?.whatsapp_enabled_source && (
           <p className="text-xs text-gray-500">
             Source: {data.whatsapp_enabled_source}
+            {data.whatsapp_enabled_source === 'database'
+              ? ' (admin UI overrides env)'
+              : ' (env until you save here)'}
           </p>
         )}
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Meta credentials</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Meta credentials</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            From Meta → WhatsApp → API Setup. Phone number ID and WABA ID are
+            numeric (not an email). Leave token fields blank to keep the current
+            saved secret.
+          </p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
             name="whatsapp_phone_number_id"
             label="Phone number ID"
+            description="e.g. 1081486045057221"
             isDisabled={!canUpdate}
           />
           <FormInput
             name="whatsapp_business_account_id"
             label="Business account ID (WABA)"
+            description="Numeric WABA ID from Meta (not an email)"
             isDisabled={!canUpdate}
           />
           <FormInput
             name="whatsapp_access_token"
             label="Access token"
             type="password"
-            placeholder={data?.has_access_token ? data.whatsapp_access_token : 'Enter token'}
+            placeholder={
+              data?.has_access_token
+                ? '•••• saved — enter new token to replace'
+                : 'Paste Meta access token'
+            }
             isDisabled={!canUpdate}
           />
           <FormInput
             name="whatsapp_verify_token"
             label="Verify token"
             type="password"
-            placeholder={data?.whatsapp_verify_token || 'Webhook verify token'}
+            placeholder={
+              data?.whatsapp_verify_token
+                ? '•••• saved — enter new value to replace'
+                : 'Same string as Meta webhook verify token'
+            }
             isDisabled={!canUpdate}
           />
           <FormInput
             name="whatsapp_app_secret"
             label="App secret"
             type="password"
-            placeholder={data?.whatsapp_app_secret || 'Optional app secret'}
+            placeholder={
+              data?.whatsapp_app_secret
+                ? '•••• saved — enter new value to replace'
+                : 'Optional app secret'
+            }
             isDisabled={!canUpdate}
           />
         </div>
@@ -185,17 +242,18 @@ export default function WhatsAppIntegrationsPanel() {
             variant="bordered"
             startContent={<Zap className="w-4 h-4" />}
             isLoading={testing}
-            isDisabled={
-              !canUpdate ||
-              !whatsappEnabled ||
-              !data?.has_access_token ||
-              !methods.getValues('whatsapp_phone_number_id')
-            }
+            isDisabled={!canTest}
             onPress={handleTest}
           >
             Test connection
           </Button>
         </div>
+        {!canTest && canUpdate && (
+          <p className="text-xs text-gray-500">
+            Test requires: WhatsApp enabled, phone number ID, and an access token
+            (new or already saved).
+          </p>
+        )}
       </div>
     </Form>
   );

@@ -134,6 +134,7 @@ export default function SettingsPage() {
                 business_phone: data.clinicPhone,
                 business_address: data.clinicAddress,
                 invoice_prefix: data.invoicePrefix,
+                next_invoice_seq: parseInt(data.invoiceStartNumber, 10) || undefined,
                 default_tax_rate: parseFloat(data.defaultTaxRate),
                 business_gstin: data.companyGstNumber,
                 business_pan: data.companyPanNumber,
@@ -145,20 +146,23 @@ export default function SettingsPage() {
 
             promises.push(updateInvoiceSettings(invoiceData).unwrap());
 
-            // Prepare user preferences data
+            // Prepare user preferences data (RTK expects { userId, preferences })
             if (user?.id) {
-                const preferencesData = {
-                    userId: user.id,
-                    email_notifications: data.emailNotifications,
-                    appointment_reminders: data.appointmentReminders,
-                    marketing_emails: data.marketingEmails,
-                    sms_notifications: data.smsNotifications,
-                    dark_mode: data.darkMode,
-                    compact_view: data.compactView,
-                    show_animations: data.showAnimations,
-                    two_factor_enabled: data.twoFactorAuth,
-                };
-                promises.push(updateUserPreferences(preferencesData).unwrap());
+                promises.push(
+                    updateUserPreferences({
+                        userId: user.id,
+                        preferences: {
+                            email_notifications: data.emailNotifications,
+                            appointment_reminders: data.appointmentReminders,
+                            marketing_emails: data.marketingEmails,
+                            sms_notifications: data.smsNotifications,
+                            dark_mode: data.darkMode,
+                            compact_view: data.compactView,
+                            show_animations: data.showAnimations,
+                            two_factor_enabled: data.twoFactorAuth,
+                        },
+                    }).unwrap()
+                );
             }
 
             await Promise.all(promises);
@@ -175,7 +179,7 @@ export default function SettingsPage() {
             title="Settings"
             breadcrumbs={[{ label: 'Settings' }]}
             actions={
-                !isLoading ? (
+                !isLoading && activeTab !== 'integrations' ? (
                     <Button
                         color="primary"
                         size="sm"
@@ -270,7 +274,7 @@ export default function SettingsPage() {
                                             <FormSwitchRow
                                                 name="smsNotifications"
                                                 label="SMS Notifications"
-                                                description="Receive SMS for appointment confirmations"
+                                                description="Preference is saved; SMS delivery is not wired yet (WhatsApp is used for mobile alerts)"
                                             />
                                         </SettingsCard>
                                     </motion.div>
@@ -343,18 +347,21 @@ export default function SettingsPage() {
                                                 <FormSwitchRow
                                                     name="twoFactorAuth"
                                                     label="Two-Factor Authentication"
-                                                    description="Add an extra layer of security to your account"
+                                                    description="Preference is saved for future use; login 2FA is not enforced yet"
                                                 />
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-2 sm:gap-4 border-b border-gray-100">
                                                     <div>
                                                         <p className="font-medium text-gray-900 text-sm md:text-base">Session Timeout</p>
-                                                        <p className="text-xs md:text-sm text-gray-500">Auto-logout after inactivity (minutes)</p>
+                                                        <p className="text-xs md:text-sm text-gray-500">
+                                                            Not persisted yet — display only
+                                                        </p>
                                                     </div>
                                                     <div className="w-full sm:w-24">
                                                         <FormInput
                                                             name="sessionTimeout"
                                                             type="number"
                                                             size="sm"
+                                                            isDisabled
                                                         />
                                                     </div>
                                                 </div>
