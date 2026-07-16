@@ -6,7 +6,7 @@
 'use client';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { Bell, Search, User, LogOut, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Bell, Search, User, LogOut, ChevronRight, ArrowLeft, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -43,7 +43,7 @@ export default function Header() {
     const dispatch = useDispatch();
     const router = useRouter();
     const pathname = usePathname();
-    const { pageTitle, breadcrumbs, headerActions } = useSidebar();
+    const { pageTitle, breadcrumbs, headerActions, isMobileOpen, setIsMobileOpen } = useSidebar();
     const isRoot = pathname === '/';
     const backHref = getBackHref(breadcrumbs);
     const displayTitle = getDisplayTitle(pageTitle, breadcrumbs);
@@ -62,16 +62,22 @@ export default function Header() {
 
     return (
         <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-3 md:px-4 sticky top-0 z-30 relative">
-            {/* ── Mobile left: back button OR logo ── */}
-            <div className="flex items-center md:hidden shrink-0">
-                {isRoot ? (
-                    <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">A</span>
-                    </div>
-                ) : (
+            {/* ── Mobile left: menu + back ── */}
+            <div className="flex items-center gap-1 md:hidden shrink-0">
+                <button
+                    type="button"
+                    onClick={() => setIsMobileOpen(!isMobileOpen)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors -ml-1"
+                    aria-label={isMobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                    aria-expanded={isMobileOpen}
+                >
+                    <Menu className="w-5 h-5 text-gray-700" />
+                </button>
+                {!isRoot && (
                     <button
+                        type="button"
                         onClick={handleBack}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors -ml-1"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
                         aria-label="Go back"
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-700" />

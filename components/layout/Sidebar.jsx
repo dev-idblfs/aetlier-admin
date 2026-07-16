@@ -29,6 +29,7 @@ import {
     BarChart3,
     ChevronDown,
     Menu,
+    X,
     AlertCircle,
     Target,
 } from 'lucide-react';
@@ -156,12 +157,34 @@ export default function Sidebar() {
         });
     }, [pathname, visibleNavItems]);
 
+    // Lock body scroll while the mobile drawer is open
+    useEffect(() => {
+        if (!isMobileOpen) return undefined;
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previous;
+        };
+    }, [isMobileOpen]);
+
+    // Close mobile drawer on Escape
+    useEffect(() => {
+        if (!isMobileOpen) return undefined;
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') setIsMobileOpen(false);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isMobileOpen, setIsMobileOpen]);
+
+    const showLabels = !isCollapsed || isMobileOpen;
+
     const sidebarContent = (
         <>
             {/* Logo */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
                 <AnimatePresence mode="wait">
-                    {!isCollapsed && (
+                    {showLabels && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -176,10 +199,22 @@ export default function Sidebar() {
                     )}
                 </AnimatePresence>
 
+                {/* Close drawer on mobile */}
+                <button
+                    type="button"
+                    onClick={() => setIsMobileOpen(false)}
+                    className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    aria-label="Close navigation menu"
+                >
+                    <X className="w-5 h-5 text-gray-500" />
+                </button>
+
                 {/* Collapse button for desktop */}
                 <button
+                    type="button"
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                     {isCollapsed ? (
                         <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -225,7 +260,7 @@ export default function Sidebar() {
                                         >
                                             <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary-600' : ''}`} />
                                             <AnimatePresence mode="wait">
-                                                {(!isCollapsed || isMobileOpen) && (
+                                                {showLabels && (
                                                     <motion.span
                                                         initial={{ opacity: 0, width: 0 }}
                                                         animate={{ opacity: 1, width: 'auto' }}
@@ -236,12 +271,12 @@ export default function Sidebar() {
                                                     </motion.span>
                                                 )}
                                             </AnimatePresence>
-                                            {(!isCollapsed || isMobileOpen) && (
+                                            {showLabels && (
                                                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                             )}
                                         </button>
                                         <AnimatePresence>
-                                            {isExpanded && (!isCollapsed || isMobileOpen) && (
+                                            {isExpanded && showLabels && (
                                                 <motion.ul
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: 'auto', opacity: 1 }}
@@ -294,7 +329,7 @@ export default function Sidebar() {
                                     >
                                         <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary-600' : ''}`} />
                                         <AnimatePresence mode="wait">
-                                            {(!isCollapsed || isMobileOpen) && (
+                                            {showLabels && (
                                                 <motion.span
                                                     initial={{ opacity: 0, width: 0 }}
                                                     animate={{ opacity: 1, width: 'auto' }}
@@ -316,7 +351,7 @@ export default function Sidebar() {
             {/* User & Logout */}
             <div className="p-3 border-t border-gray-100">
                 <AnimatePresence mode="wait">
-                    {(!isCollapsed || isMobileOpen) && user && (
+                    {showLabels && user && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -338,7 +373,7 @@ export default function Sidebar() {
                 >
                     <LogOut className="w-4 h-4 shrink-0" />
                     <AnimatePresence mode="wait">
-                        {(!isCollapsed || isMobileOpen) && (
+                        {showLabels && (
                             <motion.span
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -355,12 +390,44 @@ export default function Sidebar() {
     );
 
     return (
-        <motion.aside
-            initial={false}
-            animate={{ width: isCollapsed ? 80 : 280 }}
-            className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col"
-        >
-            {sidebarContent}
-        </motion.aside>
+        <>
+            {/* Desktop fixed sidebar */}
+            <motion.aside
+                initial={false}
+                animate={{ width: isCollapsed ? 80 : 280 }}
+                className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col"
+            >
+                {sidebarContent}
+            </motion.aside>
+
+            {/* Mobile left drawer */}
+            <AnimatePresence>
+                {isMobileOpen && (
+                    <>
+                        <motion.button
+                            type="button"
+                            aria-label="Close navigation overlay"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="md:hidden fixed inset-0 z-40 bg-black/40"
+                            onClick={() => setIsMobileOpen(false)}
+                        />
+                        <motion.aside
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Navigation menu"
+                            initial={{ x: -280 }}
+                            animate={{ x: 0 }}
+                            exit={{ x: -280 }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                            className="md:hidden fixed left-0 top-0 h-screen w-[min(280px,85vw)] bg-white border-r border-gray-100 z-50 flex flex-col shadow-xl"
+                        >
+                            {sidebarContent}
+                        </motion.aside>
+                    </>
+                )}
+            </AnimatePresence>
+        </>
     );
 }

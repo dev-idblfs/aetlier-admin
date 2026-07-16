@@ -11,7 +11,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Spinner } from '@heroui/react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import BottomNav from './BottomNav';
 import RoutePermissionGuard from '@/components/RoutePermissionGuard';
 import { fetchUserProfile } from '@/redux/slices/authSlice';
 import { useGetNavigationPermissionPresetsQuery, api } from '@/redux/services/api';
@@ -118,13 +117,10 @@ export default function AdminLayout({ children }) {
                     ${isCollapsed ? 'md:ml-[80px]' : 'md:ml-[280px]'}
                 `}>
                     <Header />
-                    <main className="flex-1 p-3 md:p-4 pb-24 md:pb-4">
+                    <main className="flex-1 p-3 md:p-4">
                         <RoutePermissionGuard>{children}</RoutePermissionGuard>
                     </main>
                 </div>
-
-                {/* Bottom navigation — mobile only */}
-                <BottomNav />
             </div>
         </SidebarContext.Provider>
     );
