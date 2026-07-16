@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronUp, ChevronDown, MoreVertical } from 'lucide-react';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button, Skeleton, Checkbox } from '@heroui/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +27,12 @@ export default function ResponsiveTable({
     renderMobileCard,
     className = '',
 }) {
+    const toIdString = (id) => String(id);
+    const selectedIdSet = useMemo(
+        () => new Set(selectedIds.map(toIdString)),
+        [selectedIds],
+    );
+
     const handleSort = (key) => {
         if (!sortable || !onSort) return;
         const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
@@ -35,17 +41,19 @@ export default function ResponsiveTable({
 
     const handleSelectAll = () => {
         if (!onSelectionChange) return;
-        if (selectedIds.length === data.length) {
+        const pageIds = data.map((item) => item.id);
+        if (pageIds.length > 0 && pageIds.every((id) => selectedIdSet.has(toIdString(id)))) {
             onSelectionChange([]);
         } else {
-            onSelectionChange(data.map(item => item.id));
+            onSelectionChange(pageIds);
         }
     };
 
     const handleSelectRow = (id) => {
         if (!onSelectionChange) return;
-        if (selectedIds.includes(id)) {
-            onSelectionChange(selectedIds.filter(i => i !== id));
+        const sid = toIdString(id);
+        if (selectedIdSet.has(sid)) {
+            onSelectionChange(selectedIds.filter((itemId) => toIdString(itemId) !== sid));
         } else {
             onSelectionChange([...selectedIds, id]);
         }
@@ -105,16 +113,19 @@ export default function ResponsiveTable({
                     <table className="w-full">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
-                                {selectable && (
+                                {selectable ? (
                                     <th className="px-4 py-3 w-12">
                                         <Checkbox
-                                            isSelected={selectedIds.length === data.length}
-                                            isIndeterminate={selectedIds.length > 0 && selectedIds.length < data.length}
-                                            onChange={handleSelectAll}
+                                            isSelected={data.length > 0 && data.every((item) => selectedIdSet.has(toIdString(item.id)))}
+                                            isIndeterminate={
+                                                data.some((item) => selectedIdSet.has(toIdString(item.id)))
+                                                && !data.every((item) => selectedIdSet.has(toIdString(item.id)))
+                                            }
+                                            onValueChange={handleSelectAll}
                                             size="sm"
                                         />
                                     </th>
-                                )}
+                                ) : null}
                                 {columns.map((column) => (
                                     <th
                                         key={column.key}
@@ -148,19 +159,19 @@ export default function ResponsiveTable({
                                         exit={{ opacity: 0 }}
                                         className={`
                                             ${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
-                                            ${selectedIds.includes(row.id) ? 'bg-primary-50' : ''}
+                                            ${selectedIdSet.has(toIdString(row.id)) ? 'bg-primary-50' : ''}
                                         `}
                                         onClick={() => onRowClick?.(row)}
                                     >
-                                        {selectable && (
+                                        {selectable ? (
                                             <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                                 <Checkbox
-                                                    isSelected={selectedIds.includes(row.id)}
-                                                    onChange={() => handleSelectRow(row.id)}
+                                                    isSelected={selectedIdSet.has(toIdString(row.id))}
+                                                    onValueChange={() => handleSelectRow(row.id)}
                                                     size="sm"
                                                 />
                                             </td>
-                                        )}
+                                        ) : null}
                                         {columns.map((column) => (
                                             <td key={column.key} className="px-4 py-3 text-sm text-gray-900">
                                                 {column.render ? column.render(row) : row[column.key]}
@@ -210,7 +221,7 @@ export default function ResponsiveTable({
                         >
                             {renderMobileCard ? (
                                 renderMobileCard(row, {
-                                    isSelected: selectedIds.includes(row.id),
+                                    isSelected: selectedIdSet.has(toIdString(row.id)),
                                     onSelect: () => handleSelectRow(row.id),
                                     onClick: () => onRowClick?.(row),
                                     actions: actions.map(a => ({
@@ -252,15 +263,15 @@ function DefaultMobileCard({ row, columns, actions, selectable, isSelected, onSe
             onClick={onClick}
         >
             <div className="flex items-start gap-3">
-                {selectable && (
+                {selectable ? (
                     <div onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                             isSelected={isSelected}
-                            onChange={onSelect}
+                            onValueChange={onSelect}
                             size="sm"
                         />
                     </div>
-                )}
+                ) : null}
                 <div className="flex-1 min-w-0">
                     {/* Primary field */}
                     <div className="font-medium text-gray-900 truncate">

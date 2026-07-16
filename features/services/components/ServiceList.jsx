@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Plus,
@@ -24,14 +24,19 @@ import {
     Pagination,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton, ServiceThumbnail } from '@/components/ui';
+import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton, ServiceThumbnail, BulkActionBar } from '@/components/ui';
 import {
     useGetServicesQuery,
     useGetServiceQuery,
     useDeleteServiceMutation,
+    useBulkDeleteServicesMutation,
     useGetCategoriesQuery,
 } from '@/redux/services/api';
 import { formatCurrency } from '@/utils/dateFormatters';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 export default function ServiceList() {
     const router = useRouter();
@@ -52,6 +57,8 @@ export default function ServiceList() {
     );
 
     const [deleteService, { isLoading: isDeleting }] = useDeleteServiceMutation();
+    const authUser = useSelector((s) => s.auth.user);
+    const canDelete = hasPermission(authUser, PERMISSIONS.SERVICE_DELETE);
 
     const categoryOptions = [
         { value: '', label: 'All Categories' },
@@ -65,18 +72,34 @@ export default function ServiceList() {
 
     // Client-side filtering since backend returns all services
     const allServices = data?.services || data || [];
-    const filteredServices = allServices.filter(service => {
-        const matchesSearch = !search ||
-            service.name?.toLowerCase().includes(search.toLowerCase()) ||
-            service.description?.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = !categoryFilter || service.category === categoryFilter;
-        return matchesSearch && matchesCategory;
-    });
+    const filteredServices = useMemo(
+        () => allServices.filter((service) => {
+            const matchesSearch = !search
+                || service.name?.toLowerCase().includes(search.toLowerCase())
+                || service.description?.toLowerCase().includes(search.toLowerCase());
+            const matchesCategory = !categoryFilter || service.category === categoryFilter;
+            return matchesSearch && matchesCategory;
+        }),
+        [allServices, search, categoryFilter],
+    );
 
-    // Pagination
     const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const services = filteredServices.slice(startIndex, startIndex + itemsPerPage);
+
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        pageItems: services,
+    } = useBulkSelection(filteredServices, currentPage, itemsPerPage);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteServicesMutation, 'services');
 
     const getDisplayPrice = (service) =>
         service?.selling_price ?? service?.price;
@@ -287,11 +310,21 @@ export default function ServiceList() {
                 </span>
             </div>
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDelete}
+            />
+
             {/* Responsive Table/Cards */}
             <ResponsiveTable
                 columns={columns}
                 data={services}
                 isLoading={isLoading}
+                selectable={canDelete}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
                 emptyState={{
                     icon: 'file',
                     title: 'No services found',
@@ -482,6 +515,17 @@ export default function ServiceList() {
                 confirmLabel="Delete"
                 type="danger"
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} services?`}
+                message="Selected services will be soft-deleted and hidden from listings."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
         </ListPageLayout>
     );

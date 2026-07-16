@@ -35,14 +35,19 @@ import {
 } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, LinkButton } from '@/components/ui';
+import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, LinkButton, BulkActionBar } from '@/components/ui';
 import {
     useGetInvoicesQuery,
     useCancelInvoiceMutation,
+    useBulkCancelInvoicesMutation,
     useSendInvoiceMutation,
     useLazyGetInvoicePdfUrlQuery,
 } from '@/redux/services/api';
 import { formatDate, formatCurrency } from '@/utils/dateFormatters';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 const statusOptions = [
     { value: '', label: 'All Status' },
@@ -74,9 +79,26 @@ export default function InvoicesPage() {
     const [cancelInvoice, { isLoading: isCancelling }] = useCancelInvoiceMutation();
     const [sendInvoice, { isLoading: isSending }] = useSendInvoiceMutation();
     const [getInvoicePdf] = useLazyGetInvoicePdfUrlQuery();
+    const authUser = useSelector((s) => s.auth.user);
+    const canDelete = hasPermission(authUser, PERMISSIONS.INVOICE_DELETE);
 
     const invoices = data?.invoices || [];
     const totalPages = data?.total_pages || 1;
+    const pageSize = 20;
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        pageItems: pageInvoices,
+    } = useBulkSelection(invoices, 1, invoices.length || pageSize);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkCancelInvoicesMutation, 'invoices');
 
     const handleDeleteClick = (invoice) => {
         setSelectedInvoice(invoice);
@@ -234,11 +256,22 @@ export default function InvoicesPage() {
                 {data?.total || 0} invoice{data?.total !== 1 ? 's' : ''}
             </div>
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDelete}
+                deleteLabel="Cancel"
+            />
+
             {/* Table */}
             <ResponsiveTable
                 columns={columns}
-                data={invoices}
+                data={pageInvoices}
                 isLoading={isLoading}
+                selectable={canDelete}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
                 emptyState={{
                     icon: 'file',
                     title: 'No invoices found',
@@ -288,6 +321,17 @@ export default function InvoicesPage() {
                 confirmLabel="Cancel Invoice"
                 type="danger"
                 isLoading={isCancelling}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Cancel ${selectedCount} invoices?`}
+                message="Selected invoices will be cancelled and kept as soft-deleted records."
+                confirmLabel="Cancel Invoices"
+                type="danger"
+                isLoading={isBulkLoading}
             />
 
             {/* Send Confirmation Modal */}

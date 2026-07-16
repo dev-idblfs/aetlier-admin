@@ -18,16 +18,23 @@ import {
     DropdownTrigger,
     DropdownMenu,
     DropdownItem,
+    SelectItem,
     Spinner,
+    Checkbox,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
+import { useSelector } from 'react-redux';
 import {
     useGetCategoriesQuery,
     useCreateCategoryMutation,
     useUpdateCategoryMutation,
     useDeleteCategoryMutation,
+    useBulkDeleteCategoriesMutation,
 } from '@/redux/services/api';
-import { ConfirmModal, FormModal } from '@/components/ui';
+import { ConfirmModal, FormModal, BulkActionBar } from '@/components/ui';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 import { Form } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormSwitchRow } from '@/components/ui/FormFields';
 import { useForm } from 'react-hook-form';
@@ -60,6 +67,41 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
     const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
     const [updateCategory, { isLoading: isUpdating }] = useUpdateCategoryMutation();
     const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
+
+    const authUser = useSelector((s) => s.auth.user);
+    const canDelete = hasPermission(authUser, PERMISSIONS.CATEGORY_DELETE);
+
+    const itemsPerPage = categories.length || 1;
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        pageItems: pageCategories,
+    } = useBulkSelection(categories, 1, itemsPerPage);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteCategoriesMutation, 'categories');
+
+    const handleSelectAll = () => {
+        if (selectedIds.length === pageCategories.length) {
+            onSelectionChange([]);
+        } else {
+            onSelectionChange(pageCategories.map((c) => c.id));
+        }
+    };
+
+    const handleSelectRow = (id) => {
+        if (selectedIds.includes(id)) {
+            onSelectionChange(selectedIds.filter((i) => i !== id));
+        } else {
+            onSelectionChange([...selectedIds, id]);
+        }
+    };
 
     // Form
     const methods = useForm({
@@ -170,8 +212,15 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
     // Simple list rendering for now
     // TODO: Implement tree view for hierarchy
     const renderCategoryItem = (category) => (
-        <div key={category.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:border-gray-300 transition-colors group">
+        <div key={category.id} className={`flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:border-gray-300 transition-colors group ${selectedIds.includes(category.id) ? 'border-primary-200 bg-primary-50' : ''}`}>
             <div className="flex items-center gap-3">
+                {canDelete && (
+                    <Checkbox
+                        isSelected={selectedIds.includes(category.id)}
+                        onValueChange={() => handleSelectRow(category.id)}
+                        aria-label={`Select ${category.name}`}
+                    />
+                )}
                 <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
                     style={{ backgroundColor: category.color || '#666' }}
@@ -230,7 +279,24 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
                 </div>
             ) : (
                 <div className="grid gap-2">
-                    {categories.map(renderCategoryItem)}
+                    {canDelete && pageCategories.length > 0 && (
+                        <div className="flex items-center gap-2 px-1">
+                            <Checkbox
+                                isSelected={pageCategories.length > 0 && selectedIds.length === pageCategories.length}
+                                isIndeterminate={selectedIds.length > 0 && selectedIds.length < pageCategories.length}
+                                onValueChange={handleSelectAll}
+                                aria-label="Select all categories"
+                            />
+                            <span className="text-sm text-gray-500">Select all</span>
+                        </div>
+                    )}
+                    <BulkActionBar
+                        count={selectedCount}
+                        onDelete={onBulkOpen}
+                        onClear={clearSelection}
+                        canDelete={canDelete}
+                    />
+                    {pageCategories.map(renderCategoryItem)}
                 </div>
             )}
 
@@ -301,6 +367,17 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
                 confirmLabel="Delete"
                 type="danger"
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} categories?`}
+                message="Selected categories will be soft-deleted and hidden from listings."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
         </div>
     );

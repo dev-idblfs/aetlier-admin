@@ -50,16 +50,22 @@ import {
     DetailRow,
     FormRow,
     FormSwitchRow,
+    BulkActionBar,
 } from '@/components/ui';
 import {
     useGetUsersQuery,
     useGetRolesQuery,
     useDeleteUserMutation,
+    useBulkDeleteUsersMutation,
     useAssignUserRoleMutation,
     useRevokeUserRoleMutation,
 } from '@/redux/services/api';
 import { formatDate } from '@/utils/dateFormatters';
 import { motion } from 'framer-motion';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 export default function UsersPage() {
     const router = useRouter();
@@ -81,6 +87,9 @@ export default function UsersPage() {
     const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
     const [assignRole, { isLoading: isAssigning }] = useAssignUserRoleMutation();
     const [revokeRole, { isLoading: isRevoking }] = useRevokeUserRoleMutation();
+
+    const authUser = useSelector((s) => s.auth.user);
+    const canDelete = hasPermission(authUser, PERMISSIONS.USER_DELETE);
 
     // Reset page when filters change
     useEffect(() => {
@@ -118,9 +127,21 @@ export default function UsersPage() {
     // Pagination
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const users = useMemo(() => {
-        return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredUsers, startIndex, itemsPerPage]);
+
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        pageItems: users,
+    } = useBulkSelection(filteredUsers, currentPage, itemsPerPage);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteUsersMutation, 'users');
 
     // Role filter options
     const roleOptions = useMemo(() => {
@@ -359,11 +380,21 @@ export default function UsersPage() {
                 Showing {filteredUsers.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredUsers.length)} of {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
             </div>
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDelete}
+            />
+
             {/* Table/Cards */}
             <ResponsiveTable
                 columns={columns}
                 data={users}
                 isLoading={isLoading}
+                selectable={canDelete}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
                 emptyState={{
                     icon: 'search',
                     title: 'No users found',
@@ -512,6 +543,17 @@ export default function UsersPage() {
                 confirmLabel="Delete"
                 type="danger"
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} users?`}
+                message="Selected users will be soft-deleted and hidden from listings."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
         </ListPageLayout>
     );

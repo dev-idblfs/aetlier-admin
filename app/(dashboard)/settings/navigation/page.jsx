@@ -41,12 +41,13 @@ import {
     BarChart3,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, ConfirmModal, FormModal } from '@/components/ui';
+import { ListPageLayout, ConfirmModal, FormModal, BulkActionBar } from '@/components/ui';
 import {
     useGetAllNavigationQuery,
     useCreateNavigationItemMutation,
     useUpdateNavigationItemMutation,
     useDeleteNavigationItemMutation,
+    useBulkDeleteNavigationMutation,
     useUpdateNavigationPermissionsMutation,
     useGetPermissionsQuery,
     useGetNavigationPermissionPresetsQuery,
@@ -56,6 +57,8 @@ import {
     getPresetPermissionsForHref,
     getPresetPermissionsForLabel,
 } from '@/utils/routeAccess';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 // Available icons for navigation items
 const AVAILABLE_ICONS = [
@@ -86,7 +89,7 @@ const getIcon = (iconName) => {
 /**
  * Navigation Item Card Component
  */
-function NavigationItemCard({ item, onEdit, onDelete, onManagePermissions, level = 0 }) {
+function NavigationItemCard({ item, onEdit, onDelete, onManagePermissions, onToggleSelect, selectedIds, level = 0 }) {
     const [isExpanded, setIsExpanded] = useState(true);
     const IconComponent = getIcon(item.icon);
     const hasChildren = item.children && item.children.length > 0;
@@ -98,6 +101,13 @@ function NavigationItemCard({ item, onEdit, onDelete, onManagePermissions, level
                     <div className="flex items-center gap-3">
                         {/* Drag Handle */}
                         <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
+                        <input
+                            type="checkbox"
+                            checked={selectedIds.includes(item.id)}
+                            onChange={() => onToggleSelect(item.id)}
+                            className="w-4 h-4"
+                            aria-label={`Select ${item.label}`}
+                        />
 
                         {/* Expand/Collapse for items with children */}
                         {hasChildren ? (
@@ -187,6 +197,8 @@ function NavigationItemCard({ item, onEdit, onDelete, onManagePermissions, level
                                 onEdit={onEdit}
                                 onDelete={onDelete}
                                 onManagePermissions={onManagePermissions}
+                                onToggleSelect={onToggleSelect}
+                                selectedIds={selectedIds}
                                 level={level + 1}
                             />
                         ))}
@@ -225,6 +237,19 @@ export default function NavigationManagementPage() {
     });
     const [selectedPermissions, setSelectedPermissions] = useState([]);
     const [labelError, setLabelError] = useState('');
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+    } = useBulkSelection(navItems, 1, navItems.length || 1);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteNavigationMutation, 'navigation items');
 
     // Get flat list of parent items for parent selection
     const parentOptions = useMemo(() => {
@@ -385,6 +410,13 @@ export default function NavigationManagementPage() {
                 : [...prev, permId]
         );
     };
+    const handleToggleSelect = (id) => {
+        onSelectionChange(
+            selectedIds.includes(id)
+                ? selectedIds.filter((selectedId) => selectedId !== id)
+                : [...selectedIds, id]
+        );
+    };
 
     // Navigation Form Fields
     const formFields = (
@@ -486,6 +518,13 @@ export default function NavigationManagementPage() {
                 </Button>
             }
         >
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete
+            />
+
             {/* Navigation Items List */}
             <div className="space-y-2">
                 {navItems.length === 0 ? (
@@ -514,6 +553,8 @@ export default function NavigationManagementPage() {
                             onEdit={handleEdit}
                             onDelete={handleDelete}
                             onManagePermissions={handleManagePermissions}
+                            onToggleSelect={handleToggleSelect}
+                            selectedIds={selectedIds}
                         />
                     ))
                 )}
@@ -562,6 +603,17 @@ export default function NavigationManagementPage() {
                 confirmColor="danger"
                 onConfirm={confirmDelete}
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} navigation items?`}
+                message="Selected navigation items will be soft-deleted."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
 
             {/* Permissions Modal */}

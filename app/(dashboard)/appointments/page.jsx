@@ -48,11 +48,12 @@ import {
     Spinner,
     Pagination,
     Divider,
+    Checkbox,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, DetailModal, DetailRow, DetailGrid, ConfirmModal } from '@/components/ui';
+import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, DetailModal, DetailRow, DetailGrid, ConfirmModal, BulkActionBar } from '@/components/ui';
 import {
     useGetAppointmentsQuery,
     useCreateAppointmentMutation,
@@ -62,6 +63,7 @@ import {
     useGetDoctorsQuery,
     useCompleteAppointmentMutation,
     useGetConsultationQuery,
+    useBulkCancelAppointmentsMutation,
 } from '@/redux/services/api';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
 import {
@@ -80,6 +82,8 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { appointmentSchema, appointmentUpdateSchema } from '@/lib/validation';
 import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
@@ -184,6 +188,7 @@ export default function AppointmentsPage() {
     const services = servicesData?.services || servicesData || [];
     const doctors = doctorsData?.doctors || doctorsData || [];
     const rawAppointments = data?.appointments || [];
+    const pageSize = 10;
 
     const isDoctorUser = hasRole(authUser, ['doctor']);
 
@@ -211,6 +216,27 @@ export default function AppointmentsPage() {
         }
         return list;
     }, [rawAppointments, onlineTodayOnly, isDoctorUser]);
+
+    const cancellableAppointments = useMemo(
+        () => appointments.filter((apt) => apt.status !== 'cancelled'),
+        [appointments],
+    );
+
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        isSelected,
+    } = useBulkSelection(cancellableAppointments, page, pageSize);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkCancelAppointmentsMutation, 'appointments');
+
     const totalPages = data?.total_pages || 1;
     const totalCount = data?.total || 0;
 
@@ -738,6 +764,14 @@ export default function AppointmentsPage() {
                 </div>
             )}
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDelete}
+                deleteLabel="Cancel"
+            />
+
             {/* Desktop Table View */}
             <div className="hidden lg:block">
                 <Card padding="none">
@@ -751,6 +785,10 @@ export default function AppointmentsPage() {
                         emptyMessage="No appointments found"
                         onRowClick={handleRowClick}
                         rowClassName={(row) => row.status === 'invoiced' && row.invoice_id ? 'cursor-pointer hover:bg-gray-50' : ''}
+                        selectable={canDelete}
+                        selectedIds={selectedIds}
+                        onSelectionChange={onSelectionChange}
+                        isRowSelectable={(row) => row.status !== 'cancelled'}
                     />
                 </Card>
             </div>
@@ -788,6 +826,17 @@ export default function AppointmentsPage() {
                                 canChangeStatus={canChangeStatus}
                                 canGenerateInvoice={canGenerateInvoice}
                                 canComplete={canComplete}
+                                selectable={canDelete}
+                                isSelected={isSelected(apt.id)}
+                                onSelect={() => {
+                                    if (apt.status === 'cancelled') return;
+                                    const sid = String(apt.id);
+                                    onSelectionChange(
+                                        isSelected(apt.id)
+                                            ? selectedIds.filter((id) => String(id) !== sid)
+                                            : [...selectedIds, apt.id],
+                                    );
+                                }}
                             />
                         ))}
                         {totalPages > 1 && (
@@ -1061,6 +1110,20 @@ export default function AppointmentsPage() {
                 </div>
             </FormModal >
 
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, () => {
+                    clearSelection();
+                    refetch();
+                })}
+                title={`Cancel ${selectedCount} appointments?`}
+                message="Selected appointments will be cancelled. Already cancelled appointments are not selectable."
+                confirmLabel="Cancel Appointments"
+                type="danger"
+                isLoading={isBulkLoading}
+            />
+
             {/* Status Change Modal */}
             < FormModal
                 isOpen={isStatusOpen}
@@ -1120,13 +1183,26 @@ function AppointmentCard({
     canChangeStatus,
     canGenerateInvoice,
     canComplete,
+    selectable = false,
+    isSelected = false,
+    onSelect,
 }) {
     const apt = appointment;
+    const canSelect = selectable && apt.status !== 'cancelled';
 
     return (
-        <HeroCard className="overflow-hidden">
+        <HeroCard className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500' : ''}`}>
             <CardBody className="p-4">
                 <div className="flex items-start justify-between gap-3">
+                    {canSelect ? (
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                                isSelected={isSelected}
+                                onValueChange={onSelect}
+                                aria-label={`Select appointment ${apt.id}`}
+                            />
+                        </div>
+                    ) : null}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3 className="font-semibold text-gray-900 truncate">

@@ -108,6 +108,153 @@ function LineItemsTable({
     const outerGap = compact ? 'space-y-2' : 'space-y-4';
     const mobileGap = compact ? 'space-y-2' : 'space-y-3';
 
+    const renderDesktopCell = (column, item, rowIndex) => {
+        if (column.key === 'service') {
+            return (
+                <TableCell key={column.key}>
+                    {!readonly ? (
+                        <Select
+                            size="sm"
+                            placeholder="Select service"
+                            selectedKeys={item.service_id ? [String(item.service_id)] : []}
+                            onSelectionChange={(keys) => {
+                                const selectedKey = Array.from(keys)[0];
+                                if (selectedKey) {
+                                    handleItemChange(rowIndex, 'service_id', selectedKey);
+                                }
+                            }}
+                            isDisabled={isLoadingServices}
+                            startContent={<Search className="w-3 h-3" />}
+                        >
+                            {services.map((service) => (
+                                <SelectItem key={String(service.id)} value={String(service.id)}>
+                                    {service.name}
+                                </SelectItem>
+                            ))}
+                        </Select>
+                    ) : (
+                        <span className="text-sm text-gray-600">
+                            {resolveServiceDisplayName(item, services)}
+                        </span>
+                    )}
+                </TableCell>
+            );
+        }
+
+        if (column.key === 'description') {
+            return (
+                <TableCell key={column.key}>
+                    {!readonly ? (
+                        <Input
+                            size="sm"
+                            value={item.description}
+                            onValueChange={(value) => handleItemChange(rowIndex, 'description', value)}
+                            placeholder="Item description"
+                            isRequired
+                        />
+                    ) : (
+                        <span className="text-sm">{item.description}</span>
+                    )}
+                </TableCell>
+            );
+        }
+
+        if (column.key === 'quantity') {
+            return (
+                <TableCell key={column.key}>
+                    {!readonly ? (
+                        <Input
+                            type="number"
+                            size="sm"
+                            value={String(item.quantity)}
+                            onValueChange={(value) => handleItemChange(rowIndex, 'quantity', parseFloat(value) || 1)}
+                            min="1"
+                            step="1"
+                        />
+                    ) : (
+                        <span className="text-sm">{item.quantity}</span>
+                    )}
+                </TableCell>
+            );
+        }
+
+        if (column.key === 'unit_price') {
+            return (
+                <TableCell key={column.key}>
+                    {!readonly ? (
+                        <Input
+                            type="number"
+                            size="sm"
+                            value={String(item.unit_price)}
+                            onValueChange={(value) => handleItemChange(rowIndex, 'unit_price', parseFloat(value) || 0)}
+                            min="0"
+                            step="0.01"
+                            startContent="₹"
+                        />
+                    ) : (
+                        <span className="text-sm">₹{item.unit_price}</span>
+                    )}
+                </TableCell>
+            );
+        }
+
+        if (column.key === 'tax_rate') {
+            return (
+                <TableCell key={column.key}>
+                    {!readonly ? (
+                        <Input
+                            type="number"
+                            size="sm"
+                            value={String(item.tax_rate)}
+                            onValueChange={(value) => handleItemChange(rowIndex, 'tax_rate', parseFloat(value) || 0)}
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            endContent="%"
+                        />
+                    ) : (
+                        <span className="text-sm">{item.tax_rate}%</span>
+                    )}
+                </TableCell>
+            );
+        }
+
+        if (column.key === 'total') {
+            return (
+                <TableCell key={column.key}>
+                    <div className="text-sm font-semibold">
+                        ₹{(Number(item.line_total) || (calculateLineItemTotal(item) + calculateLineItemTax(item))).toFixed(2)}
+                    </div>
+                </TableCell>
+            );
+        }
+
+        if (column.key === 'actions') {
+            return (
+                <TableCell key={column.key}>
+                    <Tooltip content="Remove item" color="danger">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="danger"
+                            onPress={() => handleRemoveItem(rowIndex)}
+                            isDisabled={items.length === 1}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </Button>
+                    </Tooltip>
+                </TableCell>
+            );
+        }
+
+        return (
+            <TableCell key={column.key}>
+                <span className="text-sm text-gray-400">—</span>
+            </TableCell>
+        );
+    };
+
     return (
         <div className={outerGap}>
             <div className={`${mobileGap} md:hidden`}>
@@ -278,155 +425,7 @@ function LineItemsTable({
                                 ) : (
                                     items.map((item, rowIndex) => (
                                         <TableRow key={item.id || rowIndex}>
-                                            {columns.filter(Boolean).map((column) => {
-                                                // Service column
-                                                if (column.key === 'service') {
-                                                    return (
-                                                        <TableCell key={column.key}>
-                                                            {!readonly ? (
-                                                                <Select
-                                                                    size="sm"
-                                                                    placeholder="Select service"
-                                                                    selectedKeys={item.service_id ? [String(item.service_id)] : []}
-                                                                    onSelectionChange={(keys) => {
-                                                                        const selectedKey = Array.from(keys)[0];
-                                                                        if (selectedKey) {
-                                                                            handleItemChange(rowIndex, 'service_id', selectedKey);
-                                                                        }
-                                                                    }}
-                                                                    isDisabled={isLoadingServices}
-                                                                    startContent={<Search className="w-3 h-3" />}
-                                                                >
-                                                                    {services.map((service) => (
-                                                                        <SelectItem key={String(service.id)} value={String(service.id)}>
-                                                                            {service.name}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </Select>
-                                                            ) : (
-                                                                <span className="text-sm text-gray-600">
-                                                                    {resolveServiceDisplayName(item, services)}
-                                                                </span>
-                                                            )}
-                                                        </TableCell>
-                                                    );
-                                                }
-
-                                                // Description column
-                                                if (column.key === 'description') {
-                                                    return (
-                                                        <TableCell key={column.key}>
-                                                            {!readonly ? (
-                                                                <Input
-                                                                    size="sm"
-                                                                    value={item.description}
-                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'description', value)}
-                                                                    placeholder="Item description"
-                                                                    isRequired
-                                                                />
-                                                            ) : (
-                                                                <span className="text-sm">{item.description}</span>
-                                                            )}
-                                                        </TableCell>
-                                                    );
-                                                }
-
-                                                // Quantity column
-                                                if (column.key === 'quantity') {
-                                                    return (
-                                                        <TableCell key={column.key}>
-                                                            {!readonly ? (
-                                                                <Input
-                                                                    type="number"
-                                                                    size="sm"
-                                                                    value={String(item.quantity)}
-                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'quantity', parseFloat(value) || 1)}
-                                                                    min="1"
-                                                                    step="1"
-                                                                />
-                                                            ) : (
-                                                                <span className="text-sm">{item.quantity}</span>
-                                                            )}
-                                                        </TableCell>
-                                                    );
-                                                }
-
-                                                // Unit Price column
-                                                if (column.key === 'unit_price') {
-                                                    return (
-                                                        <TableCell key={column.key}>
-                                                            {!readonly ? (
-                                                                <Input
-                                                                    type="number"
-                                                                    size="sm"
-                                                                    value={String(item.unit_price)}
-                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'unit_price', parseFloat(value) || 0)}
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                    startContent="₹"
-                                                                />
-                                                            ) : (
-                                                                <span className="text-sm">₹{item.unit_price}</span>
-                                                            )}
-                                                        </TableCell>
-                                                    );
-                                                }
-
-                                                // Tax Rate column
-                                                if (column.key === 'tax_rate') {
-                                                    return (
-                                                        <TableCell key={column.key}>
-                                                            {!readonly ? (
-                                                                <Input
-                                                                    type="number"
-                                                                    size="sm"
-                                                                    value={String(item.tax_rate)}
-                                                                    onValueChange={(value) => handleItemChange(rowIndex, 'tax_rate', parseFloat(value) || 0)}
-                                                                    min="0"
-                                                                    max="100"
-                                                                    step="0.01"
-                                                                    endContent="%"
-                                                                />
-                                                            ) : (
-                                                                <span className="text-sm">{item.tax_rate}%</span>
-                                                            )}
-                                                        </TableCell>
-                                                    );
-                                                }
-
-                                                // Total column
-                                                if (column.key === 'total') {
-                                                    return (
-                                                        <TableCell key={column.key}>
-                                                            <div className="text-sm font-semibold">
-                                                                ₹{(Number(item.line_total) || (calculateLineItemTotal(item) + calculateLineItemTax(item))).toFixed(2)}
-                                                            </div>
-                                                        </TableCell>
-                                                    );
-                                                }
-
-                                                // Actions column
-                                                if (column.key === 'actions') {
-                                                    return (
-                                                        <TableCell key={column.key}>
-                                                            <Tooltip content="Remove item" color="danger">
-                                                                <Button
-                                                                    isIconOnly
-                                                                    size="sm"
-                                                                    variant="light"
-                                                                    color="danger"
-                                                                    onPress={() => handleRemoveItem(rowIndex)}
-                                                                    isDisabled={items.length === 1}
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </Button>
-                                                            </Tooltip>
-                                                        </TableCell>
-                                                    );
-                                                }
-
-                                                return null;
-                                            })}
+                                            {columns.filter(Boolean).map((column) => renderDesktopCell(column, item, rowIndex))}
                                         </TableRow>
                                     ))
                                 )}

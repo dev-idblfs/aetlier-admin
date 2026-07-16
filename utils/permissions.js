@@ -235,6 +235,9 @@ export const PERMISSIONS = {
   LEAD_READ_ANY: "lead.read.any",
   LEAD_WRITE: "lead.write.any",
   LEAD_DELETE: "lead.delete.any",
+
+  // Categories
+  CATEGORY_DELETE: "category.delete.any",
 };
 
 /** Whether the user may list appointments in the admin portal. */

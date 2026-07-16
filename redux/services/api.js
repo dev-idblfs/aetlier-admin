@@ -1208,6 +1208,106 @@ export const api = createApi({
       }),
       invalidatesTags: ["Lead"],
     }),
+
+    // =========================================================================
+    // BULK DELETE / CANCEL
+    // =========================================================================
+    bulkDeleteServices: builder.mutation({
+      query: (body) => ({
+        url: "/services/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Service"],
+    }),
+    bulkDeleteUsers: builder.mutation({
+      query: (body) => ({
+        url: "/admin/users/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["User"],
+    }),
+    bulkDeleteRoles: builder.mutation({
+      query: (body) => ({
+        url: "/admin/roles/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Role"],
+    }),
+    bulkDeleteDoctors: builder.mutation({
+      query: (body) => ({
+        url: "/doctors/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Doctor"],
+    }),
+    bulkDeleteLeads: builder.mutation({
+      query: (body) => ({
+        url: "/admin/leads/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Lead"],
+    }),
+    bulkDeleteCustomers: builder.mutation({
+      query: (body) => ({
+        url: "/customers/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Customer"],
+    }),
+    bulkDeleteCategories: builder.mutation({
+      query: (body) => ({
+        url: "/categories/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Category"],
+    }),
+    bulkDeleteExpenses: builder.mutation({
+      query: (body) => ({
+        url: "/expenses/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Expense"],
+    }),
+    bulkDeleteNavigation: builder.mutation({
+      query: (body) => ({
+        url: "/settings/navigation/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Navigation"],
+    }),
+    bulkCancelInvoices: builder.mutation({
+      query: (body) => ({
+        url: "/invoices/bulk-cancel",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Invoice"],
+    }),
+    bulkCancelAppointments: builder.mutation({
+      query: (body) => ({
+        url: "/appointments/bulk-cancel",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Appointment"],
+    }),
+    bulkDeletePackages: builder.mutation({
+      query: (body) => ({
+        url: "/packages/bulk-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Service"],
+    }),
   }),
 });
 
@@ -1346,4 +1446,16 @@ export const {
   useGetLeadQuery,
   useUpdateLeadMutation,
   useDeleteLeadMutation,
+  useBulkDeleteServicesMutation,
+  useBulkDeleteUsersMutation,
+  useBulkDeleteRolesMutation,
+  useBulkDeleteDoctorsMutation,
+  useBulkDeleteLeadsMutation,
+  useBulkDeleteCustomersMutation,
+  useBulkDeleteCategoriesMutation,
+  useBulkDeleteExpensesMutation,
+  useBulkDeleteNavigationMutation,
+  useBulkCancelInvoicesMutation,
+  useBulkCancelAppointmentsMutation,
+  useBulkDeletePackagesMutation,
 } = api;

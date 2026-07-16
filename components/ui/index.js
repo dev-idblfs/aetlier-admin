@@ -27,6 +27,7 @@ export { default as EmptyState } from "./EmptyState";
 export { default as ConfirmModal } from "./ConfirmModal";
 export { default as MobileCard } from "./MobileCard";
 export { default as ResponsiveTable } from "./ResponsiveTable";
+export { default as BulkActionBar } from "./BulkActionBar";
 export { default as FormModal } from "./FormModal";
 export { default as DetailModal, DetailRow, DetailGrid } from "./DetailModal";
 export { default as InvoiceSection } from "./InvoiceSection";

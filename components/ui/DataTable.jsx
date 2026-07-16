@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     Table,
     TableHeader,
@@ -14,6 +14,7 @@ import {
     TableCell,
     Spinner,
     Pagination,
+    Checkbox,
 } from '@heroui/react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -40,7 +41,19 @@ export default function DataTable({
     onRowClick,
     emptyMessage = 'No data found',
     className = '',
+    selectable = false,
+    selectedIds = [],
+    onSelectionChange,
+    rowClassName,
+    isRowSelectable,
 }) {
+    const canSelectRow = isRowSelectable || (() => true);
+    const selectableRows = data.filter(canSelectRow);
+    const toIdString = (id) => String(id);
+    const selectedIdSet = useMemo(
+        () => new Set(selectedIds.map(toIdString)),
+        [selectedIds],
+    );
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
     const handleSort = (key) => {
@@ -70,6 +83,26 @@ export default function DataTable({
             : <ChevronDown className="w-4 h-4" />;
     };
 
+    const handleSelectAll = () => {
+        if (!onSelectionChange) return;
+        const pageIds = selectableRows.map((item) => item.id);
+        if (pageIds.length > 0 && pageIds.every((id) => selectedIdSet.has(toIdString(id)))) {
+            onSelectionChange([]);
+        } else {
+            onSelectionChange(pageIds);
+        }
+    };
+
+    const handleSelectRow = (id) => {
+        if (!onSelectionChange) return;
+        const sid = toIdString(id);
+        if (selectedIdSet.has(sid)) {
+            onSelectionChange(selectedIds.filter((itemId) => toIdString(itemId) !== sid));
+        } else {
+            onSelectionChange([...selectedIds, id]);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center py-12">
@@ -88,7 +121,21 @@ export default function DataTable({
                     td: 'py-4',
                 }}
             >
+                {/* HeroUI TableHeader/TableRow must not receive `false` children — use ternary null */}
                 <TableHeader>
+                    {selectable ? (
+                        <TableColumn key="__select_all__" width={48}>
+                            <Checkbox
+                                isSelected={selectableRows.length > 0 && selectableRows.every((row) => selectedIdSet.has(toIdString(row.id)))}
+                                isIndeterminate={
+                                    selectableRows.some((row) => selectedIdSet.has(toIdString(row.id)))
+                                    && !selectableRows.every((row) => selectedIdSet.has(toIdString(row.id)))
+                                }
+                                onValueChange={handleSelectAll}
+                                aria-label="Select all rows"
+                            />
+                        </TableColumn>
+                    ) : null}
                     {columns.map((column) => (
                         <TableColumn
                             key={column.key}
@@ -106,9 +153,25 @@ export default function DataTable({
                     {sortedData.map((row, index) => (
                         <TableRow
                             key={row.id || index}
-                            className={onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
+                            className={[
+                                onRowClick ? 'cursor-pointer hover:bg-gray-50' : '',
+                                selectedIdSet.has(toIdString(row.id)) ? 'bg-primary-50' : '',
+                                typeof rowClassName === 'function' ? rowClassName(row) : rowClassName || '',
+                            ].filter(Boolean).join(' ')}
                             onClick={() => onRowClick?.(row)}
                         >
+                            {selectable ? (
+                                <TableCell>
+                                    {canSelectRow(row) ? (
+                                        <Checkbox
+                                            isSelected={selectedIdSet.has(toIdString(row.id))}
+                                            onValueChange={() => handleSelectRow(row.id)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            aria-label={`Select row ${row.id}`}
+                                        />
+                                    ) : null}
+                                </TableCell>
+                            ) : null}
                             {columns.map((column) => (
                                 <TableCell key={column.key}>
                                     {column.render ? column.render(row) : row[column.key]}

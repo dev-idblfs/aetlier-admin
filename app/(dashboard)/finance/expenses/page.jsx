@@ -37,13 +37,18 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, LinkButton } from '@/components/ui';
+import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, LinkButton, BulkActionBar } from '@/components/ui';
 import {
     useGetExpensesQuery,
     useGetExpenseCategoriesQuery,
     useDeleteExpenseMutation,
+    useBulkDeleteExpensesMutation,
 } from '@/redux/services/api';
 import { formatDate, formatCurrency } from '@/utils/dateFormatters';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 const paymentStatusOptions = [
     { value: '', label: 'All Status' },
@@ -73,8 +78,27 @@ export default function ExpensesPage() {
     const { data: categories } = useGetExpenseCategoriesQuery();
     const [deleteExpense, { isLoading: isDeleting }] = useDeleteExpenseMutation();
 
+    const authUser = useSelector((s) => s.auth.user);
+    const canDelete = hasPermission(authUser, PERMISSIONS.EXPENSE_DELETE);
+
     const expenses = data?.expenses || [];
     const totalPages = data?.total_pages || 1;
+    const pageSize = 20;
+
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        pageItems: pageExpenses,
+    } = useBulkSelection(expenses, 1, expenses.length || pageSize);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteExpensesMutation, 'expenses');
 
     const categoryOptions = useMemo(() => {
         return [
@@ -253,11 +277,21 @@ export default function ExpensesPage() {
                 {data?.total || 0} expense{data?.total !== 1 ? 's' : ''}
             </div>
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDelete}
+            />
+
             {/* Table */}
             <ResponsiveTable
                 columns={columns}
-                data={expenses}
+                data={pageExpenses}
                 isLoading={isLoading}
+                selectable={canDelete}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
                 emptyState={{
                     icon: 'receipt',
                     title: 'No expenses found',
@@ -305,6 +339,17 @@ export default function ExpensesPage() {
                 confirmLabel="Delete"
                 type="danger"
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} expenses?`}
+                message="Selected expenses will be soft-deleted and hidden from listings."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
         </ListPageLayout>
     );

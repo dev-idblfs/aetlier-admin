@@ -35,12 +35,13 @@ import {
     ChevronRight,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal } from '@/components/ui';
+import { ListPageLayout, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal, BulkActionBar } from '@/components/ui';
 import {
     useGetRolesQuery,
     useCreateRoleMutation,
     useUpdateRoleMutation,
     useDeleteRoleMutation,
+    useBulkDeleteRolesMutation,
     useGetPermissionsQuery,
     useAddPermissionToRoleMutation,
     useRemovePermissionFromRoleMutation,
@@ -54,7 +55,9 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { roleSchema } from '@/lib/validation';
 import { FormInput, FormTextarea, FormSwitchRow } from '@/components/ui/FormFields';
-import { isSuperAdmin } from '@/utils/permissions';
+import { isSuperAdmin, hasPermission, PERMISSIONS } from '@/utils/permissions';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 export default function RolesPage() {
     const [selectedTab, setSelectedTab] = useState('roles');
@@ -125,6 +128,7 @@ function RolesTab() {
 
     const currentUser = useSelector((state) => state.auth.user);
     const canEditSystemFlags = isSuperAdmin(currentUser);
+    const canDeleteRoles = hasPermission(currentUser, PERMISSIONS.ROLE_DELETE);
 
     const methods = useForm({
         resolver: zodResolver(roleSchema),
@@ -256,6 +260,20 @@ function RolesTab() {
     const totalPages = Math.ceil(roles.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedRoles = roles.slice(startIndex, startIndex + itemsPerPage);
+    const selectableRoles = paginatedRoles.filter((role) => !systemRoles.includes(role.name));
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+    } = useBulkSelection(selectableRoles, 1, selectableRoles.length || itemsPerPage);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteRolesMutation, 'roles');
 
     return (
         <div className="space-y-4 mt-4">
@@ -274,6 +292,13 @@ function RolesTab() {
                 </Button>
             </div>
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDeleteRoles}
+            />
+
             {/* Desktop Table View */}
             <div className="hidden md:block">
                 <Card>
@@ -281,6 +306,20 @@ function RolesTab() {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
+                                    {canDeleteRoles ? (
+                                        <th className="px-4 py-3 w-10">
+                                            <Checkbox
+                                                isSelected={selectableRoles.length > 0 && selectedIds.length === selectableRoles.length}
+                                                isIndeterminate={selectedIds.length > 0 && selectedIds.length < selectableRoles.length}
+                                                onValueChange={() => onSelectionChange(
+                                                    selectedIds.length === selectableRoles.length
+                                                        ? []
+                                                        : selectableRoles.map((role) => role.id)
+                                                )}
+                                                aria-label="Select all roles"
+                                            />
+                                        </th>
+                                    ) : null}
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permissions</th>
@@ -290,6 +329,21 @@ function RolesTab() {
                             <tbody className="divide-y divide-gray-200">
                                 {paginatedRoles.map((role) => (
                                     <tr key={role.id} className="hover:bg-gray-50">
+                                        {canDeleteRoles ? (
+                                            <td className="px-4 py-3">
+                                                {!systemRoles.includes(role.name) ? (
+                                                    <Checkbox
+                                                        isSelected={selectedIds.includes(role.id)}
+                                                        onValueChange={() => onSelectionChange(
+                                                            selectedIds.includes(role.id)
+                                                                ? selectedIds.filter((id) => id !== role.id)
+                                                                : [...selectedIds, role.id]
+                                                        )}
+                                                        aria-label={`Select ${role.name}`}
+                                                    />
+                                                ) : null}
+                                            </td>
+                                        ) : null}
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 <Shield className="w-4 h-4 text-primary-500" />
@@ -479,6 +533,17 @@ function RolesTab() {
                 confirmLabel="Delete"
                 type="danger"
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} roles?`}
+                message="Selected custom roles will be soft-deleted."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
         </div>
     );

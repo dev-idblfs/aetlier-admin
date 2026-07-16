@@ -29,14 +29,18 @@ import {
     ResponsiveTable,
     ConfirmModal,
     SearchInput,
+    BulkActionBar,
 } from '@/components/ui';
 import {
     useGetLeadsQuery,
     useUpdateLeadMutation,
     useDeleteLeadMutation,
+    useBulkDeleteLeadsMutation,
 } from '@/redux/services/api';
 import { useSelector } from 'react-redux';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'CONVERTED', 'LOST'];
 
@@ -85,6 +89,21 @@ export default function LeadsPage() {
     const leads = data?.leads || [];
     const totalPages = data?.pages || 1;
     const totalCount = data?.total || 0;
+
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        pageItems: pageLeads,
+    } = useBulkSelection(leads, 1, leads.length || pageSize);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteLeadsMutation, 'leads');
 
     const handleSearchChange = (value) => {
         setSearch(value);
@@ -259,11 +278,21 @@ export default function LeadsPage() {
                 {totalCount} lead{totalCount !== 1 ? 's' : ''} found
             </div>
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDelete}
+            />
+
             {/* Table */}
             <ResponsiveTable
                 columns={columns}
-                data={leads}
+                data={pageLeads}
                 isLoading={isLoading}
+                selectable={canDelete}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
                 emptyState={{
                     icon: 'file',
                     title: 'No leads found',
@@ -313,6 +342,17 @@ export default function LeadsPage() {
                 confirmColor="danger"
                 onConfirm={handleDeleteConfirm}
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} leads?`}
+                message="Selected leads will be soft-deleted and hidden from listings."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
         </ListPageLayout>
     );

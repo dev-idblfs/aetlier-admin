@@ -41,12 +41,16 @@ import {
     DetailModal,
     DetailRow,
     SearchInput,
+    BulkActionBar,
 } from '@/components/ui';
 import {
     useGetDoctorsQuery,
     useDeleteDoctorMutation,
+    useBulkDeleteDoctorsMutation,
 } from '@/redux/services/api';
 import { normalizeApiList } from '@/utils/normalizeApiList';
+import useBulkSelection from '@/hooks/useBulkSelection';
+import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 export default function DoctorsPage() {
     const router = useRouter();
@@ -87,7 +91,21 @@ export default function DoctorsPage() {
     // Pagination
     const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const doctors = filteredDoctors.slice(startIndex, startIndex + itemsPerPage);
+
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+        pageItems: doctors,
+    } = useBulkSelection(filteredDoctors, currentPage, itemsPerPage);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteDoctorsMutation, 'doctors');
 
     const columns = [
         {
@@ -220,11 +238,21 @@ export default function DoctorsPage() {
                 </span>
             </div>
 
+            <BulkActionBar
+                count={selectedCount}
+                onDelete={onBulkOpen}
+                onClear={clearSelection}
+                canDelete={canDelete}
+            />
+
             {/* Responsive Table/Cards */}
             <ResponsiveTable
                 columns={columns}
                 data={doctors}
                 isLoading={isLoading}
+                selectable={canDelete}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
                 emptyState={{
                     icon: 'file',
                     title: 'No doctors found',
@@ -397,6 +425,17 @@ export default function DoctorsPage() {
                 confirmLabel="Delete"
                 type="danger"
                 isLoading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isBulkOpen}
+                onClose={() => onBulkOpenChange(false)}
+                onConfirm={() => handleBulkConfirm(selectedIds, clearSelection)}
+                title={`Delete ${selectedCount} doctors?`}
+                message="Selected doctors will be soft-deleted and hidden from listings."
+                confirmLabel="Delete"
+                type="danger"
+                isLoading={isBulkLoading}
             />
         </ListPageLayout>
     );
