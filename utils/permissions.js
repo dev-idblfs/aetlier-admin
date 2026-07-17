@@ -191,6 +191,10 @@ export const PERMISSIONS = {
   NAVIGATION_UPDATE: "navigation.update.any",
   INTEGRATIONS_WHATSAPP_READ: "integrations.whatsapp.read.any",
   INTEGRATIONS_WHATSAPP_UPDATE: "integrations.whatsapp.update.any",
+  MOBILE_PROMOTION_READ: "mobile.promotion.read.any",
+  MOBILE_PROMOTION_CREATE: "mobile.promotion.create.any",
+  MOBILE_PROMOTION_UPDATE: "mobile.promotion.update.any",
+  MOBILE_PROMOTION_DELETE: "mobile.promotion.delete.any",
 
   // Admin portal access (gates entry to the admin app)
   ADMIN_PORTAL_ACCESS: "admin.portal.access",

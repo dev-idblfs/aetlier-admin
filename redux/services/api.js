@@ -60,6 +60,7 @@ export const api = createApi({
     "Lead",
     "AuditLog",
     "Consultation",
+    "MobilePromotion",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -695,6 +696,52 @@ export const api = createApi({
         url: "/admin/integrations/whatsapp/test",
         method: "POST",
       }),
+    }),
+
+    getMobilePromotions: builder.query({
+      query: ({ placement, active_only = false } = {}) => {
+        const params = new URLSearchParams();
+        if (placement) params.set("placement", placement);
+        params.set("active_only", String(active_only));
+        const qs = params.toString();
+        return `/admin/mobile/promotions${qs ? `?${qs}` : ""}`;
+      },
+      providesTags: ["MobilePromotion"],
+    }),
+
+    createMobilePromotion: builder.mutation({
+      query: (body) => ({
+        url: "/admin/mobile/promotions",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["MobilePromotion"],
+    }),
+
+    updateMobilePromotion: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/admin/mobile/promotions/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["MobilePromotion"],
+    }),
+
+    deleteMobilePromotion: builder.mutation({
+      query: (id) => ({
+        url: `/admin/mobile/promotions/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["MobilePromotion"],
+    }),
+
+    reorderMobilePromotions: builder.mutation({
+      query: (items) => ({
+        url: "/admin/mobile/promotions/reorder",
+        method: "POST",
+        body: { items },
+      }),
+      invalidatesTags: ["MobilePromotion"],
     }),
 
     // POST /invoices/settings/logo - Upload invoice logo
@@ -1417,6 +1464,11 @@ export const {
   useGetWhatsAppIntegrationQuery,
   useUpdateWhatsAppIntegrationMutation,
   useTestWhatsAppIntegrationMutation,
+  useGetMobilePromotionsQuery,
+  useCreateMobilePromotionMutation,
+  useUpdateMobilePromotionMutation,
+  useDeleteMobilePromotionMutation,
+  useReorderMobilePromotionsMutation,
   useGetAppSettingsQuery,
   useGetAppSettingQuery,
   useUpdateAppSettingMutation,
