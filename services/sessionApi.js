@@ -41,7 +41,16 @@ export function clearRefreshToken() {
 
 /** True when a refresh request can succeed (shared cookie or stored token). */
 export function canRefreshSession() {
-  if (usesCookieAuth()) return true;
+  // Shared cookie auth only applies on real aetlier.com hosts — not when a
+  // local admin points NEXT_PUBLIC_API_URL at production (that caused endless
+  // refresh attempts with no cookie).
+  if (usesCookieAuth() && typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return Boolean(getRefreshToken());
+    }
+    return true;
+  }
   return Boolean(getRefreshToken());
 }
 

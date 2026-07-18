@@ -69,6 +69,7 @@ function LoginContent() {
     try {
       const { data: user } = await apiClient.get('/auth/me', {
         headers: { Authorization: `Bearer ${accessToken}` },
+        skipAuthRedirect: true,
       });
 
       if (!canAccessAdminPortal(user)) {

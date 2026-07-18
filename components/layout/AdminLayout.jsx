@@ -5,17 +5,19 @@
 
 'use client';
 
-import { useEffect, useState, createContext, useContext } from 'react';
+import { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Spinner } from '@heroui/react';
+import Cookies from 'js-cookie';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import RoutePermissionGuard from '@/components/RoutePermissionGuard';
-import { fetchUserProfile } from '@/redux/slices/authSlice';
+import { fetchUserProfile, setLoading } from '@/redux/slices/authSlice';
 import { useGetNavigationPermissionPresetsQuery, api } from '@/redux/services/api';
 import { canAccessAdminPortal } from '@/utils/permissions';
 import { setDynamicRouteRules } from '@/utils/routeAccess';
+import config from '@/config';
 
 // Context for sidebar state + page title + breadcrumbs
 export const SidebarContext = createContext({
@@ -38,6 +40,7 @@ export default function AdminLayout({ children }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const redirectedRef = useRef(false);
     const { user, permissions, isLoading, isAuthenticated } = useSelector((state) => state.auth);
     const { data: navPresets } = useGetNavigationPermissionPresetsQuery(undefined, {
         skip: !isAuthenticated,
@@ -55,8 +58,13 @@ export default function AdminLayout({ children }) {
     const [breadcrumbs, setBreadcrumbs] = useState([]);
     const [headerActions, setHeaderActions] = useState(null);
 
-    // Fetch user profile on mount
+    // Fetch user profile on mount only when a token exists
     useEffect(() => {
+        const token = Cookies.get(config.tokenKey);
+        if (!token) {
+            dispatch(setLoading(false));
+            return;
+        }
         dispatch(fetchUserProfile());
     }, [dispatch]);
 
@@ -76,18 +84,23 @@ export default function AdminLayout({ children }) {
         }
     }, [user?.id, user?.permissions?.length, permissions?.length, dispatch]);
 
-    // Check authentication and role
+    // Check authentication and role — redirect once
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
+        if (isLoading) return;
+
+        if (!isAuthenticated) {
+            if (redirectedRef.current) return;
+            redirectedRef.current = true;
             const query = searchParams.toString();
             const returnTo = encodeURIComponent(
                 `${pathname}${query ? `?${query}` : ''}`
             );
-            router.push(`/login?returnTo=${returnTo}`);
+            router.replace(`/login?returnTo=${returnTo}`);
+            return;
         }
 
-        if (!isLoading && user && !canAccessAdminPortal(user)) {
-            router.push('/unauthorized');
+        if (user && !canAccessAdminPortal(user)) {
+            router.replace('/unauthorized');
         }
     }, [isLoading, isAuthenticated, user, router, pathname, searchParams]);
 

@@ -20,14 +20,21 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
-// Handle 401 errors globally
+// Handle 401 errors globally — never hard-reload while already on /login.
 const baseQueryWithReauth = async (args, api, extraOptions) => {
   const result = await baseQuery(args, api, extraOptions);
 
   if (result.error?.status === 401) {
     Cookies.remove(config.tokenKey);
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
+    Cookies.remove(config.refreshTokenKey);
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      const path = window.location.pathname + window.location.search;
+      const safe =
+        path.startsWith("/") && !path.startsWith("//") && path !== "/login"
+          ? path
+          : null;
+      const qs = safe ? `?returnTo=${encodeURIComponent(safe)}` : "";
+      window.location.href = `/login${qs}`;
     }
   }
 
@@ -130,6 +137,50 @@ export const api = createApi({
       query: (appointmentId) => `/appointments/${appointmentId}/consultation`,
       providesTags: (result, error, appointmentId) => [
         { type: "Consultation", id: appointmentId },
+      ],
+    }),
+
+    getConsultationToken: builder.mutation({
+      query: ({ appointmentId, media_mode }) => ({
+        url: `/appointments/${appointmentId}/consultation/token`,
+        method: "POST",
+        body: media_mode ? { media_mode } : {},
+      }),
+    }),
+
+    setMediaMode: builder.mutation({
+      query: ({ appointmentId, media_mode }) => ({
+        url: `/appointments/${appointmentId}/consultation/media-mode`,
+        method: "PATCH",
+        body: { media_mode },
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: "Consultation", id: appointmentId },
+      ],
+    }),
+
+    startConsultation: builder.mutation({
+      query: ({ appointmentId }) => ({
+        url: `/appointments/${appointmentId}/consultation/start`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: "Consultation", id: appointmentId },
+        { type: "Appointment", id: appointmentId },
+        "Appointment",
+      ],
+    }),
+
+    endConsultation: builder.mutation({
+      query: ({ appointmentId, end_reason }) => ({
+        url: `/appointments/${appointmentId}/consultation/end`,
+        method: "POST",
+        body: end_reason ? { end_reason } : {},
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: "Consultation", id: appointmentId },
+        { type: "Appointment", id: appointmentId },
+        "Appointment",
       ],
     }),
 
@@ -1367,6 +1418,10 @@ export const {
   useGetAppointmentsQuery,
   useGetAppointmentQuery,
   useGetConsultationQuery,
+  useGetConsultationTokenMutation,
+  useSetMediaModeMutation,
+  useStartConsultationMutation,
+  useEndConsultationMutation,
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
   useDeleteAppointmentMutation,

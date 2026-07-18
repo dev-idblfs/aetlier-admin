@@ -46,17 +46,31 @@ export function getJoinWindowHint() {
   return `Join window: ${JOIN_WINDOW_BEFORE_MIN} min before – ${JOIN_WINDOW_AFTER_MIN} min after`;
 }
 
-export function buildConsultationJoinUrl(appointmentId) {
+/** Doctor/staff join — stays on admin (same session). */
+export function buildDoctorConsultationJoinUrl(appointmentId) {
+  const base = (config.adminUrl || 'http://localhost:3001').replace(/\/$/, '');
+  return `${base}/consultation/${appointmentId}`;
+}
+
+/** Patient-facing share link — public web app. */
+export function buildPatientConsultationJoinUrl(appointmentId) {
   const base = (config.frontendUrl || 'http://localhost:3000').replace(/\/$/, '');
   return `${base}/consultation/${appointmentId}`;
 }
 
+/** @deprecated Use buildDoctorConsultationJoinUrl */
+export function buildConsultationJoinUrl(appointmentId) {
+  return buildDoctorConsultationJoinUrl(appointmentId);
+}
+
 export const DOCTOR_JOIN_TOOLTIP =
-  'Opens the secure Aetlier consultation room. Sign in to the patient app (frontend) with your doctor account first.';
+  'Opens the secure consultation room in admin. You stay signed in — no patient-app hop.';
+
+export const PATIENT_LINK_TOOLTIP =
+  'Copies the patient join link for the public web app (share via email/WhatsApp).';
 
 export const ACCESS_LOCK_TOOLTIP =
-  'Only the booked patient and assigned doctor can join this consultation.';
-
+  'Only the booked patient and assigned doctor (or clinic staff) can join this consultation.';
 export function isOnlineConsultation(appointment) {
   return appointment?.consultation_mode === 'online';
 }

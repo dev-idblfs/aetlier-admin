@@ -3,10 +3,12 @@
 import { Button, Tooltip } from '@heroui/react';
 import { Video } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 import {
-  buildConsultationJoinUrl,
+  buildPatientConsultationJoinUrl,
   canJoinConsultation,
   DOCTOR_JOIN_TOOLTIP,
+  PATIENT_LINK_TOOLTIP,
   getJoinWindowHint,
 } from '@/utils/consultationJoinWindow';
 
@@ -16,22 +18,24 @@ export default function ConsultationJoinButton({
   className,
   label = 'Join video call',
 }) {
+  const router = useRouter();
+
   if (!appointment || appointment.consultation_mode !== 'online') {
     return null;
   }
 
   const joinable = canJoinConsultation(appointment);
-  const joinUrl = buildConsultationJoinUrl(appointment.id);
+  const patientJoinUrl = buildPatientConsultationJoinUrl(appointment.id);
 
   const handleJoin = () => {
-    window.open(joinUrl, '_blank', 'noopener,noreferrer');
+    router.push(`/consultation/${appointment.id}`);
   };
 
-  const handleCopy = async (e) => {
+  const handleCopyPatientLink = async (e) => {
     e?.stopPropagation?.();
     try {
-      await navigator.clipboard.writeText(joinUrl);
-      toast.success('Join link copied');
+      await navigator.clipboard.writeText(patientJoinUrl);
+      toast.success('Patient join link copied');
     } catch {
       toast.error('Could not copy link');
     }
@@ -40,9 +44,7 @@ export default function ConsultationJoinButton({
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className || ''}`}>
       <Tooltip
-        content={
-          joinable ? DOCTOR_JOIN_TOOLTIP : getJoinWindowHint()
-        }
+        content={joinable ? DOCTOR_JOIN_TOOLTIP : getJoinWindowHint()}
         placement="top"
       >
         <span>
@@ -60,15 +62,17 @@ export default function ConsultationJoinButton({
           </Button>
         </span>
       </Tooltip>
-      <Button
-        size={size}
-        variant="bordered"
-        className="rounded-full border-[#d7c3b3] text-gray-700"
-        onPress={handleCopy}
-        aria-label="Copy join link"
-      >
-        Copy link
-      </Button>
+      <Tooltip content={PATIENT_LINK_TOOLTIP} placement="top">
+        <Button
+          size={size}
+          variant="bordered"
+          className="rounded-full border-[#d7c3b3] text-gray-700"
+          onPress={handleCopyPatientLink}
+          aria-label="Copy patient join link"
+        >
+          Copy patient link
+        </Button>
+      </Tooltip>
     </div>
   );
 }
