@@ -1,32 +1,31 @@
 'use client';
 
+/**
+ * Doctor consultation lobby (admin).
+ * Video WebRTC runs on the public web app via self-hosted LiveKit —
+ * admin does not embed livekit-client (keeps admin build free of that SDK).
+ */
+
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Spinner } from '@heroui/react';
-import { Video, Phone } from 'lucide-react';
+import { ExternalLink, Video } from 'lucide-react';
 import {
   useGetAppointmentQuery,
   useGetConsultationQuery,
   useSetMediaModeMutation,
 } from '@/redux/services/api';
 import {
+  buildPatientConsultationJoinUrl,
   canJoinConsultation,
-  getJoinWindowHint,
   getAppointmentDateTime,
+  getJoinWindowHint,
 } from '@/utils/consultationJoinWindow';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
-import DoctorConsultationRoom from './DoctorConsultationRoom';
-
-const PHASE = {
-  LOBBY: 'lobby',
-  CALL: 'call',
-};
 
 export default function DoctorConsultationShell({ appointmentId }) {
   const router = useRouter();
-  const [phase, setPhase] = useState(PHASE.LOBBY);
-  const [mediaMode, setMediaMode] = useState('video');
-  const [isJoining, setIsJoining] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
 
   const {
     data: appointment,
@@ -57,16 +56,20 @@ export default function DoctorConsultationShell({ appointmentId }) {
   );
 
   const { date, time } = getAppointmentDateTime(appointment);
+  const roomUrl = buildPatientConsultationJoinUrl(appointmentId);
 
-  const handleJoin = async () => {
-    setIsJoining(true);
+  const handleOpenRoom = async () => {
+    setIsOpening(true);
     try {
-      await setMediaModeApi({ appointmentId, media_mode: mediaMode }).unwrap();
+      await setMediaModeApi({
+        appointmentId,
+        media_mode: 'video',
+      }).unwrap();
     } catch (e) {
-      console.warn('Media mode update failed, proceeding:', e);
+      console.warn('Media mode update failed, opening room anyway:', e);
     } finally {
-      setIsJoining(false);
-      setPhase(PHASE.CALL);
+      setIsOpening(false);
+      window.open(roomUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -84,7 +87,11 @@ export default function DoctorConsultationShell({ appointmentId }) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-zinc-950 px-6 text-center text-white">
         <p className="mb-2 font-semibold">
-          {isDenied ? 'Access denied' : status === 404 ? 'Appointment not found' : 'Unable to load appointment'}
+          {isDenied
+            ? 'Access denied'
+            : status === 404
+              ? 'Appointment not found'
+              : 'Unable to load appointment'}
         </p>
         <p className="mb-6 max-w-sm text-sm text-white/60">
           {isDenied
@@ -129,61 +136,25 @@ export default function DoctorConsultationShell({ appointmentId }) {
     );
   }
 
-  if (phase === PHASE.CALL) {
-    return (
-      <DoctorConsultationRoom
-        appointmentId={appointmentId}
-        patientName={patientName}
-        mediaMode={mediaMode}
-      />
-    );
-  }
-
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-zinc-950 px-6 text-center text-white">
       <h1 className="mb-2 font-serif text-2xl font-medium">Video consultation</h1>
       <p className="mb-1 text-white/80">{patientName}</p>
-      <p className="mb-8 text-sm text-white/50">
+      <p className="mb-6 text-sm text-white/50">
         {formatDate(date)} · {formatTime(time)}
       </p>
-
-      <div className="mb-8 flex gap-3">
-        <button
-          type="button"
-          onClick={() => setMediaMode('video')}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm ${
-            mediaMode === 'video'
-              ? 'bg-[#db924b] text-white'
-              : 'bg-white/10 text-white/70'
-          }`}
-          aria-pressed={mediaMode === 'video'}
-        >
-          <Video className="h-4 w-4" />
-          Video
-        </button>
-        <button
-          type="button"
-          onClick={() => setMediaMode('audio')}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm ${
-            mediaMode === 'audio'
-              ? 'bg-[#db924b] text-white'
-              : 'bg-white/10 text-white/70'
-          }`}
-          aria-pressed={mediaMode === 'audio'}
-        >
-          <Phone className="h-4 w-4" />
-          Audio
-        </button>
-      </div>
-
+      <p className="mb-8 max-w-md text-sm text-white/55">
+        Video runs on the clinic web app with self-hosted LiveKit. Open the room
+        there (sign in as the doctor if prompted).
+      </p>
       <Button
         className="min-h-12 w-full max-w-xs rounded-full bg-[#db924b] font-semibold text-white"
-        isDisabled={!joinAvailable || isJoining}
-        isLoading={isJoining}
-        onPress={handleJoin}
-        startContent={<Video className="h-4 w-4" />}
+        isDisabled={!joinAvailable || isOpening}
+        isLoading={isOpening}
+        onPress={handleOpenRoom}
+        startContent={<ExternalLink className="h-4 w-4" />}
       >
-        Join secure consultation
+        Open video room
       </Button>
       <p className="mt-4 text-xs text-white/40">{getJoinWindowHint()}</p>
       {!joinAvailable && (
@@ -191,10 +162,11 @@ export default function DoctorConsultationShell({ appointmentId }) {
       )}
       <button
         type="button"
-        className="mt-6 text-sm text-white/40 underline hover:text-white/70"
+        className="mt-6 inline-flex items-center gap-1.5 text-sm text-white/40 underline hover:text-white/70"
         onClick={() => router.push('/appointments')}
       >
-        Cancel
+        <Video className="h-3.5 w-3.5" aria-hidden="true" />
+        Back to appointments
       </button>
     </div>
   );

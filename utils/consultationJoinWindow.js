@@ -64,7 +64,7 @@ export function buildConsultationJoinUrl(appointmentId) {
 }
 
 export const DOCTOR_JOIN_TOOLTIP =
-  'Opens the secure consultation room in admin. You stay signed in — no patient-app hop.';
+  'Opens the self-hosted LiveKit room on the clinic web app (sign in as the doctor if needed).';
 
 export const PATIENT_LINK_TOOLTIP =
   'Copies the patient join link for the public web app (share via email/WhatsApp).';
