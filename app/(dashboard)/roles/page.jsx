@@ -235,6 +235,29 @@ function RolesTab() {
         }
     };
 
+    // System roles that cannot be deleted
+    const systemRoles = ['super_admin', 'admin', 'doctor', 'patient'];
+    const roleList = Array.isArray(roles) ? roles : [];
+
+    // Pagination — keep hooks above early returns (Rules of Hooks)
+    const totalPages = Math.ceil(roleList.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedRoles = roleList.slice(startIndex, startIndex + itemsPerPage);
+    const selectableRoles = paginatedRoles.filter((role) => !systemRoles.includes(role.name));
+    const {
+        selectedIds,
+        onSelectionChange,
+        clearSelection,
+        selectedCount,
+    } = useBulkSelection(selectableRoles, 1, selectableRoles.length || itemsPerPage);
+    const {
+        isBulkOpen,
+        onBulkOpen,
+        onBulkOpenChange,
+        handleBulkConfirm,
+        isBulkLoading,
+    } = useBulkDeleteAction(useBulkDeleteRolesMutation, 'roles');
+
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
@@ -253,33 +276,11 @@ function RolesTab() {
         );
     }
 
-    // System roles that cannot be deleted
-    const systemRoles = ['super_admin', 'admin', 'doctor', 'patient'];
-
-    // Pagination
-    const totalPages = Math.ceil(roles.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedRoles = roles.slice(startIndex, startIndex + itemsPerPage);
-    const selectableRoles = paginatedRoles.filter((role) => !systemRoles.includes(role.name));
-    const {
-        selectedIds,
-        onSelectionChange,
-        clearSelection,
-        selectedCount,
-    } = useBulkSelection(selectableRoles, 1, selectableRoles.length || itemsPerPage);
-    const {
-        isBulkOpen,
-        onBulkOpen,
-        onBulkOpenChange,
-        handleBulkConfirm,
-        isBulkLoading,
-    } = useBulkDeleteAction(useBulkDeleteRolesMutation, 'roles');
-
     return (
         <div className="space-y-4 mt-4">
             <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">
-                    Showing {roles.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, roles.length)} of {roles.length} role{roles.length !== 1 ? 's' : ''}
+                    Showing {roleList.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, roleList.length)} of {roleList.length} role{roleList.length !== 1 ? 's' : ''}
                 </span>
                 <Button
                     color="primary"
