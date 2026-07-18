@@ -1,13 +1,13 @@
-import config from '@/config';
+import config from "@/config";
 
 export const JOIN_WINDOW_BEFORE_MIN = 15;
 export const JOIN_WINDOW_AFTER_MIN = 60;
 
 const JOINABLE_STATUSES = new Set([
-  'confirmed',
-  'ready',
-  'scheduled',
-  'in_progress',
+  "confirmed",
+  "ready",
+  "scheduled",
+  "in_progress",
 ]);
 
 export function getAppointmentDateTime(appointment) {
@@ -19,24 +19,24 @@ export function getAppointmentDateTime(appointment) {
 }
 
 export function canJoinConsultation(appointment) {
-  if (!appointment || appointment.consultation_mode !== 'online') return false;
+  if (!appointment || appointment.consultation_mode !== "online") return false;
 
   const status = String(
-    appointment.consultation_status || appointment.status || ''
+    appointment.consultation_status || appointment.status || "",
   ).toLowerCase();
   if (!JOINABLE_STATUSES.has(status)) return false;
 
   const { date, time } = getAppointmentDateTime(appointment);
   if (!date || !time) return false;
 
-  const [h, m] = time.split(':').map(Number);
+  const [h, m] = time.split(":").map(Number);
   const start = new Date(date);
   start.setHours(h, m || 0, 0, 0);
   const windowStart = new Date(
-    start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60 * 1000
+    start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60 * 1000,
   );
   const windowEnd = new Date(
-    start.getTime() + JOIN_WINDOW_AFTER_MIN * 60 * 1000
+    start.getTime() + JOIN_WINDOW_AFTER_MIN * 60 * 1000,
   );
   const now = new Date();
   return now >= windowStart && now <= windowEnd;
@@ -48,13 +48,16 @@ export function getJoinWindowHint() {
 
 /** Doctor/staff join — stays on admin (same session). */
 export function buildDoctorConsultationJoinUrl(appointmentId) {
-  const base = (config.adminUrl || 'http://localhost:3001').replace(/\/$/, '');
+  const base = (config.adminUrl || "http://localhost:3001").replace(/\/$/, "");
   return `${base}/consultation/${appointmentId}`;
 }
 
 /** Patient-facing share link — public web app. */
 export function buildPatientConsultationJoinUrl(appointmentId) {
-  const base = (config.frontendUrl || 'http://localhost:3000').replace(/\/$/, '');
+  const base = (config.frontendUrl || "http://localhost:3000").replace(
+    /\/$/,
+    "",
+  );
   return `${base}/consultation/${appointmentId}`;
 }
 
@@ -64,15 +67,14 @@ export function buildConsultationJoinUrl(appointmentId) {
 }
 
 export const DOCTOR_JOIN_TOOLTIP =
-  'Opens the self-hosted LiveKit room on the clinic web app (sign in as the doctor if needed).';
+  'Opens the secure consultation room in admin. You stay signed in — no patient-app hop.';
 
 export const PATIENT_LINK_TOOLTIP =
   'Copies the patient join link for the public web app (share via email/WhatsApp).';
-
 export const ACCESS_LOCK_TOOLTIP =
-  'Only the booked patient and assigned doctor (or clinic staff) can join this consultation.';
+  "Only the booked patient and assigned doctor (or clinic staff) can join this consultation.";
 export function isOnlineConsultation(appointment) {
-  return appointment?.consultation_mode === 'online';
+  return appointment?.consultation_mode === "online";
 }
 
 export function isToday(dateStr) {
