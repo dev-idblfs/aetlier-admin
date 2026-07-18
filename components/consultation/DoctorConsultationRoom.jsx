@@ -197,7 +197,7 @@ export default function DoctorConsultationRoom({
           startTimer();
         }
       } catch (err) {
-        console.error('Consultation connect failed:', err);
+        console.error('Consultation connect failed :', err);
         setErrorMessage(formatError(err));
         setPhase('error');
         stopTimer();
