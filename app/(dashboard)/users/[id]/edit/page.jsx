@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Save } from 'lucide-react';
+import { Save } from '@/lib/icons';
 import { Button, SelectItem, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';

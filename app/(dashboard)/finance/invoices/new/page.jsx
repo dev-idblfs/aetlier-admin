@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Save } from 'lucide-react';
+import { Save } from '@/lib/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';

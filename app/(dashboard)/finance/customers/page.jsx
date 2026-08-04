@@ -21,7 +21,7 @@ import {
     User,
     Mail,
     Phone,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Select,

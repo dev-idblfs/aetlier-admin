@@ -5,7 +5,7 @@
 'use client';
 
 import { Button as HeroButton } from '@heroui/react';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/lib/icons';
 import { forwardRef } from 'react';
 
 const variantStyles = {

@@ -13,7 +13,7 @@ import {
     ModalFooter,
     Button,
 } from '@heroui/react';
-import { Edit } from 'lucide-react';
+import { Edit } from '@/lib/icons';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 export default function DetailModal({

@@ -16,7 +16,7 @@ import {
     Pagination,
     Checkbox,
 } from '@heroui/react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown } from '@/lib/icons';
 
 /**
  * DataTable - Reusable table with sorting, pagination

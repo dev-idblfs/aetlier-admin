@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Upload, X, ImageIcon } from 'lucide-react';
+import { Upload, X, ImageIcon } from '@/lib/icons';
 import { Button } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/utils/cn';

@@ -19,7 +19,7 @@ import {
     Edit,
     Trash2,
     UserPlus,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Select,

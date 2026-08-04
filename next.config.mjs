@@ -3,6 +3,8 @@ const nextConfig = {
   // Enable optimized client-side navigation and prefetching
   experimental: {
     // scrollRestoration only — optimizeCss needs optional `critters` dep
+    // Do NOT add @solar-icons/react to optimizePackageImports: icons live under
+    // category subpaths (e.g. csr/search/Magnifer), so Next's rewrite breaks.
     scrollRestoration: true,
   },
 

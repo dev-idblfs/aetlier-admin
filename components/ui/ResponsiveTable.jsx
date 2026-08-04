@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, MoreVertical } from 'lucide-react';
+import { ChevronUp, ChevronDown, MoreVertical } from '@/lib/icons';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button, Skeleton, Checkbox } from '@heroui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EmptyState from './EmptyState';

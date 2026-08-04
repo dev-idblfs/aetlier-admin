@@ -18,7 +18,7 @@ import {
     SelectItem,
     Tooltip,
 } from '@heroui/react';
-import { Plus, Trash2, Search } from 'lucide-react';
+import { Plus, Trash2, Search } from '@/lib/icons';
 import { calculateLineItemTotal, calculateLineItemTax } from '@/utils/invoice/calculations';
 
 function resolveServiceDisplayName(item, services = []) {

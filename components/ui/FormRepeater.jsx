@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, ChevronUp, ChevronDown } from '@/lib/icons';
 import { Button, Input, Select, SelectItem, Textarea } from '@heroui/react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { FormTagInput } from '@/components/ui/FormFields';

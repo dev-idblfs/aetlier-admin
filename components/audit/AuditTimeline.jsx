@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, XCircle, AlertCircle, Activity } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertCircle, Activity } from '@/lib/icons';
 import { Spinner } from '@heroui/react';
 import { useGetEntityAuditLogsQuery } from '@/redux/services/api';
 

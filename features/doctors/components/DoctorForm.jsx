@@ -1,6 +1,6 @@
 'use client';
 
-import { Save } from 'lucide-react';
+import { Save } from '@/lib/icons';
 import { Button, SelectItem } from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

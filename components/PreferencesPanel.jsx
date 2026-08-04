@@ -14,7 +14,7 @@ import {
     Mail,
     MessageSquare,
     Shield
-} from 'lucide-react';
+} from '@/lib/icons';
 
 export default function PreferencesPanel() {
     const {

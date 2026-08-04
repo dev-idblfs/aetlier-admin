@@ -30,7 +30,7 @@ import {
     FileText,
     Plus,
     Video,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Input,

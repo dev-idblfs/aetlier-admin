@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Circle, FileCheck, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Circle, FileCheck, ShieldCheck } from '@/lib/icons';
 import { VERIFICATION_STATUS } from '@/constants/verification';
 
 /**

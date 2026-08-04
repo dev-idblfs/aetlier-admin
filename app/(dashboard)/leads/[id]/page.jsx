@@ -17,7 +17,7 @@ import {
     Spinner,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import { Save, Mail, Phone, User } from 'lucide-react';
+import { Save, Mail, Phone, User } from '@/lib/icons';
 import {
     ListPageLayout,
     Form,

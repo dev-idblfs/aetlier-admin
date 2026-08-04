@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Edit, Trash2, Plus, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit, Trash2, Plus, ArrowUp, ArrowDown } from '@/lib/icons';
 import {
     Button,
     Chip,

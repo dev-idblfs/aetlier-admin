@@ -23,7 +23,7 @@ import {
     Calendar,
     DollarSign,
     X,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Select,

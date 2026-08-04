@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye } from 'lucide-react';
+import { Eye } from '@/lib/icons';
 import { Button, Select, SelectItem, Pagination } from '@heroui/react';
 import { ListPageLayout, ResponsiveTable } from '@/components/ui';
 import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';

@@ -33,7 +33,7 @@ import {
     Users,
     Lock,
     ChevronRight,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { ListPageLayout, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal, BulkActionBar } from '@/components/ui';
 import {

@@ -39,7 +39,8 @@ import {
     Receipt,
     Contact,
     BarChart3,
-} from 'lucide-react';
+    Target,
+} from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { ListPageLayout, ConfirmModal, FormModal, BulkActionBar } from '@/components/ui';
 import {
@@ -76,6 +77,7 @@ const AVAILABLE_ICONS = [
     { name: 'Contact', icon: Contact, label: 'Contact' },
     { name: 'BarChart3', icon: BarChart3, label: 'Chart' },
     { name: 'Menu', icon: Menu, label: 'Menu' },
+    { name: 'Target', icon: Target, label: 'Target' },
 ];
 
 const ICON_MAP = Object.fromEntries(

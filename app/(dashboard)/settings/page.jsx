@@ -15,7 +15,7 @@ import {
     Save,
     FileText,
     MessageCircle,
-} from 'lucide-react';
+} from '@/lib/icons';
 import WhatsAppIntegrationsPanel from '@/components/settings/WhatsAppIntegrationsPanel';
 import {
     Button,

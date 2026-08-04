@@ -8,7 +8,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Button } from '@heroui/react';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from '@/lib/icons';
 
 const getFrontendUrl = () =>
     process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';

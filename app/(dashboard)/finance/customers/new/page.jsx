@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Save } from 'lucide-react';
+import { Save } from '@/lib/icons';
 import { Button, SelectItem } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';

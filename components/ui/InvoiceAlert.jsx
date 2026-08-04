@@ -5,7 +5,7 @@
 'use client';
 
 import { Card, CardBody, Button } from '@heroui/react';
-import { X } from 'lucide-react';
+import { X } from '@/lib/icons';
 
 export default function InvoiceAlert({
     variant = 'info',

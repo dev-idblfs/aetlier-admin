@@ -6,7 +6,7 @@
 
 import { useMemo } from 'react';
 import { Button } from '@heroui/react';
-import { Download, Printer, Mail } from 'lucide-react';
+import { Download, Printer, Mail } from '@/lib/icons';
 import PageHeader from '@/components/ui/PageHeader';
 import { cn } from '@/utils/cn';
 

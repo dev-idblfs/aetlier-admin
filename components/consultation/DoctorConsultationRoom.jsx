@@ -11,7 +11,7 @@ import {
   PhoneOff,
   RefreshCw,
   AlertCircle,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { useRouter } from 'next/navigation';
 import {
   useGetConsultationTokenMutation,

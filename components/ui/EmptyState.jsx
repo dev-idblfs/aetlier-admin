@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Inbox, Search, AlertCircle, FileX } from 'lucide-react';
+import { Inbox, Search, AlertCircle, FileX } from '@/lib/icons';
 import { Button } from '@heroui/react';
 
 const iconMap = {

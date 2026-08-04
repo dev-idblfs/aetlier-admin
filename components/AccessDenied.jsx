@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldOff } from 'lucide-react';
+import { ShieldOff } from '@/lib/icons';
 import { Button } from '@heroui/react';
 
 export default function AccessDenied({ title = 'Access denied', message }) {

@@ -6,7 +6,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, X } from '@/lib/icons';
 import { Button, Chip } from '@heroui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 

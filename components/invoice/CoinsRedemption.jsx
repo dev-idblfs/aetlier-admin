@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { Input, Button, Card, CardBody, Spinner } from '@heroui/react';
-import { Coins, Zap, Info, AlertCircle } from 'lucide-react';
+import { Coins, Zap, Info, AlertCircle } from '@/lib/icons';
 import { calculateMaxRedeemable, validateCoinRedemption, formatCoins } from '@/utils/invoice/coinCalculations';
 import { toast } from 'react-hot-toast';
 

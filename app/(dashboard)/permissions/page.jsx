@@ -18,7 +18,7 @@ import {
     Lock,
     ChevronDown,
     ChevronUp,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {

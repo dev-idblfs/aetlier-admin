@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Spinner } from '@heroui/react';
-import { Video, Phone } from 'lucide-react';
+import { Video, Phone } from '@/lib/icons';
 import {
   useGetAppointmentQuery,
   useGetConsultationQuery,

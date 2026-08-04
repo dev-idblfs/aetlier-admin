@@ -13,7 +13,7 @@ import {
     X,
     AlertCircle,
     Trash2,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     SelectItem,

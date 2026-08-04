@@ -15,7 +15,7 @@ import {
     Trash2,
     DollarSign,
     AlertCircle,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { Button, Spinner, useDisclosure } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';

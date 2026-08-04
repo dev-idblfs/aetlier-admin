@@ -15,7 +15,7 @@ import {
     Clock,
     X,
     Briefcase,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Select,

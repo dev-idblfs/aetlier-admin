@@ -20,7 +20,7 @@ import {
     Textarea,
     Spinner,
 } from '@heroui/react';
-import { Search, Plus, User, Mail, Phone, MapPin, Building2 } from 'lucide-react';
+import { Search, Plus, User, Mail, Phone, MapPin, Building2 } from '@/lib/icons';
 import { useDebounce } from '@/hooks/useDebounce';
 import { toast } from 'react-hot-toast';
 import { invoiceCustomerQuickSchema } from '@/lib/validation';

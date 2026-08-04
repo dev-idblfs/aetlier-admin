@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Save, AlertCircle } from 'lucide-react';
+import { Save, AlertCircle } from '@/lib/icons';
 import { Button, Spinner } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';

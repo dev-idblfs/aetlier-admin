@@ -16,7 +16,7 @@ import {
     Wallet,
     Target,
     Menu,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { useGetNavigationQuery } from '@/redux/services/api';
 import { filterNavItemsByPermission, withUserPermissions } from '@/utils/navAccess';
 
@@ -89,8 +89,7 @@ export default function BottomNav() {
                                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary-600" />
                             )}
                             <Icon
-                                className={`w-5 h-5 transition-transform duration-150 ${active ? 'scale-110' : ''}`}
-                                strokeWidth={active ? 2.5 : 1.75}
+                                className={`w-5 h-5 transition-transform duration-150 ${active ? 'scale-110 opacity-100' : 'opacity-80'}`}
                             />
                             <span className={`text-[10px] font-medium leading-none ${active ? 'text-primary-600' : 'text-gray-400'}`}>
                                 {label.length > 10 ? label.slice(0, 9) + '…' : label}

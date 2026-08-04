@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Save } from 'lucide-react';
+import { Save } from '@/lib/icons';
 import { Button, Select, SelectItem, Textarea, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';

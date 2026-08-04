@@ -9,7 +9,7 @@ import {
     MoreVertical,
     Check,
     X
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     useDisclosure,

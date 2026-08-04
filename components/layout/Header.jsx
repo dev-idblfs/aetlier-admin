@@ -6,7 +6,7 @@
 'use client';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { Bell, Search, User, LogOut, ChevronRight, ArrowLeft, Menu } from 'lucide-react';
+import { Bell, Search, User, LogOut, ChevronRight, ArrowLeft, Menu } from '@/lib/icons';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {

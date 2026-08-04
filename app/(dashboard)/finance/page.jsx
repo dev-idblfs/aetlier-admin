@@ -22,7 +22,7 @@ import {
     AlertCircle,
     Clock,
     CheckCircle,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Card,

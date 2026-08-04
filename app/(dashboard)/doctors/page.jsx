@@ -20,7 +20,7 @@ import {
     Phone,
     X,
     ShieldCheck,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { useSelector } from 'react-redux';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';

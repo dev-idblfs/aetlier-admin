@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Tooltip } from '@heroui/react';
-import { Video } from 'lucide-react';
+import { Video } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Textarea } from '@heroui/react';
-import { FileText, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, ExternalLink, CheckCircle, XCircle } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import {
   useVerifyDocumentMutation,

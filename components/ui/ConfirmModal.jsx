@@ -5,7 +5,7 @@
 
 'use client';
 
-import { AlertTriangle, Trash2, Info, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Trash2, Info, CheckCircle } from '@/lib/icons';
 import {
     Modal,
     ModalContent,

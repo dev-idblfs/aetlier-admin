@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/lib/icons';
 import { Button, Spinner } from '@heroui/react';
 import { useSelector } from 'react-redux';
 import {

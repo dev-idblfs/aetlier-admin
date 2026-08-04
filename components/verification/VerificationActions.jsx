@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Textarea } from '@heroui/react';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useUpdateVerificationStatusMutation } from '@/redux/services/api';
 import { VERIFICATION_STATUS, isVerificationPending } from '@/constants/verification';

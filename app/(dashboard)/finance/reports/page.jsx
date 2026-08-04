@@ -18,7 +18,7 @@ import {
     PieChart,
     ArrowUpRight,
     ArrowDownRight,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Select,

@@ -14,7 +14,7 @@ import {
     Briefcase,
     Clock,
     ChevronRight,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { ListPageLayout, StatsCard, Card, CardTitle, CardContent } from '@/components/ui';
 import { useGetAppointmentsQuery, useGetUsersQuery, useGetDoctorsQuery } from '@/redux/services/api';
 import { motion } from 'framer-motion';

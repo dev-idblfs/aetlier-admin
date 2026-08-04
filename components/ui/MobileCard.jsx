@@ -5,7 +5,7 @@
 
 'use client';
 
-import { ChevronRight, MoreVertical } from 'lucide-react';
+import { ChevronRight, MoreVertical } from '@/lib/icons';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react';
 import { motion } from 'framer-motion';
 

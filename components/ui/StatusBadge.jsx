@@ -11,7 +11,7 @@ import {
     Clock,
     AlertCircle,
     Circle
-} from 'lucide-react';
+} from '@/lib/icons';
 
 const statusConfig = {
     // Appointment statuses

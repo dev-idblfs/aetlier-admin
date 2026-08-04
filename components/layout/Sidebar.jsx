@@ -32,7 +32,7 @@ import {
     X,
     AlertCircle,
     Target,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/redux/slices/authSlice';
 import { useGetNavigationQuery } from '@/redux/services/api';
@@ -41,13 +41,14 @@ import { getDisplayRole } from '@/utils/permissions';
 import { useSidebar } from './AdminLayout';
 
 /**
- * Icon mapping - Maps icon name strings from backend to Lucide components
+ * Icon mapping - Maps Lucide-style string keys from the backend to
+ * Solar Bold components exported from `@/lib/icons`.
  *
  * HOW TO ADD A NEW MODULE'S ICON:
- * 1. Pick an icon from https://lucide.dev
- * 2. Import it below (in the lucide-react import block above)
- * 3. Add it to ICON_MAP with the EXACT same string you use in the
- *    Alembic migration: add_nav_item(..., icon='YourIconName', ...)
+ * 1. Export the Lucide-named icon from `@/lib/icons` (wrap Solar via createIcon)
+ * 2. Import it in the block above
+ * 3. Add it to ICON_MAP with the EXACT same string used in
+ *    Alembic: add_nav_item(..., icon='YourIconName', ...)
  *
  * If you skip this step, the sidebar silently falls back to LayoutDashboard.
  */

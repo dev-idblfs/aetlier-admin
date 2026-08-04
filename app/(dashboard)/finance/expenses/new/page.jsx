@@ -9,7 +9,7 @@ import {
     Upload,
     X,
     Receipt,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     SelectItem,

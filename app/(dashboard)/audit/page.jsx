@@ -12,7 +12,7 @@ import {
   Pagination,
   Spinner,
 } from '@heroui/react';
-import { RefreshCw, Filter, X } from 'lucide-react';
+import { RefreshCw, Filter, X } from '@/lib/icons';
 import { useSelector } from 'react-redux';
 import { ListPageLayout, Card, DataTable } from '@/components/ui';
 import AuditTimeline from '@/components/audit/AuditTimeline';

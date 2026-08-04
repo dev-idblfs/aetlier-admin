@@ -1,6 +1,6 @@
 'use client';
 
-import { Trash2, X } from 'lucide-react';
+import { Trash2, X } from '@/lib/icons';
 import { Button } from '@heroui/react';
 import { cn } from '@/utils/cn';
 

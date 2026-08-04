@@ -21,7 +21,7 @@ import {
     AlertCircle,
     Download,
     Image as ImageIcon,
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
     Button,
     Card,

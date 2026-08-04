@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { Input, Textarea, Select, SelectItem, Switch, Button, DatePicker } from '@heroui/react';
-import { X } from 'lucide-react';
+import { X } from '@/lib/icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { parseDate } from '@internationalized/date';
 import { cn } from '@/utils/cn';

@@ -5,7 +5,7 @@
 
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { Switch } from '@heroui/react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from '@/lib/icons';
 
 export default function ThemeToggle() {
     const { preferences, toggleDarkMode, isLoading } = usePreferences();
