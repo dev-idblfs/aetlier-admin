@@ -20,7 +20,14 @@ export const ADMIN_ROUTE_RULES = [
   { prefix: '/settings', any: [PERMISSIONS.SETTINGS_READ] },
   { prefix: '/leads', any: [PERMISSIONS.LEAD_READ_ANY] },
   { prefix: '/audit', any: [PERMISSIONS.AUDIT_READ_ANY] },
+  {
+    prefix: '/platform',
+    any: [
+      PERMISSIONS.ORGANIZATIONS_READ,
+      PERMISSIONS.ORGANIZATIONS_CREATE,
+    ],
+  },
 ];
 
-/** Dashboard home — any authenticated admin portal user. */
-export const ADMIN_DASHBOARD_PATHS = ['/', ''];
+/** Dashboard home + first-login setup — any authenticated admin portal user. */
+export const ADMIN_DASHBOARD_PATHS = ['/', '', '/onboarding'];

@@ -34,6 +34,40 @@ export const signIn = createAsyncThunk(
   }
 );
 
+export const organizationSignup = createAsyncThunk(
+  "auth/organizationSignup",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(
+        "/auth/organization-signup",
+        payload
+      );
+      const accessToken = response.data?.tokens?.access_token;
+      if (accessToken) {
+        Cookies.set(config.tokenKey, accessToken, { expires: 7 });
+      }
+      if (response.data?.tokens?.refresh_token) {
+        storeRefreshToken(response.data.tokens.refresh_token);
+      }
+      const orgId =
+        response.data?.organization?.id ||
+        response.data?.user?.primary_organization_id;
+      if (typeof window !== "undefined" && orgId) {
+        localStorage.setItem("admin_active_organization_id", orgId);
+      }
+      return response.data;
+    } catch (error) {
+      const detail = error.response?.data?.detail;
+      const message =
+        detail?.error?.message ||
+        (typeof detail === "string" ? detail : null) ||
+        error.response?.data?.message ||
+        "Failed to create organization";
+      return rejectWithValue(message);
+    }
+  }
+);
+
 export const fetchUserProfile = createAsyncThunk(
   "auth/fetchUserProfile",
   async (_, { rejectWithValue }) => {
@@ -83,6 +117,8 @@ const initialState = {
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  activeOrganizationId: null,
+  organizations: [],
 };
 
 const authSlice = createSlice({
@@ -94,11 +130,32 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.isLoading = false;
       state.error = null;
+      state.organizations = action.payload?.organizations || [];
+      state.activeOrganizationId =
+        action.payload?.active_organization_id ||
+        action.payload?.primary_organization_id ||
+        action.payload?.organizations?.[0]?.id ||
+        null;
+      if (typeof window !== "undefined" && state.activeOrganizationId) {
+        localStorage.setItem(
+          "admin_active_organization_id",
+          state.activeOrganizationId
+        );
+      }
     },
     setPermissions: (state, action) => {
       state.permissions = action.payload || [];
       if (state.user) {
         state.user.permissions = action.payload || [];
+      }
+    },
+    setActiveOrganization: (state, action) => {
+      state.activeOrganizationId = action.payload;
+      if (state.user) {
+        state.user.active_organization_id = action.payload;
+      }
+      if (typeof window !== "undefined" && action.payload) {
+        localStorage.setItem("admin_active_organization_id", action.payload);
       }
     },
     clearAuth: (state) => {
@@ -107,6 +164,11 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.isLoading = false;
       state.error = null;
+      state.activeOrganizationId = null;
+      state.organizations = [];
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("admin_active_organization_id");
+      }
     },
     setLoading: (state, action) => {
       state.isLoading = action.payload;
@@ -117,9 +179,21 @@ const authSlice = createSlice({
       if (state.user) {
         state.user.permissions = action.payload.permissions || [];
       }
+      state.organizations = action.payload.user?.organizations || [];
+      state.activeOrganizationId =
+        action.payload.user?.active_organization_id ||
+        action.payload.user?.primary_organization_id ||
+        action.payload.user?.organizations?.[0]?.id ||
+        null;
       state.isAuthenticated = true;
       state.isLoading = false;
       state.error = null;
+      if (typeof window !== "undefined" && state.activeOrganizationId) {
+        localStorage.setItem(
+          "admin_active_organization_id",
+          state.activeOrganizationId
+        );
+      }
     },
   },
   extraReducers: (builder) => {
@@ -130,9 +204,21 @@ const authSlice = createSlice({
       .addCase(signIn.fulfilled, (state, action) => {
         state.user = action.payload?.user || null;
         state.permissions = action.payload?.user?.permissions || [];
+        state.organizations = action.payload?.user?.organizations || [];
+        state.activeOrganizationId =
+          action.payload?.user?.active_organization_id ||
+          action.payload?.user?.primary_organization_id ||
+          action.payload?.user?.organizations?.[0]?.id ||
+          null;
         state.isAuthenticated = true;
         state.isLoading = false;
         state.error = null;
+        if (typeof window !== "undefined" && state.activeOrganizationId) {
+          localStorage.setItem(
+            "admin_active_organization_id",
+            state.activeOrganizationId
+          );
+        }
       })
       .addCase(signIn.rejected, (state, action) => {
         state.isLoading = false;
@@ -140,6 +226,37 @@ const authSlice = createSlice({
           typeof action.payload === "string"
             ? action.payload
             : "Sign in failed";
+        state.isAuthenticated = false;
+      })
+      .addCase(organizationSignup.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(organizationSignup.fulfilled, (state, action) => {
+        state.user = action.payload?.user || null;
+        state.permissions = action.payload?.user?.permissions || [];
+        state.organizations = action.payload?.user?.organizations || [];
+        state.activeOrganizationId =
+          action.payload?.organization?.id ||
+          action.payload?.user?.active_organization_id ||
+          action.payload?.user?.primary_organization_id ||
+          action.payload?.user?.organizations?.[0]?.id ||
+          null;
+        state.isAuthenticated = true;
+        state.isLoading = false;
+        state.error = null;
+        if (typeof window !== "undefined" && state.activeOrganizationId) {
+          localStorage.setItem(
+            "admin_active_organization_id",
+            state.activeOrganizationId
+          );
+        }
+      })
+      .addCase(organizationSignup.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error =
+          typeof action.payload === "string"
+            ? action.payload
+            : "Organization signup failed";
         state.isAuthenticated = false;
       })
       .addCase(fetchUserProfile.pending, (state) => {
@@ -154,6 +271,17 @@ const authSlice = createSlice({
         if (state.user && !state.user.permissions?.length) {
           state.user.permissions = state.permissions;
         }
+        state.organizations = action.payload?.organizations || [];
+        const stored =
+          typeof window !== "undefined"
+            ? localStorage.getItem("admin_active_organization_id")
+            : null;
+        state.activeOrganizationId =
+          stored ||
+          action.payload?.active_organization_id ||
+          action.payload?.primary_organization_id ||
+          action.payload?.organizations?.[0]?.id ||
+          null;
         state.isAuthenticated = true;
         state.isLoading = false;
         state.error = null;
@@ -167,6 +295,8 @@ const authSlice = createSlice({
           clearRefreshToken();
           state.user = null;
           state.isAuthenticated = false;
+          state.activeOrganizationId = null;
+          state.organizations = [];
         }
       });
   },
@@ -175,6 +305,7 @@ const authSlice = createSlice({
 export const {
   setUser,
   setPermissions,
+  setActiveOrganization,
   clearAuth,
   setLoading,
   setCredentials,

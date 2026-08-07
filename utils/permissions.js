@@ -199,6 +199,14 @@ export const PERMISSIONS = {
   // Admin portal access (gates entry to the admin app)
   ADMIN_PORTAL_ACCESS: "admin.portal.access",
 
+  // Platform organizations (SaaS multi-tenant)
+  ORGANIZATIONS_CREATE: "organizations.create.any",
+  ORGANIZATIONS_READ: "organizations.read.any",
+  ORGANIZATIONS_UPDATE: "organizations.update.any",
+  ORGANIZATIONS_SUSPEND: "organizations.suspend.any",
+  ORGANIZATIONS_IMPERSONATE: "organizations.impersonate.any",
+  ORGANIZATIONS_DELETE: "organizations.delete.any",
+
   // Reports
   REPORTS_VIEW: "reports.view.any",
   REPORTS_EXPORT: "reports.export.any",

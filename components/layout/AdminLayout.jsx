@@ -41,7 +41,7 @@ export default function AdminLayout({ children }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const redirectedRef = useRef(false);
-    const { user, permissions, isLoading, isAuthenticated } = useSelector((state) => state.auth);
+    const { user, permissions, isLoading, isAuthenticated, activeOrganizationId } = useSelector((state) => state.auth);
     const { data: navPresets } = useGetNavigationPermissionPresetsQuery(undefined, {
         skip: !isAuthenticated,
     });
@@ -101,8 +101,25 @@ export default function AdminLayout({ children }) {
 
         if (user && !canAccessAdminPortal(user)) {
             router.replace('/unauthorized');
+            return;
         }
-    }, [isLoading, isAuthenticated, user, router, pathname, searchParams]);
+
+        // Gate incomplete org onboarding (skip platform routes and the wizard itself)
+        const isPlatformRoute = pathname?.startsWith('/platform');
+        const isOnboardingRoute = pathname === '/onboarding' || pathname?.startsWith('/onboarding/');
+        if (user && !isPlatformRoute && !isOnboardingRoute && !user?.is_platform_admin) {
+            const orgs = user?.organizations || [];
+            const activeId = activeOrganizationId || user?.organization_id;
+            const activeOrg =
+                orgs.find((o) => o.id === activeId) || orgs[0] || null;
+            if (
+                activeOrg?.onboarding_status &&
+                activeOrg.onboarding_status !== 'complete'
+            ) {
+                router.replace('/onboarding');
+            }
+        }
+    }, [isLoading, isAuthenticated, user, router, pathname, searchParams, activeOrganizationId]);
 
     if (isLoading) {
         return (

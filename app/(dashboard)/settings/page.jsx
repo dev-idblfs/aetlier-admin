@@ -5,6 +5,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import WhatsAppIntegrationsPanel from '@/components/settings/WhatsAppIntegrationsPanel';
+import DeveloperSettingsPanel from '@/components/settings/DeveloperSettingsPanel';
 import {
     Settings as SettingsIcon,
     Bell,
@@ -16,7 +18,6 @@ import {
     FileText,
     MessageCircle,
 } from '@/lib/icons';
-import WhatsAppIntegrationsPanel from '@/components/settings/WhatsAppIntegrationsPanel';
 import {
     Button,
     Tabs,
@@ -290,6 +291,18 @@ export default function SettingsPage() {
                                     }
                                 >
                                     <WhatsAppIntegrationsPanel />
+                                </Tab>
+
+                                <Tab
+                                    key="developer"
+                                    title={
+                                        <div className="flex items-center gap-2">
+                                            <FileText className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Developer</span>
+                                        </div>
+                                    }
+                                >
+                                    <DeveloperSettingsPanel />
                                 </Tab>
 
                                 <Tab

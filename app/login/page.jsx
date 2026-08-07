@@ -131,6 +131,13 @@ function LoginContent() {
         )}
 
         <AdminSignIn onSuccess={handleSignInSuccess} />
+
+        <p className="mt-6 text-center text-sm text-gray-500">
+          New clinic?{' '}
+          <a href="/signup" className="text-primary-600 font-medium hover:underline">
+            Create an organization
+          </a>
+        </p>
       </div>
     </div>
   );

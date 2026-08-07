@@ -4,9 +4,40 @@
 import { isSuperAdmin } from '@/utils/permissions';
 import { resolveAdminRouteAccess } from '@/utils/routeAccess';
 
+/** href prefix → organization feature_flag key */
+const NAV_FEATURE_FLAGS = {
+  '/facescan': 'facescan',
+  '/referral': 'referrals',
+  '/referrals': 'referrals',
+};
+
+function getActiveOrgFeatureFlags(user) {
+  const orgs = user?.organizations || [];
+  const activeId = user?.active_organization_id || user?.organization_id;
+  const active = orgs.find((o) => o.id === activeId) || orgs[0];
+  return active?.feature_flags || {};
+}
+
+function isNavFeatureAllowed(href, user) {
+  if (!href) return true;
+  const normalized = href.replace(/\/$/, '') || '/';
+  const flags = getActiveOrgFeatureFlags(user);
+  for (const [prefix, flag] of Object.entries(NAV_FEATURE_FLAGS)) {
+    if (normalized === prefix || normalized.startsWith(`${prefix}/`)) {
+      // Missing flag (legacy Aetlier) → allow; explicit false → hide
+      if (flags && Object.prototype.hasOwnProperty.call(flags, flag)) {
+        return !!flags[flag];
+      }
+      return true;
+    }
+  }
+  return true;
+}
+
 export function canAccessNavHref(href, user) {
   if (!user || !href) return false;
   const normalized = href.replace(/\/$/, '') || '/';
+  if (!isNavFeatureAllowed(normalized, user)) return false;
   return resolveAdminRouteAccess(normalized, user).allowed;
 }
 

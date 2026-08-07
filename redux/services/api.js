@@ -16,6 +16,12 @@ const baseQuery = fetchBaseQuery({
       headers.set("Authorization", `Bearer ${token}`);
     }
     headers.set("X-Client-App", "admin");
+    if (typeof window !== "undefined") {
+      const orgId = localStorage.getItem("admin_active_organization_id");
+      if (orgId) {
+        headers.set("X-Organization-Id", orgId);
+      }
+    }
     return headers;
   },
 });
@@ -68,6 +74,7 @@ export const api = createApi({
     "AuditLog",
     "Consultation",
     "MobilePromotion",
+    "Organization",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -1406,6 +1413,148 @@ export const api = createApi({
       }),
       invalidatesTags: ["Service"],
     }),
+    // Platform organizations
+    getOrganizations: builder.query({
+      query: (params = {}) => ({
+        url: "/platform/organizations",
+        params,
+      }),
+      providesTags: ["Organization"],
+    }),
+    getOrganization: builder.query({
+      query: (id) => `/platform/organizations/${id}`,
+      providesTags: (result, error, id) => [{ type: "Organization", id }],
+    }),
+    createOrganization: builder.mutation({
+      query: ({ idempotencyKey, ...body }) => ({
+        url: "/platform/organizations",
+        method: "POST",
+        body,
+        headers: idempotencyKey
+          ? { "Idempotency-Key": idempotencyKey }
+          : undefined,
+      }),
+      invalidatesTags: ["Organization"],
+    }),
+    getOrganizationOnboarding: builder.query({
+      query: (id) => `/organizations/${id}/onboarding`,
+      providesTags: (result, error, id) => [{ type: "Organization", id: `${id}-onboarding` }],
+    }),
+    updateOrganizationOnboarding: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/organizations/${id}/onboarding`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        "Organization",
+        { type: "Organization", id: `${id}-onboarding` },
+      ],
+    }),
+    uploadOrganizationLogo: builder.mutation({
+      query: ({ id, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `/organizations/${id}/logo`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: ["Organization"],
+    }),
+    updateOrganization: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/platform/organizations/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Organization"],
+    }),
+    deleteOrganization: builder.mutation({
+      query: (id) => ({
+        url: `/platform/organizations/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Organization"],
+    }),
+    switchOrganizationContext: builder.mutation({
+      query: (organization_id) => ({
+        url: "/auth/organization-context",
+        method: "POST",
+        body: { organization_id },
+      }),
+    }),
+    updateOrganizationFeatureFlags: builder.mutation({
+      query: ({ id, ...feature_flags }) => ({
+        url: `/organizations/${id}/feature-flags`,
+        method: "PATCH",
+        body: feature_flags,
+      }),
+      invalidatesTags: ["Organization"],
+    }),
+    getOrganizationApiKeys: builder.query({
+      query: (id) => `/organizations/${id}/api-keys`,
+      providesTags: (result, error, id) => [{ type: "Organization", id: `${id}-keys` }],
+    }),
+    createOrganizationApiKey: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/organizations/${id}/api-keys`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Organization", id: `${id}-keys` },
+      ],
+    }),
+    revokeOrganizationApiKey: builder.mutation({
+      query: ({ orgId, keyId }) => ({
+        url: `/organizations/${orgId}/api-keys/${keyId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { orgId }) => [
+        { type: "Organization", id: `${orgId}-keys` },
+      ],
+    }),
+    getOrganizationWebhooks: builder.query({
+      query: (id) => `/organizations/${id}/webhooks`,
+      providesTags: (result, error, id) => [
+        { type: "Organization", id: `${id}-webhooks` },
+      ],
+    }),
+    createOrganizationWebhook: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/organizations/${id}/webhooks`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Organization", id: `${id}-webhooks` },
+      ],
+    }),
+    updateOrganizationWebhook: builder.mutation({
+      query: ({ orgId, webhookId, ...body }) => ({
+        url: `/organizations/${orgId}/webhooks/${webhookId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { orgId }) => [
+        { type: "Organization", id: `${orgId}-webhooks` },
+      ],
+    }),
+    deleteOrganizationWebhook: builder.mutation({
+      query: ({ orgId, webhookId }) => ({
+        url: `/organizations/${orgId}/webhooks/${webhookId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, { orgId }) => [
+        { type: "Organization", id: `${orgId}-webhooks` },
+      ],
+    }),
+    getOrganizationWebhookDeliveries: builder.query({
+      query: ({ orgId, webhookId }) =>
+        `/organizations/${orgId}/webhooks/${webhookId}/deliveries`,
+    }),
   }),
 });
 
@@ -1565,4 +1714,22 @@ export const {
   useBulkCancelInvoicesMutation,
   useBulkCancelAppointmentsMutation,
   useBulkDeletePackagesMutation,
+  useGetOrganizationsQuery,
+  useGetOrganizationQuery,
+  useCreateOrganizationMutation,
+  useUpdateOrganizationMutation,
+  useDeleteOrganizationMutation,
+  useSwitchOrganizationContextMutation,
+  useGetOrganizationOnboardingQuery,
+  useUpdateOrganizationOnboardingMutation,
+  useUploadOrganizationLogoMutation,
+  useUpdateOrganizationFeatureFlagsMutation,
+  useGetOrganizationApiKeysQuery,
+  useCreateOrganizationApiKeyMutation,
+  useRevokeOrganizationApiKeyMutation,
+  useGetOrganizationWebhooksQuery,
+  useCreateOrganizationWebhookMutation,
+  useUpdateOrganizationWebhookMutation,
+  useDeleteOrganizationWebhookMutation,
+  useGetOrganizationWebhookDeliveriesQuery,
 } = api;

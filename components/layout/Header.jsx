@@ -17,8 +17,12 @@ import {
     DropdownItem,
     Input,
 } from '@heroui/react';
-import { logout } from '@/redux/slices/authSlice';
-import { getDisplayRole } from '@/utils/permissions';
+import Cookies from 'js-cookie';
+import config from '@/config';
+import { logout, setActiveOrganization } from '@/redux/slices/authSlice';
+import { useSwitchOrganizationContextMutation } from '@/redux/services/api';
+import { getDisplayRole, isSuperAdmin } from '@/utils/permissions';
+import { storeRefreshToken } from '@/services/sessionApi';
 import { useSidebar } from './AdminLayout';
 
 function getBackHref(breadcrumbs) {
@@ -39,7 +43,7 @@ function getDisplayTitle(pageTitle, breadcrumbs) {
 }
 
 export default function Header() {
-    const { user } = useSelector((state) => state.auth);
+    const { user, organizations, activeOrganizationId } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
     const router = useRouter();
     const pathname = usePathname();
@@ -47,6 +51,12 @@ export default function Header() {
     const isRoot = pathname === '/';
     const backHref = getBackHref(breadcrumbs);
     const displayTitle = getDisplayTitle(pageTitle, breadcrumbs);
+    const [switchOrganizationContext] = useSwitchOrganizationContextMutation();
+
+    const activeOrg =
+        (organizations || []).find((o) => o.id === activeOrganizationId) ||
+        (organizations || [])[0];
+    const orgLabel = activeOrg?.display_name || activeOrg?.name || 'Organization';
 
     const handleBack = () => {
         if (backHref) {
@@ -58,6 +68,23 @@ export default function Header() {
 
     const handleLogout = () => {
         dispatch(logout({ returnPath: pathname }));
+    };
+
+    const handleSwitchOrganization = async (organizationId) => {
+        if (!organizationId || organizationId === activeOrganizationId) return;
+        try {
+            const tokens = await switchOrganizationContext(organizationId).unwrap();
+            if (tokens?.access_token) {
+                Cookies.set(config.tokenKey, tokens.access_token, { expires: 7 });
+            }
+            if (tokens?.refresh_token) {
+                storeRefreshToken(tokens.refresh_token);
+            }
+            dispatch(setActiveOrganization(organizationId));
+            window.location.reload();
+        } catch (err) {
+            console.error('Failed to switch organization', err);
+        }
     };
 
     return (
@@ -87,7 +114,7 @@ export default function Header() {
 
             {/* ── Mobile center: page title ── */}
             <p className="md:hidden absolute left-1/2 -translate-x-1/2 text-sm font-semibold text-gray-900 truncate max-w-[46vw] pointer-events-none">
-                {displayTitle || 'Admin'}
+                {displayTitle || orgLabel || 'Admin'}
             </p>
 
             {/* ── Desktop left: back button (when not root) + breadcrumb path + title ── */}
@@ -130,6 +157,30 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-3">
                 {headerActions && (
                     <div className="flex items-center gap-2 shrink-0">{headerActions}</div>
+                )}
+                {(organizations || []).length > 0 && (
+                    <Dropdown placement="bottom-end">
+                        <DropdownTrigger>
+                            <button
+                                type="button"
+                                className="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 hover:bg-gray-50 max-w-[180px] truncate"
+                                aria-label="Switch organization"
+                            >
+                                {orgLabel}
+                            </button>
+                        </DropdownTrigger>
+                        <DropdownMenu
+                            aria-label="Organizations"
+                            onAction={(key) => handleSwitchOrganization(String(key))}
+                        >
+                            {(organizations || []).map((org) => (
+                                <DropdownItem key={org.id} textValue={org.display_name || org.name}>
+                                    {org.display_name || org.name}
+                                    {org.id === activeOrganizationId ? ' ✓' : ''}
+                                </DropdownItem>
+                            ))}
+                        </DropdownMenu>
+                    </Dropdown>
                 )}
                 <Input
                     placeholder="Search..."
@@ -177,6 +228,14 @@ export default function Header() {
                         <DropdownItem key="profile" startContent={<User className="w-4 h-4" />}>
                             Profile
                         </DropdownItem>
+                        {user?.is_platform_admin || isSuperAdmin(user) ? (
+                            <DropdownItem
+                                key="platform-orgs"
+                                onPress={() => router.push('/platform/organizations')}
+                            >
+                                Organizations
+                            </DropdownItem>
+                        ) : null}
                         <DropdownItem
                             key="logout"
                             color="danger"

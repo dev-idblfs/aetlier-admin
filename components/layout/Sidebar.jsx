@@ -37,6 +37,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/redux/slices/authSlice';
 import { useGetNavigationQuery } from '@/redux/services/api';
 import { filterNavItemsByPermission, withUserPermissions } from '@/utils/navAccess';
+import { filterNavItemsByOrgFeatures, getActiveOrganization } from '@/utils/organizationFeatures';
 import { getDisplayRole } from '@/utils/permissions';
 import { useSidebar } from './AdminLayout';
 
@@ -109,7 +110,8 @@ export default function Sidebar() {
     const { isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed } = useSidebar();
     const pathname = usePathname();
     const dispatch = useDispatch();
-    const { user, permissions, isAuthenticated } = useSelector((state) => state.auth);
+    const { user, permissions, isAuthenticated, activeOrganizationId, organizations } =
+        useSelector((state) => state.auth);
     const [expandedSections, setExpandedSections] = useState({});
 
     // Fetch navigation from API
@@ -122,10 +124,19 @@ export default function Sidebar() {
         skip: !isAuthenticated || !user,
     });
 
-    const visibleNavItems = useMemo(
-        () => filterNavItemsByPermission(navItems, withUserPermissions(user, permissions)),
-        [navItems, user, permissions],
-    );
+    const visibleNavItems = useMemo(() => {
+        const byPerm = filterNavItemsByPermission(
+            navItems,
+            withUserPermissions(user, permissions)
+        );
+        const org = getActiveOrganization({
+            user,
+            organizations: organizations?.length ? organizations : user?.organizations,
+            activeOrganizationId:
+                activeOrganizationId || user?.active_organization_id,
+        });
+        return filterNavItemsByOrgFeatures(byPerm, org);
+    }, [navItems, user, permissions, organizations, activeOrganizationId]);
 
     const handleLogout = () => {
         dispatch(logout({ returnPath: pathname }));
