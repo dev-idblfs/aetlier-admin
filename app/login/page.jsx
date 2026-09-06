@@ -10,12 +10,11 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { Spinner } from '@heroui/react';
-import Cookies from 'js-cookie';
 import AdminSignIn from '@/components/auth/AdminSignIn';
 import { canAccessAdminPortal } from '@/utils/permissions';
 import { refreshAccessToken, canRefreshSession } from '@/services/sessionApi';
 import apiClient from '@/lib/apiClient';
-import config from '@/config';
+import { setAccessTokenCookie, getAccessTokenCookie, removeAccessTokenCookie } from '@/lib/authCookies';
 import { setLoading } from '@/redux/slices/authSlice';
 
 function resolveReturnTo(searchParams) {
@@ -48,13 +47,13 @@ function LoginContent() {
     setPhase('checking');
     setAccessDenied(false);
 
-    let accessToken = Cookies.get(config.tokenKey);
+    let accessToken = getAccessTokenCookie();
     if (!accessToken && canRefreshSession()) {
       try {
         const refreshed = await refreshAccessToken();
         accessToken = refreshed?.tokens?.access_token;
         if (accessToken) {
-          Cookies.set(config.tokenKey, accessToken, { expires: 7 });
+          setAccessTokenCookie(accessToken);
         }
       } catch {
         accessToken = null;
@@ -80,7 +79,7 @@ function LoginContent() {
 
       enterDashboard();
     } catch {
-      Cookies.remove(config.tokenKey);
+      removeAccessTokenCookie();
       showLoginForm();
     }
   }, [enterDashboard, showLoginForm]);

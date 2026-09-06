@@ -4,14 +4,14 @@
  */
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import Cookies from "js-cookie";
 import config from "@/config";
+import { getAccessTokenCookie, removeAccessTokenCookie } from "@/lib/authCookies";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: config.apiUrl,
   credentials: "include",
   prepareHeaders: (headers) => {
-    const token = Cookies.get(config.tokenKey);
+    const token = getAccessTokenCookie();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
@@ -25,8 +25,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   const result = await baseQuery(args, api, extraOptions);
 
   if (result.error?.status === 401) {
-    Cookies.remove(config.tokenKey);
-    Cookies.remove(config.refreshTokenKey);
+    removeAccessTokenCookie();
     if (typeof window !== "undefined" && window.location.pathname !== "/login") {
       const path = window.location.pathname + window.location.search;
       const safe =
@@ -252,35 +251,33 @@ export const api = createApi({
 
     // POST /admin/users - Create new user
     createUser: builder.mutation({
-      query: ({ email, name, phone, password, is_active }) => {
-        const params = new URLSearchParams({ email, name });
-        if (phone) params.append("phone", phone);
-        if (password) params.append("password", password);
-        if (is_active !== undefined) params.append("is_active", is_active);
-        return {
-          url: `/admin/users?${params.toString()}`,
-          method: "POST",
-        };
-      },
+      query: ({ email, name, phone, password, is_active }) => ({
+        url: "/admin/users",
+        method: "POST",
+        body: {
+          email,
+          name,
+          ...(phone ? { phone } : {}),
+          ...(password ? { password } : {}),
+          ...(is_active !== undefined ? { is_active } : {}),
+        },
+      }),
       invalidatesTags: ["User"],
     }),
 
     // PATCH /admin/users/:id - Update user
     updateUser: builder.mutation({
-      query: ({ id, name, phone, password, is_active, is_verified }) => {
-        const params = new URLSearchParams();
-        if (name !== undefined) params.append("name", name);
-        if (phone !== undefined) params.append("phone", phone);
-        if (password !== undefined && password !== "")
-          params.append("password", password);
-        if (is_active !== undefined) params.append("is_active", is_active);
-        if (is_verified !== undefined)
-          params.append("is_verified", is_verified);
-        return {
-          url: `/admin/users/${id}?${params.toString()}`,
-          method: "PATCH",
-        };
-      },
+      query: ({ id, name, phone, password, is_active, is_verified }) => ({
+        url: `/admin/users/${id}`,
+        method: "PATCH",
+        body: {
+          ...(name !== undefined ? { name } : {}),
+          ...(phone !== undefined ? { phone } : {}),
+          ...(password !== undefined && password !== "" ? { password } : {}),
+          ...(is_active !== undefined ? { is_active } : {}),
+          ...(is_verified !== undefined ? { is_verified } : {}),
+        },
+      }),
       invalidatesTags: ["User"],
     }),
 

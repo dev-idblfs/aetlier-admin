@@ -3,12 +3,12 @@
  */
 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import Cookies from "js-cookie";
-import config from "@/config";
 import apiClient from "@/lib/apiClient";
+import { setAccessTokenCookie, removeAccessTokenCookie } from "@/lib/authCookies";
 import {
   clearRefreshToken,
   storeRefreshToken,
+  usesCookieAuth,
 } from "@/services/sessionApi";
 
 export const signIn = createAsyncThunk(
@@ -18,9 +18,9 @@ export const signIn = createAsyncThunk(
       const response = await apiClient.post("/auth/signin", credentials);
       const accessToken = response.data?.tokens?.access_token;
       if (accessToken) {
-        Cookies.set(config.tokenKey, accessToken, { expires: 7 });
+        setAccessTokenCookie(accessToken);
       }
-      if (response.data?.tokens?.refresh_token) {
+      if (response.data?.tokens?.refresh_token && !usesCookieAuth()) {
         storeRefreshToken(response.data.tokens.refresh_token);
       }
       return response.data;
@@ -57,8 +57,7 @@ export const logout = createAsyncThunk(
   async ({ returnPath } = {}, { dispatch }) => {
     // Local admin logout only — do not revoke server sessions or the shared
     // refresh cookie, so the user can re-enter admin via SSO from www.
-    Cookies.remove(config.tokenKey);
-    Cookies.remove(config.refreshTokenKey);
+    removeAccessTokenCookie();
     clearRefreshToken();
     dispatch(clearAuth());
 
@@ -162,8 +161,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload?.message || "Authentication failed";
         if (action.payload?.status === 401) {
-          Cookies.remove(config.tokenKey);
-          Cookies.remove(config.refreshTokenKey);
+          removeAccessTokenCookie();
           clearRefreshToken();
           state.user = null;
           state.isAuthenticated = false;

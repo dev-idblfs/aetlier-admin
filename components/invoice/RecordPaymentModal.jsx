@@ -24,7 +24,6 @@ const PAYMENT_METHODS = [
     { value: 'CARD', label: 'Card' },
     { value: 'UPI', label: 'UPI' },
     { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-    { value: 'PAYTM', label: 'Paytm' },
     { value: 'OTHER', label: 'Other' },
 ];
 

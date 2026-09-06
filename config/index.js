@@ -17,6 +17,8 @@ const config = {
   appVersion: "1.0.0",
 
   // Authentication
+  // admin_access_token: short-lived Bearer token (set via lib/authCookies.js).
+  // Production refresh should be HttpOnly via backend Set-Cookie on COOKIE_DOMAIN.
   tokenKey: "admin_access_token",
   refreshTokenKey: "admin_refresh_token",
 

@@ -10,11 +10,11 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { Spinner } from '@heroui/react';
-import Cookies from 'js-cookie';
 import { setCredentials } from '@/redux/slices/authSlice';
 import { canAccessAdminPortal } from '@/utils/permissions';
-import { usesCookieAuth, storeRefreshToken } from '@/services/sessionApi';
 import config from '@/config';
+import { setAccessTokenCookie, removeAccessTokenCookie } from '@/lib/authCookies';
+import { usesCookieAuth, storeRefreshToken } from '@/services/sessionApi';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -33,6 +33,10 @@ function AuthCallbackContent() {
       const refresh = searchParams.get('refresh');
       const returnUrl = searchParams.get('returnUrl') || '/';
 
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
       if (!token) {
         setError('No authentication token provided');
         setTimeout(() => router.replace('/login'), 2000);
@@ -40,7 +44,7 @@ function AuthCallbackContent() {
       }
 
       try {
-        Cookies.set(config.tokenKey, token, { expires: 7 });
+        setAccessTokenCookie(token);
         if (refresh) {
           storeRefreshToken(refresh);
         }
@@ -57,7 +61,7 @@ function AuthCallbackContent() {
 
         if (!canAccessAdminPortal(user)) {
           setError('Access denied. Admin privileges required.');
-          Cookies.remove(config.tokenKey);
+          removeAccessTokenCookie();
           setTimeout(() => router.replace('/login'), 2000);
           return;
         }
@@ -73,7 +77,7 @@ function AuthCallbackContent() {
       } catch (err) {
         console.error('Auth callback failed:', err);
         setError('Authentication failed. Redirecting...');
-        Cookies.remove(config.tokenKey);
+        removeAccessTokenCookie();
         setTimeout(() => router.replace('/login'), 2000);
       }
     };

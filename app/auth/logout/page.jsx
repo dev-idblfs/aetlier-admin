@@ -9,9 +9,9 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Cookies from 'js-cookie';
+import { removeAccessTokenCookie } from '@/lib/authCookies';
+import { clearRefreshToken } from '@/services/sessionApi';
 import { Spinner } from '@heroui/react';
-import config from '@/config';
 
 function getFrontendUrl() {
     return process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
@@ -21,8 +21,8 @@ function LogoutContent() {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        Cookies.remove(config.tokenKey);
-        Cookies.remove(config.refreshTokenKey);
+        removeAccessTokenCookie();
+        clearRefreshToken();
 
         const redirect = searchParams.get('redirect') || getFrontendUrl();
         window.location.replace(redirect);
