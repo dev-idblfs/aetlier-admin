@@ -28,6 +28,7 @@ import {
     User,
     MoreVertical,
     FileText,
+    FileCheck,
     Plus,
     Video,
 } from '@/lib/icons';
@@ -255,6 +256,14 @@ export default function AppointmentsPage() {
         PERMISSIONS.APPOINTMENT_CHANGE_STATUS,
         PERMISSIONS.INVOICE_CREATE,
     ]);
+    const canPrescribe = hasAnyPermission(authUser, [
+        PERMISSIONS.PRESCRIPTION_CREATE_OWN,
+        PERMISSIONS.PRESCRIPTION_READ_ANY,
+    ]);
+
+    const handlePrescribe = (appointment) => {
+        router.push(`/appointments/${appointment.id}/edit?prescribe=1`);
+    };
 
     // Generate Invoice handler
     const handleGenerateInvoice = (appointment) => {
@@ -429,6 +438,19 @@ export default function AppointmentsPage() {
                             title="Generate Invoice"
                         >
                             <FileText className="w-4 h-4" />
+                        </Button>
+                    )}
+                    {canPrescribe && row.status === 'completed' && (
+                        <Button
+                            size="sm"
+                            color="secondary"
+                            variant="flat"
+                            isIconOnly
+                            onPress={() => handlePrescribe(row)}
+                            title="Write prescription"
+                            aria-label="Write prescription"
+                        >
+                            <FileCheck className="w-4 h-4" />
                         </Button>
                     )}
                     {canChangeStatus && row.status === 'pending' && (
@@ -820,12 +842,14 @@ export default function AppointmentsPage() {
                                 onGenerateInvoice={() => handleGenerateInvoice(apt)}
                                 onComplete={() => handleComplete(apt)}
                                 onViewInvoice={() => handleViewInvoice(apt)}
+                                onPrescribe={() => handlePrescribe(apt)}
                                 canView={canView}
                                 canEdit={canEdit}
                                 canDelete={canDelete}
                                 canChangeStatus={canChangeStatus}
                                 canGenerateInvoice={canGenerateInvoice}
                                 canComplete={canComplete}
+                                canPrescribe={canPrescribe}
                                 selectable={canDelete}
                                 isSelected={isSelected(apt.id)}
                                 onSelect={() => {
@@ -1177,12 +1201,14 @@ function AppointmentCard({
     onGenerateInvoice,
     onComplete,
     onViewInvoice,
+    onPrescribe,
     canView,
     canEdit,
     canDelete,
     canChangeStatus,
     canGenerateInvoice,
     canComplete,
+    canPrescribe,
     selectable = false,
     isSelected = false,
     onSelect,
@@ -1256,6 +1282,11 @@ function AppointmentCard({
                             {canGenerateInvoice && apt.status === 'completed' && !apt.invoice_id && (
                                 <DropdownItem key="invoice" startContent={<FileText className="w-4 h-4" />} color="primary" onPress={onGenerateInvoice}>
                                     Generate Invoice
+                                </DropdownItem>
+                            )}
+                            {canPrescribe && apt.status === 'completed' && (
+                                <DropdownItem key="prescribe" startContent={<FileCheck className="w-4 h-4" />} color="secondary" onPress={onPrescribe}>
+                                    Write prescription
                                 </DropdownItem>
                             )}
                             {canChangeStatus && (

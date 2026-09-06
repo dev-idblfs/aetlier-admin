@@ -39,13 +39,16 @@ export default function PrescriptionPanel({
   const user = useSelector((s) => s.auth.user)
   const canCreate = hasPermission(user, PERMISSIONS.PRESCRIPTION_CREATE_OWN)
   const canSend = hasPermission(user, PERMISSIONS.PRESCRIPTION_SEND_OWN)
+  const canReadAny = hasPermission(user, PERMISSIONS.PRESCRIPTION_READ_ANY)
   const canChangeStatus = hasAnyPermission(user, [
     PERMISSIONS.APPOINTMENT_CHANGE_STATUS,
     PERMISSIONS.APPOINTMENT_CHANGE_STATUS_ASSIGNED,
   ])
   const isAssignedDoctor =
     doctorUserId && user?.id && String(doctorUserId) === String(user.id)
-  const canPrescribeHere = canCreate && (isAssignedDoctor || hasPermission(user, PERMISSIONS.PRESCRIPTION_READ_ANY))
+  // Assigned doctor with create, or staff with read.any (admin override)
+  const canPrescribeHere =
+    (canCreate && isAssignedDoctor) || (canCreate && canReadAny) || canReadAny
 
   const { data: prescriptions, isLoading } = useGetAppointmentPrescriptionsQuery(
     appointmentId,
@@ -87,7 +90,21 @@ export default function PrescriptionPanel({
     )
   }, [activeRx])
 
-  if (!canPrescribeHere) return null
+  if (!canPrescribeHere) {
+    return (
+      <div
+        id={autoFocus ? 'prescribe-panel' : undefined}
+        className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+      >
+        <h3 className="text-sm font-semibold text-gray-900">E-Prescription</h3>
+        <p className="mt-1 text-sm text-gray-600">
+          {!canCreate
+            ? 'Your account does not have permission to write prescriptions.'
+            : 'Only the assigned doctor can write a prescription for this appointment.'}
+        </p>
+      </div>
+    )
+  }
 
   const handleComplete = async () => {
     try {

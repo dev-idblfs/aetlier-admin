@@ -87,14 +87,35 @@ export default function EditAppointmentPage() {
         );
     }
 
-    const doctorUserId = appointment.doctor_user_id || appointment.doctor_id;
+    const doctorUserId =
+        appointment.doctor_user_id ||
+        appointment.doctor_id ||
+        appointment.doctor?.user_id ||
+        appointment.doctor?.id;
+    const patientName =
+        appointment.patient_info?.full_name ||
+        appointment.user?.name ||
+        appointment.user_name ||
+        'N/A';
+    const serviceName =
+        appointment.service?.name ||
+        appointment.service_name ||
+        'N/A';
+    const preferredDate =
+        appointment.preferred_date ||
+        appointment.appointment_date ||
+        'N/A';
+    const preferredTime =
+        appointment.preferred_time ||
+        appointment.appointment_time ||
+        'N/A';
 
     return (
         <FormPageLayout
             title="Edit Appointment"
             breadcrumbs={[
                 { label: 'Appointments', href: '/appointments' },
-                { label: appointment.user_name || 'Edit' },
+                { label: patientName !== 'N/A' ? patientName : 'Edit' },
             ]}
             cancelHref="/appointments"
         >
@@ -118,21 +139,32 @@ export default function EditAppointmentPage() {
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                             <div>
                                 <p className="text-gray-500 text-xs">Patient</p>
-                                <p className="font-medium">{appointment.user_name || 'N/A'}</p>
+                                <p className="font-medium">{patientName}</p>
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Service</p>
-                                <p className="font-medium">{appointment.service_name || 'N/A'}</p>
+                                <p className="font-medium">{serviceName}</p>
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Preferred Date</p>
-                                <p className="font-medium">{appointment.preferred_date || 'N/A'}</p>
+                                <p className="font-medium">{preferredDate}</p>
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Preferred Time</p>
-                                <p className="font-medium">{appointment.preferred_time || 'N/A'}</p>
+                                <p className="font-medium">{preferredTime}</p>
                             </div>
                         </div>
+                    </FormSectionCard>
+
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Prescription">
+                        <PrescriptionPanel
+                            appointmentId={appointmentId}
+                            appointmentStatus={formData.status || appointment.status}
+                            doctorUserId={doctorUserId}
+                            autoFocus={prescribeMode}
+                        />
                     </FormSectionCard>
 
                     <FormDivider />
@@ -161,17 +193,6 @@ export default function EditAppointmentPage() {
                             minRows={3}
                             className="mt-3"
                             classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                        />
-                    </FormSectionCard>
-
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Prescription">
-                        <PrescriptionPanel
-                            appointmentId={appointmentId}
-                            appointmentStatus={appointment.status}
-                            doctorUserId={doctorUserId}
-                            autoFocus={prescribeMode}
                         />
                     </FormSectionCard>
                 </FormCompactCard>
