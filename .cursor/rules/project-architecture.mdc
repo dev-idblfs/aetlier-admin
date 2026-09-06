@@ -1,0 +1,27 @@
+---
+description: Aetlier admin stack, App Router layout, data and RBAC boundaries
+alwaysApply: true
+---
+
+# Project Architecture (aetlier-admin)
+
+Next.js 16 App Router, React 19, **JavaScript `.jsx`**, Redux Toolkit + RTK Query, Tailwind v4 + HeroUI. Yarn. Port 3001. See `AGENTS.md`.
+
+```
+app/                      Routes (PRIMARY — ignore legacy src/app/)
+  login/ auth/callback/   Auth entry + SSO
+  (dashboard)/            Route group — NOT in URL
+components/layout/        AdminLayout, Sidebar, Header
+components/ui/            Shared barrel exports
+features/                 Domain modules
+redux/services/api.js     Single createApi slice (all REST)
+lib/validation/           Zod schemas
+utils/permissions.js      Client permission helpers
+```
+
+## Hard rules
+- Most pages are `'use client'`; root is `force-dynamic`.
+- All REST endpoints live in `redux/services/api.js` with tag caching. Axios `apiClient` only for auth profile in `authSlice`.
+- Portal entry: `canAccessAdminPortal` / `admin.portal.access`; roles may set portal redirect flags.
+- Permission strings must stay aligned with backend `resource.action.scope`.
+- Tailwind config is via `hero.ts` / `@config` in `globals.css` — not classic `tailwind.config.js`.

@@ -1,0 +1,33 @@
+---
+description: Core engineering standards — simplicity, security, reuse, feature completion
+alwaysApply: true
+---
+
+# Engineering Standards (Admin)
+
+## Principles
+- Prefer the **simplest production-grade** solution that fits the admin dashboard patterns. Do not over-engineer.
+- Reuse first: search `@/components/ui` barrel, `components/`, `features/` before new UI.
+- Client RBAC gates UX only — backend must still enforce permissions. Never rely on UI alone.
+- Never silently swallow errors. Do not leak tokens or patient data in client logs/UI.
+- JavaScript `.jsx` only. No Prettier in this repo — match surrounding style. Avoid unnecessary deps.
+
+## Before implementing
+1. Mirror an existing dashboard page (PageHeader, DataTable, RTK Query tags, permission checks).
+2. Add endpoints to the single `redux/services/api.js` slice — do not create parallel API clients.
+3. Make the smallest clean change that solves the requirement.
+
+## Documentation (Definition of Done)
+- Update README / `AGENTS.md` (and any relevant `readme/` notes) **in the same change** for feature, config, env, API, RBAC, deploy, or security/ops changes.
+- Document: what it does, setup/config, env vars (never secrets), API/integration notes, deploy requirements, security notes, migration/ops steps.
+- Keep README concise; remove outdated instructions — never leave docs describing removed behavior.
+- Feature is not complete until affected docs are verified current.
+
+## Feature complete when
+- Permission-gated queries (`skip: !canView`) and UI checks use `PERMISSIONS` / `utils/permissions.js`.
+- Loading/empty/error states present; `loading.jsx` where section already uses them.
+- Forms use Zod in `lib/validation/` + shared FormFields when applicable.
+- Affected documentation updated (see above).
+
+## Decision rule
+Choose the approach that solves the need, fits existing admin architecture, reuses shared UI, minimizes complexity, and avoids premature abstraction.
