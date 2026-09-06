@@ -55,11 +55,16 @@ export default function DoctorForm({
             is_active: true,
             accepts_online_consultation: false,
             can_prescribe: false,
+            registration_number: '',
+            registration_council: '',
             ...defaultValues,
         },
     });
 
-    const { formState: { isSubmitting } } = methods;
+    const { formState: { isSubmitting }, watch } = methods;
+    const wantsOnline = watch('accepts_online_consultation');
+    const wantsPrescribe = watch('can_prescribe');
+    const needsRegistration = wantsOnline || wantsPrescribe;
 
     return (
         <Form methods={methods} onSubmit={onSubmit}>
@@ -159,6 +164,23 @@ export default function DoctorForm({
                                 </SelectItem>
                             ))}
                         </FormSelect>
+
+                        <FormInput
+                            name="registration_number"
+                            label="Registration number"
+                            placeholder="NMC / State Medical Council number"
+                            isRequired={needsRegistration}
+                            description={
+                                needsRegistration
+                                    ? 'Required for online consultations and e-prescriptions'
+                                    : 'Medical council registration (required for teleconsult / e-Rx)'
+                            }
+                        />
+                        <FormInput
+                            name="registration_council"
+                            label="Registration council"
+                            placeholder="e.g. Karnataka Medical Council"
+                        />
                     </FormRow>
                 </FormSectionCard>
 
@@ -179,17 +201,17 @@ export default function DoctorForm({
                     <FormSwitchRow
                         name="is_active"
                         label="Active Status"
-                        description="Doctor will be visible to patients"
+                        description="Doctor profile is active in admin (public listing still requires publish/verification)"
                     />
                     <FormSwitchRow
                         name="accepts_online_consultation"
                         label="Online consultations"
-                        description="Patients can book video/audio teleconsult with this doctor"
+                        description="Requires registration number — patients can book video/audio teleconsult"
                     />
                     <FormSwitchRow
                         name="can_prescribe"
                         label="E-prescriptions"
-                        description="Doctor can create and send structured prescriptions"
+                        description="Requires registration number — doctor can send structured prescriptions"
                     />
                 </FormSectionCard>
             </FormCompactCard>

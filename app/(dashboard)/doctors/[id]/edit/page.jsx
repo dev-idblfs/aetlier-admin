@@ -152,6 +152,8 @@ export default function EditDoctorPage() {
                     is_active: doctor.is_active ?? true,
                     accepts_online_consultation: doctor.accepts_online_consultation ?? false,
                     can_prescribe: doctor.can_prescribe ?? false,
+                    registration_number: doctor.registration_number || '',
+                    registration_council: doctor.registration_council || '',
                 }}
                 onSubmit={onSubmit}
                 isLoading={isUpdating}
