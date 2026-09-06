@@ -212,39 +212,40 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
     // Simple list rendering for now
     // TODO: Implement tree view for hierarchy
     const renderCategoryItem = (category) => (
-        <div key={category.id} className={`flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:border-gray-300 transition-colors group ${selectedIds.includes(category.id) ? 'border-primary-200 bg-primary-50' : ''}`}>
-            <div className="flex items-center gap-3">
+        <div key={category.id} className={`flex items-start sm:items-center justify-between gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-gray-300 transition-colors group min-w-0 ${selectedIds.includes(category.id) ? 'border-primary-200 bg-primary-50' : ''}`}>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
                 {canDelete && (
                     <Checkbox
                         isSelected={selectedIds.includes(category.id)}
                         onValueChange={() => handleSelectRow(category.id)}
                         aria-label={`Select ${category.name}`}
+                        classNames={{ wrapper: 'w-5 h-5' }}
                     />
                 )}
                 <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm shrink-0"
                     style={{ backgroundColor: category.color || '#666' }}
                 >
                     {category.icon || <Folder className="w-4 h-4" />}
                 </div>
-                <div>
-                    <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                        {category.name}
+                <div className="min-w-0">
+                    <h4 className="font-medium text-gray-900 flex flex-wrap items-center gap-2">
+                        <span className="truncate">{category.name}</span>
                         {!category.is_active && (
                             <Chip size="sm" variant="flat" color="danger" className="h-5 text-xs">Inactive</Chip>
                         )}
                     </h4>
                     {category.description && (
-                        <p className="text-sm text-gray-500">{category.description}</p>
+                        <p className="text-sm text-gray-500 line-clamp-2">{category.description}</p>
                     )}
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <Button isIconOnly size="sm" variant="light" onPress={() => handleEditClick(category)}>
+            <div className="flex items-center gap-1 shrink-0 opacity-100">
+                <Button isIconOnly size="md" variant="flat" className="min-w-10 min-h-10" onPress={() => handleEditClick(category)} aria-label={`Edit ${category.name}`}>
                     <Edit className="w-4 h-4 text-gray-600" />
                 </Button>
-                <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleDeleteClick(category)}>
+                <Button isIconOnly size="md" variant="flat" color="danger" className="min-w-10 min-h-10" onPress={() => handleDeleteClick(category)} aria-label={`Delete ${category.name}`}>
                     <Trash2 className="w-4 h-4" />
                 </Button>
             </div>
