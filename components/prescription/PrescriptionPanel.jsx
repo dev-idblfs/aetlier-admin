@@ -46,9 +46,8 @@ export default function PrescriptionPanel({
   ])
   const isAssignedDoctor =
     doctorUserId && user?.id && String(doctorUserId) === String(user.id)
-  // Assigned doctor with create, or staff with read.any (admin override)
-  const canPrescribeHere =
-    (canCreate && isAssignedDoctor) || (canCreate && canReadAny) || canReadAny
+  // Show form if user can create (backend enforces assigned-doctor) or can read any (admin).
+  const canPrescribeHere = canCreate || canReadAny
 
   const { data: prescriptions, isLoading } = useGetAppointmentPrescriptionsQuery(
     appointmentId,
