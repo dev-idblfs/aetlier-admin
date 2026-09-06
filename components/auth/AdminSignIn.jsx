@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button, Divider } from '@heroui/react';
-import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { signIn, googleLogin } from '@/redux/slices/authSlice';
 import { Form, FormErrorSummary, FormInput, DEFAULT_FORM_OPTIONS } from '@/components/ui';
@@ -13,6 +13,27 @@ import { loginSchema } from '@/lib/validation';
 import config from '@/config';
 
 const googleClientId = config.googleClientId;
+
+function ContinueWithGoogleButton({ onSuccess, disabled }) {
+  const login = useGoogleLogin({
+    flow: 'auth-code',
+    ux_mode: 'popup',
+    onSuccess: (tokenResponse) => onSuccess?.(tokenResponse),
+    onError: () => toast.error('Google sign-in was cancelled or blocked'),
+  });
+
+  return (
+    <Button
+      type="button"
+      variant="bordered"
+      className="w-full"
+      isDisabled={disabled}
+      onPress={() => login()}
+    >
+      Continue with Google
+    </Button>
+  );
+}
 
 export default function AdminSignIn({ onSuccess }) {
   const [submitting, setSubmitting] = useState(false);
@@ -41,13 +62,14 @@ export default function AdminSignIn({ onSuccess }) {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = async (tokenResponse) => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const res = await dispatch(
-        googleLogin({ credential: credentialResponse.credential })
-      ).unwrap();
+      const payload = tokenResponse.code
+        ? { code: tokenResponse.code }
+        : { credential: tokenResponse.credential };
+      const res = await dispatch(googleLogin(payload)).unwrap();
       toast.success('Signed in with Google');
       await onSuccess?.(res);
     } catch (err) {
@@ -96,15 +118,10 @@ export default function AdminSignIn({ onSuccess }) {
               or
             </span>
           </div>
-          <div className="flex flex-col items-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => toast.error('Google sign-in was cancelled')}
-              text="signin_with"
-              shape="rectangular"
-              width="320"
-            />
-          </div>
+          <ContinueWithGoogleButton
+            onSuccess={handleGoogleSuccess}
+            disabled={submitting}
+          />
         </>
       ) : null}
     </Form>
