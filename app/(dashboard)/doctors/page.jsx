@@ -30,6 +30,8 @@ import {
     useDisclosure,
     Avatar,
     Pagination,
+    Select,
+    SelectItem,
 } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import {
@@ -60,6 +62,9 @@ export default function DoctorsPage() {
     const canDelete = hasPermission(authUser, PERMISSIONS.DOCTOR_DELETE);
     const canReviewVerification = hasPermission(authUser, PERMISSIONS.VERIFICATION_VERIFY_ANY);
     const [search, setSearch] = useState('');
+    const [verificationFilter, setVerificationFilter] = useState('');
+    const [activeFilter, setActiveFilter] = useState('');
+    const [publishedFilter, setPublishedFilter] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -72,21 +77,25 @@ export default function DoctorsPage() {
         setCurrentPage(1);
     };
 
-    const { data, isLoading, isError, error, refetch } = useGetDoctorsQuery({});
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [verificationFilter, activeFilter, publishedFilter]);
+
+    const queryArgs = useMemo(() => {
+        const args = {};
+        if (verificationFilter) args.verification_status = verificationFilter;
+        if (activeFilter === 'true') args.is_active = true;
+        if (activeFilter === 'false') args.is_active = false;
+        if (publishedFilter === 'true') args.is_published = true;
+        if (publishedFilter === 'false') args.is_published = false;
+        if (search.trim()) args.q = search.trim();
+        return args;
+    }, [verificationFilter, activeFilter, publishedFilter, search]);
+
+    const { data, isLoading, isError, error, refetch } = useGetDoctorsQuery(queryArgs);
     const [deleteDoctor, { isLoading: isDeleting }] = useDeleteDoctorMutation();
 
-    // Client-side filtering since backend doesn't support search
-    const filteredDoctors = useMemo(() => {
-        const allDoctors = normalizeApiList(data);
-        if (!search) return allDoctors;
-        const searchLower = search.toLowerCase();
-        return allDoctors.filter(doctor => {
-            const fullName = `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim();
-            return fullName.toLowerCase().includes(searchLower) ||
-                doctor.specializations?.some(s => s.toLowerCase().includes(searchLower)) ||
-                doctor.email?.toLowerCase().includes(searchLower);
-        });
-    }, [data, search]);
+    const filteredDoctors = useMemo(() => normalizeApiList(data), [data]);
 
     // Pagination
     const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
@@ -216,12 +225,53 @@ export default function DoctorsPage() {
                 ) : null
             }
             toolbar={(
-                <SearchInput
-                    value={search}
-                    onChange={handleSearchChange}
-                    placeholder="Search doctors..."
-                    className="flex-1 max-w-md"
-                />
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                    <SearchInput
+                        value={search}
+                        onChange={handleSearchChange}
+                        placeholder="Search doctors..."
+                        className="flex-1 max-w-md"
+                    />
+                    <Select
+                        aria-label="Verification status"
+                        placeholder="Verification"
+                        selectedKeys={verificationFilter ? [verificationFilter] : []}
+                        onSelectionChange={(keys) => setVerificationFilter(Array.from(keys)[0] || '')}
+                        className="w-full sm:w-44"
+                        size="sm"
+                    >
+                        <SelectItem key="">All verification</SelectItem>
+                        <SelectItem key="pending">Pending</SelectItem>
+                        <SelectItem key="verified">Verified</SelectItem>
+                        <SelectItem key="rejected">Rejected</SelectItem>
+                        <SelectItem key="expired">Expired</SelectItem>
+                        <SelectItem key="none">No record</SelectItem>
+                    </Select>
+                    <Select
+                        aria-label="Active filter"
+                        placeholder="Active"
+                        selectedKeys={activeFilter ? [activeFilter] : []}
+                        onSelectionChange={(keys) => setActiveFilter(Array.from(keys)[0] || '')}
+                        className="w-full sm:w-36"
+                        size="sm"
+                    >
+                        <SelectItem key="">All active</SelectItem>
+                        <SelectItem key="true">Active</SelectItem>
+                        <SelectItem key="false">Inactive</SelectItem>
+                    </Select>
+                    <Select
+                        aria-label="Published filter"
+                        placeholder="Published"
+                        selectedKeys={publishedFilter ? [publishedFilter] : []}
+                        onSelectionChange={(keys) => setPublishedFilter(Array.from(keys)[0] || '')}
+                        className="w-full sm:w-40"
+                        size="sm"
+                    >
+                        <SelectItem key="">All published</SelectItem>
+                        <SelectItem key="true">Published</SelectItem>
+                        <SelectItem key="false">Unpublished</SelectItem>
+                    </Select>
+                </div>
             )}
         >
             {isError && (

@@ -17,7 +17,6 @@ import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@
 const USER_TYPES = [
     { key: 'PATIENT', label: 'Patient' },
     { key: 'DOCTOR', label: 'Doctor' },
-    { key: 'ADMIN', label: 'Admin' },
 ];
 
 export default function EditUserPage() {
@@ -78,6 +77,7 @@ export default function EditUserPage() {
                 phone: data.phone,
                 is_active: data.is_active,
                 is_verified: data.is_verified,
+                user_type: data.user_type,
                 ...(data.password ? { password: data.password } : {}),
             }).unwrap();
 
@@ -155,7 +155,12 @@ export default function EditUserPage() {
 
                     <FormSectionCard embedded title="Account Settings">
                         <FormRow columns={3}>
-                            <FormSelect name="user_type" label="User Type" placeholder="Select user type">
+                            <FormSelect
+                                name="user_type"
+                                label="User Type"
+                                placeholder="Select persona"
+                                description="Persona only — staff access uses Manage Roles"
+                            >
                                 {USER_TYPES.map((type) => (
                                     <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>
                                 ))}

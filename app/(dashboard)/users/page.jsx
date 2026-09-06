@@ -250,6 +250,15 @@ export default function UsersPage() {
             },
         },
         {
+            key: 'type',
+            label: 'Type',
+            render: (row) => (
+                <Chip size="sm" variant="flat" color="default">
+                    {row.user_type || 'PATIENT'}
+                </Chip>
+            ),
+        },
+        {
             key: 'roles',
             label: 'Roles',
             render: (row) => {
@@ -462,6 +471,7 @@ export default function UsersPage() {
                                 </Chip>
                             } />
                             <DetailRow label="Joined" value={formatDate(selectedUser.created_at)} />
+                            <DetailRow label="Type" value={selectedUser.user_type || 'PATIENT'} />
                             <DetailRow label="Roles" value={
                                 <div className="flex flex-wrap gap-1">
                                     {(selectedUser.roles || []).map(role => (
@@ -574,6 +584,7 @@ function UserMobileCard({ user, onClick, actions }) {
                 </Chip>
             </MobileCard.Header>
             <MobileCard.Meta>
+                <MobileCard.Badge>{user.user_type || 'PATIENT'}</MobileCard.Badge>
                 {(user.roles || []).map(role => (
                     <MobileCard.Badge key={role.id}>{role.name}</MobileCard.Badge>
                 ))}

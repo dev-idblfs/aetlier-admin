@@ -515,12 +515,31 @@ export const api = createApi({
     // DOCTOR ENDPOINTS (RESTful)
     // =========================================================================
 
-    // GET /doctors - List all doctors
+    // GET /doctors — RBAC-scoped list (public=published; doctor.read.any=all+filters)
     getDoctors: builder.query({
-      query: ({ active_only = false } = {}) => {
+      query: ({
+        verification_status,
+        is_active,
+        is_published,
+        q,
+        specialization,
+        active_only,
+      } = {}) => {
         const params = new URLSearchParams();
-        params.append("active_only", active_only ? "true" : "false");
-        return `/doctors?${params.toString()}`;
+        if (verification_status) params.append("verification_status", verification_status);
+        if (is_active !== undefined && is_active !== null && is_active !== "") {
+          params.append("is_active", String(is_active));
+        }
+        if (is_published !== undefined && is_published !== null && is_published !== "") {
+          params.append("is_published", String(is_published));
+        }
+        if (q) params.append("q", q);
+        if (specialization) params.append("specialization", specialization);
+        if (active_only !== undefined && active_only !== null) {
+          params.append("active_only", active_only ? "true" : "false");
+        }
+        const qs = params.toString();
+        return qs ? `/doctors?${qs}` : `/doctors`;
       },
       providesTags: ["Doctor"],
     }),
