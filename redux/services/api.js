@@ -5,7 +5,18 @@
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import config from "@/config";
-import { getAccessTokenCookie, removeAccessTokenCookie } from "@/lib/authCookies";
+import {
+  getAccessTokenCookie,
+  setAccessTokenCookie,
+  removeAccessTokenCookie,
+} from "@/lib/authCookies";
+import {
+  refreshAccessToken,
+  canRefreshSession,
+  clearRefreshToken,
+  storeRefreshToken,
+  usesCookieAuth,
+} from "@/services/sessionApi";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: config.apiUrl,
@@ -20,21 +31,53 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
-// Handle 401 errors globally — never hard-reload while already on /login.
-const baseQueryWithReauth = async (args, api, extraOptions) => {
-  const result = await baseQuery(args, api, extraOptions);
+let refreshPromise = null;
 
-  if (result.error?.status === 401) {
-    removeAccessTokenCookie();
-    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-      const path = window.location.pathname + window.location.search;
-      const safe =
-        path.startsWith("/") && !path.startsWith("//") && path !== "/login"
-          ? path
-          : null;
-      const qs = safe ? `?returnTo=${encodeURIComponent(safe)}` : "";
-      window.location.href = `/login${qs}`;
+// Refresh on 401, then retry once — never hard-reload while already on /login.
+const baseQueryWithReauth = async (args, api, extraOptions) => {
+  let result = await baseQuery(args, api, extraOptions);
+
+  if (result.error?.status !== 401) {
+    return result;
+  }
+
+  const onLoginPage =
+    typeof window !== "undefined" && window.location.pathname === "/login";
+
+  if (!onLoginPage && canRefreshSession()) {
+    try {
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => {
+          refreshPromise = null;
+        });
+      }
+      const refreshed = await refreshPromise;
+      const nextToken = refreshed?.tokens?.access_token;
+      if (nextToken) {
+        setAccessTokenCookie(nextToken);
+        if (refreshed?.tokens?.refresh_token && !usesCookieAuth()) {
+          storeRefreshToken(refreshed.tokens.refresh_token);
+        }
+        result = await baseQuery(args, api, extraOptions);
+        if (!result.error) {
+          return result;
+        }
+      }
+    } catch (refreshError) {
+      console.warn("Admin RTK token refresh failed:", refreshError);
     }
+  }
+
+  removeAccessTokenCookie();
+  clearRefreshToken();
+  if (typeof window !== "undefined" && !onLoginPage) {
+    const path = window.location.pathname + window.location.search;
+    const safe =
+      path.startsWith("/") && !path.startsWith("//") && path !== "/login"
+        ? path
+        : null;
+    const qs = safe ? `?returnTo=${encodeURIComponent(safe)}` : "";
+    window.location.href = `/login${qs}`;
   }
 
   return result;
@@ -1238,11 +1281,11 @@ export const api = createApi({
       providesTags: ["Report"],
     }),
 
-    // GET /reports/tax-summary - Tax summary report
+    // GET /reports/tax - Tax summary report
     getTaxSummaryReport: builder.query({
       query: ({ date_from, date_to }) => {
         const params = new URLSearchParams({ date_from, date_to });
-        return `/reports/tax-summary?${params.toString()}`;
+        return `/reports/tax?${params.toString()}`;
       },
       providesTags: ["Report"],
     }),

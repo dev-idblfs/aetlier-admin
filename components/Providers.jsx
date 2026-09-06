@@ -8,11 +8,13 @@ import { Provider } from 'react-redux';
 import { store } from '@/redux/store';
 import { HeroUIProvider } from '@heroui/react';
 import { SolarProvider } from '@solar-icons/react/lib/context';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from 'react-hot-toast';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import NavigationProgress from './NavigationProgress';
+import config from '@/config';
 
-export default function Providers({ children }) {
+function AppProviders({ children }) {
     return (
         <Provider store={store}>
             <PreferencesProvider>
@@ -37,4 +39,15 @@ export default function Providers({ children }) {
             </PreferencesProvider>
         </Provider>
     );
+}
+
+export default function Providers({ children }) {
+    if (config.googleClientId) {
+        return (
+            <GoogleOAuthProvider clientId={config.googleClientId}>
+                <AppProviders>{children}</AppProviders>
+            </GoogleOAuthProvider>
+        );
+    }
+    return <AppProviders>{children}</AppProviders>;
 }

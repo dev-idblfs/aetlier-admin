@@ -10,7 +10,7 @@ export const ADMIN_ROUTE_RULES = [
   { prefix: '/finance/customers', any: [PERMISSIONS.CUSTOMER_VIEW_ANY] },
   { prefix: '/finance/reports', any: [PERMISSIONS.REPORTS_VIEW] },
   { prefix: '/finance', any: [PERMISSIONS.REPORTS_VIEW, PERMISSIONS.INVOICE_VIEW_ANY] },
-  { prefix: '/appointments', any: [PERMISSIONS.APPOINTMENT_READ_ANY, PERMISSIONS.APPOINTMENT_READ_ASSIGNED] },
+  { prefix: '/appointments', any: [PERMISSIONS.APPOINTMENT_READ_ANY, PERMISSIONS.APPOINTMENT_READ_ASSIGNED, PERMISSIONS.APPOINTMENT_READ_OWN] },
   { prefix: '/doctors', any: [PERMISSIONS.DOCTOR_READ_ANY] },
   { prefix: '/users', any: [PERMISSIONS.USER_READ_ANY] },
   { prefix: '/verification', any: [PERMISSIONS.VERIFICATION_VERIFY_ANY] },

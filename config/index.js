@@ -12,6 +12,9 @@ const config = {
   // Admin URL
   adminUrl: process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001",
 
+  // Google OAuth (same client as public app; authorized for admin origin)
+  googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
+
   // App Info
   appName: "Aetlier Admin",
   appVersion: "1.0.0",

@@ -35,7 +35,7 @@ import {
     ChevronRight,
 } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal, BulkActionBar } from '@/components/ui';
+import { ListPageLayout, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal, BulkActionBar, DataTable } from '@/components/ui';
 import {
     useGetRolesQuery,
     useCreateRoleMutation,
@@ -300,142 +300,110 @@ function RolesTab() {
                 canDelete={canDeleteRoles}
             />
 
-            {/* Desktop Table View */}
-            <div className="hidden md:block">
-                <Card>
-                    <CardBody className="p-0">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    {canDeleteRoles ? (
-                                        <th className="px-4 py-3 w-10">
-                                            <Checkbox
-                                                isSelected={selectableRoles.length > 0 && selectedIds.length === selectableRoles.length}
-                                                isIndeterminate={selectedIds.length > 0 && selectedIds.length < selectableRoles.length}
-                                                onValueChange={() => onSelectionChange(
-                                                    selectedIds.length === selectableRoles.length
-                                                        ? []
-                                                        : selectableRoles.map((role) => role.id)
-                                                )}
-                                                aria-label="Select all roles"
-                                            />
-                                        </th>
-                                    ) : null}
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permissions</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {paginatedRoles.map((role) => (
-                                    <tr key={role.id} className="hover:bg-gray-50">
-                                        {canDeleteRoles ? (
-                                            <td className="px-4 py-3">
-                                                {!systemRoles.includes(role.name) ? (
-                                                    <Checkbox
-                                                        isSelected={selectedIds.includes(role.id)}
-                                                        onValueChange={() => onSelectionChange(
-                                                            selectedIds.includes(role.id)
-                                                                ? selectedIds.filter((id) => id !== role.id)
-                                                                : [...selectedIds, role.id]
-                                                        )}
-                                                        aria-label={`Select ${role.name}`}
-                                                    />
-                                                ) : null}
-                                            </td>
-                                        ) : null}
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <Shield className="w-4 h-4 text-primary-500" />
-                                                <span className="font-medium text-gray-900">{role.name}</span>
-                                                {systemRoles.includes(role.name) && (
-                                                    <Chip size="sm" color="warning" variant="flat">System</Chip>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">
-                                            {role.description || '-'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <Button
-                                                size="sm"
-                                                variant="flat"
-                                                color="primary"
-                                                startContent={<Key className="w-3 h-3" />}
-                                                onPress={() => handleManagePermissions(role)}
-                                            >
-                                                {role.permissions?.length || 0}
-                                            </Button>
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button size="sm" variant="flat" isIconOnly onPress={() => handleEdit(role)}>
-                                                    <Edit className="w-4 h-4" />
-                                                </Button>
-                                                {!systemRoles.includes(role.name) && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="flat"
-                                                        color="danger"
-                                                        isIconOnly
-                                                        onPress={() => handleDeleteClick(role)}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </CardBody>
-                </Card>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-3">
-                {paginatedRoles.length === 0 ? (
-                    <EmptyState
-                        icon="file"
-                        title="No roles"
-                        description="Create your first role to get started"
-                        actionLabel="Create Role"
-                        onAction={handleCreate}
+            <DataTable
+                columns={[
+                    {
+                        key: 'name',
+                        label: 'Role',
+                        priority: 'primary',
+                        render: (role) => (
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Shield className="w-4 h-4 text-primary-500 shrink-0" />
+                                <span className="font-medium text-gray-900">{role.name}</span>
+                                {systemRoles.includes(role.name) && (
+                                    <Chip size="sm" color="warning" variant="flat">System</Chip>
+                                )}
+                            </div>
+                        ),
+                    },
+                    {
+                        key: 'description',
+                        label: 'Description',
+                        priority: 'secondary',
+                        render: (role) => (
+                            <span className="text-sm text-gray-500">{role.description || '—'}</span>
+                        ),
+                    },
+                    {
+                        key: 'permissions',
+                        label: 'Permissions',
+                        priority: 'secondary',
+                        render: (role) => (
+                            <Button
+                                size="sm"
+                                variant="flat"
+                                color="primary"
+                                className="min-h-9"
+                                startContent={<Key className="w-3 h-3" />}
+                                onPress={() => handleManagePermissions(role)}
+                            >
+                                {role.permissions?.length || 0}
+                            </Button>
+                        ),
+                    },
+                    {
+                        key: 'actions',
+                        label: 'Actions',
+                        priority: 'actions',
+                        hideBelow: false,
+                        align: 'right',
+                        render: (role) => (
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="flat"
+                                    isIconOnly
+                                    className="min-w-9 min-h-9"
+                                    onPress={() => handleEdit(role)}
+                                    aria-label={`Edit ${role.name}`}
+                                >
+                                    <Edit className="w-4 h-4" />
+                                </Button>
+                                {!systemRoles.includes(role.name) && (
+                                    <Button
+                                        size="sm"
+                                        variant="flat"
+                                        color="danger"
+                                        isIconOnly
+                                        className="min-w-9 min-h-9"
+                                        onPress={() => handleDeleteClick(role)}
+                                        aria-label={`Delete ${role.name}`}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        ),
+                    },
+                ]}
+                data={paginatedRoles}
+                selectable={canDeleteRoles}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
+                isRowSelectable={(role) => !systemRoles.includes(role.name)}
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                emptyState={{
+                    icon: 'file',
+                    title: 'No roles',
+                    description: 'Create your first role to get started',
+                    actionLabel: 'Create Role',
+                    onAction: handleCreate,
+                }}
+                renderMobileCard={(role) => (
+                    <RoleMobileCard
+                        role={role}
+                        isSystem={systemRoles.includes(role.name)}
+                        onEdit={() => handleEdit(role)}
+                        onDelete={() => handleDeleteClick(role)}
+                        onManagePermissions={() => handleManagePermissions(role)}
                     />
-                ) : (
-                    paginatedRoles.map((role) => (
-                        <RoleMobileCard
-                            key={role.id}
-                            role={role}
-                            isSystem={systemRoles.includes(role.name)}
-                            onEdit={() => handleEdit(role)}
-                            onDelete={() => handleDeleteClick(role)}
-                            onManagePermissions={() => handleManagePermissions(role)}
-                        />
-                    ))
                 )}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-center mt-6">
-                    <Pagination
-                        total={totalPages}
-                        page={currentPage}
-                        onChange={(page) => {
-                            setCurrentPage(page);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        showControls
-                        classNames={{
-                            wrapper: "gap-2",
-                            item: "w-8 h-8 text-sm",
-                        }}
-                    />
-                </div>
-            )}
+            />
 
             {/* Create/Edit Role Modal */}
             <FormModal
@@ -656,96 +624,91 @@ function UserRolesTab() {
 
     return (
         <div className="space-y-4 mt-4">
-            {/* Desktop Table View */}
-            <div className="hidden md:block">
-                <Card>
-                    <CardBody className="p-0">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roles</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {users.map((user) => (
-                                    <tr key={user.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <Avatar
-                                                    name={user.name?.charAt(0)?.toUpperCase() || 'U'}
-                                                    size="sm"
-                                                    className="bg-primary-100"
-                                                    classNames={{
-                                                        name: 'text-primary-600 font-medium',
-                                                    }}
-                                                />
-                                                <span className="font-medium text-gray-900">{user.name || 'Unknown'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{user.email}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-wrap gap-1">
-                                                {user.roles?.length > 0 ? (
-                                                    user.roles.map((role) => (
-                                                        <Chip
-                                                            key={role.id}
-                                                            size="sm"
-                                                            color={
-                                                                role.name === 'super_admin' ? 'danger' :
-                                                                    role.name === 'admin' ? 'warning' :
-                                                                        role.name === 'doctor' ? 'secondary' :
-                                                                            'default'
-                                                            }
-                                                            variant="flat"
-                                                        >
-                                                            {role.name}
-                                                        </Chip>
-                                                    ))
-                                                ) : (
-                                                    <span className="text-gray-400 text-sm">No roles</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <Button
-                                                size="sm"
-                                                variant="flat"
-                                                color="primary"
-                                                startContent={<Shield className="w-3 h-3" />}
-                                                onPress={() => handleManageRoles(user)}
-                                            >
-                                                Manage
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </CardBody>
-                </Card>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-3">
-                {users.length === 0 ? (
-                    <EmptyState
-                        icon="search"
-                        title="No users"
-                        description="No users found in the system"
+            <DataTable
+                columns={[
+                    {
+                        key: 'user',
+                        label: 'User',
+                        priority: 'primary',
+                        render: (user) => (
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Avatar
+                                    name={user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                    size="sm"
+                                    className="bg-primary-100 shrink-0"
+                                    classNames={{ name: 'text-primary-600 font-medium' }}
+                                />
+                                <span className="font-medium text-gray-900 truncate">
+                                    {user.name || 'Unknown'}
+                                </span>
+                            </div>
+                        ),
+                    },
+                    {
+                        key: 'email',
+                        label: 'Email',
+                        priority: 'secondary',
+                        render: (user) => (
+                            <span className="text-sm text-gray-500 break-all">{user.email}</span>
+                        ),
+                    },
+                    {
+                        key: 'roles',
+                        label: 'Roles',
+                        priority: 'secondary',
+                        render: (user) => (
+                            <div className="flex flex-wrap gap-1">
+                                {user.roles?.length > 0 ? (
+                                    user.roles.map((role) => (
+                                        <Chip
+                                            key={role.id}
+                                            size="sm"
+                                            color={
+                                                role.name === 'super_admin' ? 'danger' :
+                                                    role.name === 'admin' ? 'warning' :
+                                                        role.name === 'doctor' ? 'secondary' :
+                                                            'default'
+                                            }
+                                            variant="flat"
+                                        >
+                                            {role.name}
+                                        </Chip>
+                                    ))
+                                ) : (
+                                    <span className="text-gray-400 text-sm">No roles</span>
+                                )}
+                            </div>
+                        ),
+                    },
+                    {
+                        key: 'actions',
+                        label: 'Actions',
+                        priority: 'actions',
+                        hideBelow: false,
+                        align: 'right',
+                        render: (user) => (
+                            <Button
+                                size="sm"
+                                variant="flat"
+                                color="primary"
+                                className="min-h-9"
+                                startContent={<Shield className="w-3 h-3" />}
+                                onPress={() => handleManageRoles(user)}
+                            >
+                                Manage
+                            </Button>
+                        ),
+                    },
+                ]}
+                data={users}
+                emptyMessage="No users found"
+                renderMobileCard={(user) => (
+                    <UserRoleMobileCard
+                        user={user}
+                        onManageRoles={() => handleManageRoles(user)}
                     />
-                ) : (
-                    users.map((user) => (
-                        <UserRoleMobileCard
-                            key={user.id}
-                            user={user}
-                            onManageRoles={() => handleManageRoles(user)}
-                        />
-                    ))
                 )}
-            </div>
+            />
 
             {/* Manage User Roles Modal */}
             <DetailModal

@@ -21,15 +21,38 @@ export function formatCustomerAddressForForm(address) {
     return String(address);
 }
 
-/** Parse invoice form address field for API payload. */
+/** Parse invoice form address field for API payload (always a string). */
 export function parseCustomerAddressForPayload(addressField) {
     if (!addressField) return undefined;
-    if (typeof addressField === 'object') return addressField;
-    try {
-        return JSON.parse(addressField);
-    } catch {
-        return addressField;
+    const formatObject = (obj) => {
+        if (!obj || typeof obj !== 'object') return undefined;
+        const parts = [
+            obj.line1 || obj.address_line1,
+            obj.line2 || obj.address_line2,
+            obj.city,
+            obj.state,
+            obj.postal_code || obj.pincode || obj.zip,
+            obj.country,
+        ].filter(Boolean);
+        if (parts.length) return parts.join(', ');
+        try {
+            return JSON.stringify(obj);
+        } catch {
+            return undefined;
+        }
+    };
+    if (typeof addressField === 'object') {
+        return formatObject(addressField);
     }
+    try {
+        const parsed = JSON.parse(addressField);
+        if (typeof parsed === 'object' && parsed) {
+            return formatObject(parsed) || addressField;
+        }
+    } catch {
+        // plain string address
+    }
+    return String(addressField);
 }
 
 /** Normalize API customer row for CustomerSelector. */

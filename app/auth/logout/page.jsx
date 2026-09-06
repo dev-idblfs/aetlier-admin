@@ -17,6 +17,21 @@ function getFrontendUrl() {
     return process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
 }
 
+function isSafeRedirect(url) {
+    if (!url) return false;
+    try {
+        const frontend = new URL(getFrontendUrl());
+        const target = new URL(url, frontend.origin);
+        if (target.origin === frontend.origin) return true;
+        if (typeof window !== 'undefined' && target.origin === window.location.origin) {
+            return target.pathname.startsWith('/');
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 function LogoutContent() {
     const searchParams = useSearchParams();
 
@@ -24,7 +39,8 @@ function LogoutContent() {
         removeAccessTokenCookie();
         clearRefreshToken();
 
-        const redirect = searchParams.get('redirect') || getFrontendUrl();
+        const requested = searchParams.get('redirect');
+        const redirect = isSafeRedirect(requested) ? requested : getFrontendUrl();
         window.location.replace(redirect);
     }, [searchParams]);
 

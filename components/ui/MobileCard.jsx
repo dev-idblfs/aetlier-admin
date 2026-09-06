@@ -43,13 +43,15 @@ export default function MobileCard({
                         <Dropdown>
                             <DropdownTrigger>
                                 <Button
-                                    isIconOnly
-                                    size="sm"
-                                    variant="light"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <MoreVertical className="w-4 h-4 text-gray-500" />
-                                </Button>
+                  isIconOnly
+                  size="md"
+                  variant="flat"
+                  className="min-w-10 min-h-10"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Card actions"
+                >
+                  <MoreVertical className="w-5 h-5 text-gray-500" />
+                </Button>
                             </DropdownTrigger>
                             <DropdownMenu aria-label="Actions">
                                 {actions.map((action, index) => (

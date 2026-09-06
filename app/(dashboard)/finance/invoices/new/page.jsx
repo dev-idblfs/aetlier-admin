@@ -101,13 +101,14 @@ export default function NewInvoicePage() {
 
     // Update settings defaults
     useEffect(() => {
-        if (settings) {
-            if (!methods.formState.isDirty) {
-                setValue('terms_conditions', settings.default_terms || '');
-                // Could update other defaults if needed, but risky if user already typed
-            }
+        if (!settings || methods.formState.isDirty) return;
+        setValue('terms_conditions', settings.default_terms || '');
+        const defaultTax = Number(settings.default_tax_rate ?? 18);
+        const items = methods.getValues('line_items') || [];
+        if (items.length === 1 && Number(items[0]?.tax_rate) === 0 && !items[0]?.description) {
+            setValue('line_items.0.tax_rate', defaultTax);
         }
-    }, [settings, setValue, methods.formState.isDirty]);
+    }, [settings, setValue, methods]);
 
     // Handle payment terms change side effect
     useEffect(() => {
@@ -170,6 +171,7 @@ export default function NewInvoicePage() {
     const onSubmit = async (data) => {
         try {
             const payload = {
+                user_id: data.customer_id || undefined,
                 customer_id: data.customer_id || undefined,
                 customer_name: data.customer_name,
                 customer_email: data.customer_email || undefined,
@@ -185,6 +187,7 @@ export default function NewInvoicePage() {
                 coins_redeemed: data.coins_redeemed,
                 status: 'DRAFT',
                 line_items: data.line_items.map(item => ({
+                    service_id: item.service_id || undefined,
                     description: item.description,
                     quantity: item.quantity,
                     unit_price: item.unit_price,

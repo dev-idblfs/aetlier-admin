@@ -58,7 +58,7 @@ export const calculateDiscount = (
   if (discountType === "PERCENTAGE") {
     return subtotal * (discountValue / 100);
   }
-  return discountValue || 0;
+  return Math.min(Number(discountValue) || 0, subtotal);
 };
 
 /**
@@ -76,6 +76,7 @@ export const applyRoundOff = (amount) => {
 
 /**
  * Calculate invoice total
+ * Tax is applied on the post-discount taxable base (matches backend).
  * @param {Object} params - Calculation parameters
  * @returns {Object} Complete calculations
  */
@@ -86,12 +87,18 @@ export const calculateInvoiceTotal = ({
   coinsRedeemed = 0,
 }) => {
   const subtotal = calculateSubtotal(lineItems);
-  const totalTax = calculateTotalTax(lineItems);
   const discount = calculateDiscount(subtotal, discountType, discountValue);
-  const beforeRound = Math.max(
-    0,
-    subtotal + totalTax - discount - coinsRedeemed
-  );
+  const taxable = Math.max(0, subtotal - discount);
+  let totalTax = 0;
+  if (subtotal > 0) {
+    for (const item of lineItems) {
+      const itemTotal = calculateLineItemTotal(item);
+      const share = itemTotal / subtotal;
+      const taxableShare = itemTotal - discount * share;
+      totalTax += taxableShare * ((item.tax_rate || 0) / 100);
+    }
+  }
+  const beforeRound = Math.max(0, taxable + totalTax - coinsRedeemed);
   const { total, roundOff } = applyRoundOff(beforeRound);
 
   return {
@@ -102,8 +109,8 @@ export const calculateInvoiceTotal = ({
     beforeRound,
     roundOff,
     total,
-    beforeTax: subtotal - discount - coinsRedeemed,
-    afterDiscount: subtotal - discount,
+    beforeTax: taxable - coinsRedeemed,
+    afterDiscount: taxable,
   };
 };
 

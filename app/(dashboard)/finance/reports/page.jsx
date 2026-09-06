@@ -93,8 +93,8 @@ export default function ReportsPage() {
         }
 
         return {
-            start_date: start_date.toISOString().split('T')[0],
-            end_date: end_date.toISOString().split('T')[0],
+            date_from: start_date.toISOString().split('T')[0],
+            date_to: end_date.toISOString().split('T')[0],
         };
     }, [dateRange]);
 
@@ -161,7 +161,7 @@ export default function ReportsPage() {
                             ))}
                         </Select>
                         <div className="text-sm text-gray-500 ml-auto">
-                            {dateParams.start_date} to {dateParams.end_date}
+                            {dateParams.date_from} to {dateParams.date_to}
                         </div>
                     </div>
                 </CardBody>

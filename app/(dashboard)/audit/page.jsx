@@ -63,6 +63,7 @@ export default function AuditExplorerPage() {
     {
       key: 'created_at',
       label: 'When',
+      priority: 'secondary',
       render: (row) => (
         <span className="text-sm text-gray-700">
           {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
@@ -72,6 +73,7 @@ export default function AuditExplorerPage() {
     {
       key: 'entity',
       label: 'Entity',
+      priority: 'primary',
       render: (row) => (
         <div>
           <p className="text-sm font-medium capitalize text-gray-900">
@@ -86,6 +88,7 @@ export default function AuditExplorerPage() {
     {
       key: 'action',
       label: 'Action',
+      priority: 'secondary',
       render: (row) => (
         <Chip size="sm" variant="flat" className="capitalize">
           {row.action?.replace(/[._]/g, ' ')}
@@ -95,6 +98,7 @@ export default function AuditExplorerPage() {
     {
       key: 'actor',
       label: 'Actor',
+      priority: 'tertiary',
       render: (row) => (
         <span className="text-sm text-gray-700">
           {row.actor_name || row.actor_type || 'System'}

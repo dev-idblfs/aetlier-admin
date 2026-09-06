@@ -34,6 +34,29 @@ export const signIn = createAsyncThunk(
   }
 );
 
+export const googleLogin = createAsyncThunk(
+  "auth/googleLogin",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post("/auth/google", credentials);
+      const accessToken = response.data?.tokens?.access_token;
+      if (accessToken) {
+        setAccessTokenCookie(accessToken);
+      }
+      if (response.data?.tokens?.refresh_token && !usesCookieAuth()) {
+        storeRefreshToken(response.data.tokens.refresh_token);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Google sign-in failed"
+      );
+    }
+  }
+);
+
 export const fetchUserProfile = createAsyncThunk(
   "auth/fetchUserProfile",
   async (_, { rejectWithValue }) => {
@@ -139,6 +162,24 @@ const authSlice = createSlice({
           typeof action.payload === "string"
             ? action.payload
             : "Sign in failed";
+        state.isAuthenticated = false;
+      })
+      .addCase(googleLogin.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.user = action.payload?.user || null;
+        state.permissions = action.payload?.user?.permissions || [];
+        state.isAuthenticated = true;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error =
+          typeof action.payload === "string"
+            ? action.payload
+            : "Google sign-in failed";
         state.isAuthenticated = false;
       })
       .addCase(fetchUserProfile.pending, (state) => {

@@ -311,6 +311,7 @@ export default function AppointmentsPage() {
         {
             key: 'patient',
             label: 'Patient',
+            priority: 'primary',
             render: (row) => (
                 <div>
                     <p className="font-medium text-gray-900">
@@ -325,6 +326,7 @@ export default function AppointmentsPage() {
         {
             key: 'service',
             label: 'Service',
+            priority: 'secondary',
             render: (row) => (
                 <span className="text-gray-900">
                     {row.service_name || row.service?.name || 'N/A'}
@@ -334,6 +336,7 @@ export default function AppointmentsPage() {
         {
             key: 'consultation_mode',
             label: 'Mode',
+            priority: 'secondary',
             render: (row) => {
                 const mode = row.consultation_mode || 'in_person';
                 return (
@@ -352,6 +355,7 @@ export default function AppointmentsPage() {
             key: 'date',
             label: 'Date & Time',
             sortable: true,
+            priority: 'secondary',
             render: (row) => (
                 <div>
                     <p className="text-gray-900">{formatDate(row.appointment_date || row.preferred_date)}</p>
@@ -362,6 +366,7 @@ export default function AppointmentsPage() {
         {
             key: 'status',
             label: 'Status',
+            priority: 'secondary',
             render: (row) => (
                 <Chip
                     size="sm"
@@ -383,6 +388,8 @@ export default function AppointmentsPage() {
         {
             key: 'consultation_join',
             label: 'Video',
+            priority: 'tertiary',
+            hideBelow: 'xl',
             render: (row) =>
                 isOnlineConsultation(row) ? (
                     <ConsultationJoinButton appointment={row} size="sm" />
@@ -393,14 +400,18 @@ export default function AppointmentsPage() {
         {
             key: 'actions',
             label: 'Actions',
+            priority: 'actions',
+            hideBelow: false,
             render: (row) => (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap justify-end">
                     {canView && (
                         <Button
                             size="sm"
                             variant="light"
                             isIconOnly
+                            className="min-w-9 min-h-9"
                             onPress={() => handleViewDetails(row)}
+                            aria-label="View details"
                         >
                             <Eye className="w-4 h-4" />
                         </Button>
@@ -410,7 +421,9 @@ export default function AppointmentsPage() {
                             size="sm"
                             variant="light"
                             isIconOnly
+                            className="min-w-9 min-h-9"
                             onPress={() => handleEditClick(row)}
+                            aria-label="Edit appointment"
                         >
                             <Edit className="w-4 h-4" />
                         </Button>
@@ -421,9 +434,11 @@ export default function AppointmentsPage() {
                             color="success"
                             variant="flat"
                             isIconOnly
+                            className="min-w-9 min-h-9"
                             onPress={() => handleComplete(row)}
                             isLoading={isCompleting}
                             title="Complete and create invoice"
+                            aria-label="Complete and create invoice"
                         >
                             <CheckCircle className="w-4 h-4" />
                         </Button>
@@ -434,8 +449,10 @@ export default function AppointmentsPage() {
                             color="primary"
                             variant="flat"
                             isIconOnly
+                            className="min-w-9 min-h-9"
                             onPress={() => handleGenerateInvoice(row)}
                             title="Generate Invoice"
+                            aria-label="Generate invoice"
                         >
                             <FileText className="w-4 h-4" />
                         </Button>
@@ -446,6 +463,7 @@ export default function AppointmentsPage() {
                             color="secondary"
                             variant="flat"
                             isIconOnly
+                            className="min-w-9 min-h-9"
                             onPress={() => handlePrescribe(row)}
                             title="Write prescription"
                             aria-label="Write prescription"
@@ -459,8 +477,10 @@ export default function AppointmentsPage() {
                             color="success"
                             variant="flat"
                             isIconOnly
+                            className="min-w-9 min-h-9"
                             onPress={() => handleQuickStatus(row.id, 'confirmed')}
                             isLoading={isUpdating}
+                            aria-label="Confirm appointment"
                         >
                             <BadgeCheck className="w-4 h-4" />
                         </Button>
@@ -471,7 +491,9 @@ export default function AppointmentsPage() {
                             color="danger"
                             variant="flat"
                             isIconOnly
+                            className="min-w-9 min-h-9"
                             onPress={() => handleCancelClick(row)}
+                            aria-label="Cancel appointment"
                         >
                             <XCircle className="w-4 h-4" />
                         </Button>
@@ -529,13 +551,7 @@ export default function AppointmentsPage() {
     };
 
     const handleEditClick = (appointment) => {
-        setSelectedAppointment(appointment);
-        resetEdit({
-            preferred_date: appointment.preferred_date || appointment.appointment_date || '',
-            preferred_time: appointment.preferred_time || appointment.appointment_time || '',
-            special_notes: appointment.special_notes || '',
-        });
-        onEditOpen();
+        router.push(`/appointments/${appointment.id}/edit`);
     };
 
     const onEditSubmit = async (data) => {
@@ -794,90 +810,55 @@ export default function AppointmentsPage() {
                 deleteLabel="Cancel"
             />
 
-            {/* Desktop Table View */}
-            <div className="hidden lg:block">
-                <Card padding="none">
-                    <DataTable
-                        columns={columns}
-                        data={appointments}
-                        isLoading={isLoading}
-                        page={page}
-                        totalPages={totalPages}
-                        onPageChange={setPage}
-                        emptyMessage="No appointments found"
-                        onRowClick={handleRowClick}
-                        rowClassName={(row) => row.status === 'invoiced' && row.invoice_id ? 'cursor-pointer hover:bg-gray-50' : ''}
+            {/* Appointments list — responsive table + cards */}
+            <DataTable
+                columns={columns}
+                data={appointments}
+                isLoading={isLoading}
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                emptyMessage="No appointments found"
+                emptyState={{
+                    icon: 'inbox',
+                    title: 'No appointments found',
+                    description: 'Try adjusting filters or create a new appointment.',
+                }}
+                onRowClick={handleRowClick}
+                rowClassName={(row) =>
+                    row.status === 'invoiced' && row.invoice_id
+                        ? 'cursor-pointer hover:bg-gray-50'
+                        : ''
+                }
+                selectable={canDelete}
+                selectedIds={selectedIds}
+                onSelectionChange={onSelectionChange}
+                isRowSelectable={(row) => row.status !== 'cancelled'}
+                renderMobileCard={(apt, { isSelected, onSelect }) => (
+                    <AppointmentCard
+                        appointment={apt}
+                        onView={() => handleViewDetails(apt)}
+                        onEdit={() => handleEditClick(apt)}
+                        onCancel={() => handleCancelClick(apt)}
+                        onStatusChange={() => handleStatusClick(apt)}
+                        onQuickConfirm={() => handleQuickStatus(apt.id, 'confirmed')}
+                        onGenerateInvoice={() => handleGenerateInvoice(apt)}
+                        onComplete={() => handleComplete(apt)}
+                        onViewInvoice={() => handleViewInvoice(apt)}
+                        onPrescribe={() => handlePrescribe(apt)}
+                        canView={canView}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        canChangeStatus={canChangeStatus}
+                        canGenerateInvoice={canGenerateInvoice}
+                        canComplete={canComplete}
+                        canPrescribe={canPrescribe}
                         selectable={canDelete}
-                        selectedIds={selectedIds}
-                        onSelectionChange={onSelectionChange}
-                        isRowSelectable={(row) => row.status !== 'cancelled'}
+                        isSelected={isSelected}
+                        onSelect={onSelect}
                     />
-                </Card>
-            </div>
-
-            {/* Mobile/Tablet Card View */}
-            <div className="lg:hidden space-y-3">
-                {isLoading ? (
-                    <div className="flex justify-center py-12">
-                        <Spinner size="lg" color="primary" />
-                    </div>
-                ) : appointments.length === 0 ? (
-                    <Card padding="md">
-                        <div className="text-center py-8">
-                            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500">No appointments found</p>
-                        </div>
-                    </Card>
-                ) : (
-                    <>
-                        {appointments.map((apt) => (
-                            <AppointmentCard
-                                key={apt.id}
-                                appointment={apt}
-                                onView={() => handleViewDetails(apt)}
-                                onEdit={() => handleEditClick(apt)}
-                                onCancel={() => handleCancelClick(apt)}
-                                onStatusChange={() => handleStatusClick(apt)}
-                                onQuickConfirm={() => handleQuickStatus(apt.id, 'confirmed')}
-                                onGenerateInvoice={() => handleGenerateInvoice(apt)}
-                                onComplete={() => handleComplete(apt)}
-                                onViewInvoice={() => handleViewInvoice(apt)}
-                                onPrescribe={() => handlePrescribe(apt)}
-                                canView={canView}
-                                canEdit={canEdit}
-                                canDelete={canDelete}
-                                canChangeStatus={canChangeStatus}
-                                canGenerateInvoice={canGenerateInvoice}
-                                canComplete={canComplete}
-                                canPrescribe={canPrescribe}
-                                selectable={canDelete}
-                                isSelected={isSelected(apt.id)}
-                                onSelect={() => {
-                                    if (apt.status === 'cancelled') return;
-                                    const sid = String(apt.id);
-                                    onSelectionChange(
-                                        isSelected(apt.id)
-                                            ? selectedIds.filter((id) => String(id) !== sid)
-                                            : [...selectedIds, apt.id],
-                                    );
-                                }}
-                            />
-                        ))}
-                        {totalPages > 1 && (
-                            <div className="flex justify-center mt-4">
-                                <Pagination
-                                    total={totalPages}
-                                    page={page}
-                                    onChange={setPage}
-                                    color="primary"
-                                    showControls
-                                    size="sm"
-                                />
-                            </div>
-                        )}
-                    </>
                 )}
-            </div>
+            />
 
             {/* Create Appointment Modal */}
             <FormModal

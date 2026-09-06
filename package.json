@@ -11,6 +11,7 @@
   "dependencies": {
     "@heroui/react": "^2.8.7",
     "@hookform/resolvers": "^5.2.2",
+    "@react-oauth/google": "^0.12.2",
     "@reduxjs/toolkit": "^2.11.2",
     "@solar-icons/react": "^1.1.1",
     "axios": "^1.13.2",

@@ -238,6 +238,7 @@ export default function EditInvoicePage({ params }) {
         try {
             const payload = {
                 customer_id: data.customer_id || undefined,
+                user_id: data.customer_id || undefined,
                 customer_name: data.customer_name,
                 customer_email: data.customer_email || undefined,
                 customer_phone: data.customer_phone || undefined,
@@ -254,6 +255,7 @@ export default function EditInvoicePage({ params }) {
                 coins_redeemed: data.coins_redeemed || 0,
                 status: asDraft ? 'DRAFT' : invoice?.status || 'DRAFT',
                 line_items: data.line_items.map(item => ({
+                    service_id: item.service_id || undefined,
                     description: item.description,
                     quantity: item.quantity,
                     unit_price: item.unit_price,

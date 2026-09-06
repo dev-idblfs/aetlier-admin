@@ -72,6 +72,7 @@ function LoginContent() {
       });
 
       if (!canAccessAdminPortal(user)) {
+        removeAccessTokenCookie();
         setAccessDenied(true);
         showLoginForm();
         return;
@@ -96,6 +97,7 @@ function LoginContent() {
     }
 
     if (!canAccessAdminPortal(user)) {
+      removeAccessTokenCookie();
       setAccessDenied(true);
       return;
     }
