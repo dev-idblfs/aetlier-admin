@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Save } from '@/lib/icons';
 import { Button, Select, SelectItem, Textarea, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';
 import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
 import { FormDivider } from '@/components/ui/FormFields';
+import PrescriptionPanel from '@/components/prescription/PrescriptionPanel';
 
 const APPOINTMENT_STATUSES = [
     { key: 'pending', label: 'Pending' },
@@ -21,7 +22,9 @@ const APPOINTMENT_STATUSES = [
 export default function EditAppointmentPage() {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const appointmentId = params.id;
+    const prescribeMode = searchParams.get('prescribe') === '1';
 
     const { data: appointment, isLoading: isLoadingAppointment } = useGetAppointmentQuery(appointmentId);
     const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
@@ -39,6 +42,12 @@ export default function EditAppointmentPage() {
             });
         }
     }, [appointment]);
+
+    useEffect(() => {
+        if (!prescribeMode) return;
+        const el = document.getElementById('prescribe-panel');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [prescribeMode, appointment]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -77,6 +86,8 @@ export default function EditAppointmentPage() {
             </div>
         );
     }
+
+    const doctorUserId = appointment.doctor_user_id || appointment.doctor_id;
 
     return (
         <FormPageLayout
@@ -150,6 +161,17 @@ export default function EditAppointmentPage() {
                             minRows={3}
                             className="mt-3"
                             classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                        />
+                    </FormSectionCard>
+
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Prescription">
+                        <PrescriptionPanel
+                            appointmentId={appointmentId}
+                            appointmentStatus={appointment.status}
+                            doctorUserId={doctorUserId}
+                            autoFocus={prescribeMode}
                         />
                     </FormSectionCard>
                 </FormCompactCard>

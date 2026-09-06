@@ -242,6 +242,13 @@ export const PERMISSIONS = {
 
   // Categories
   CATEGORY_DELETE: "category.delete.any",
+
+  // Prescriptions
+  PRESCRIPTION_CREATE_OWN: "prescription.create.own",
+  PRESCRIPTION_READ_OWN: "prescription.read.own",
+  PRESCRIPTION_READ_ANY: "prescription.read.any",
+  PRESCRIPTION_UPDATE_OWN: "prescription.update.own",
+  PRESCRIPTION_SEND_OWN: "prescription.send.own",
 };
 
 /** Whether the user may list appointments in the admin portal. */

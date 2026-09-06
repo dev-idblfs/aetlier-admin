@@ -234,8 +234,36 @@ export default function DoctorConsultationRoom({
       console.warn('End consultation API failed:', e);
     }
     await room.disconnect();
-    router.push('/appointments');
+    setPhase('ended');
   };
+
+  if (phase === 'ended') {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-zinc-950 px-6 text-center text-white">
+        <h1 className="mb-2 text-xl font-semibold">Consultation ended</h1>
+        <p className="mb-8 max-w-sm text-sm text-white/70">
+          Mark the encounter complete, then write the e-prescription if needed.
+        </p>
+        <div className="flex w-full max-w-xs flex-col gap-3">
+          <Button
+            className="min-h-12 rounded-full bg-[#db924b] font-semibold text-white"
+            onPress={() =>
+              router.push(`/appointments/${appointmentId}/edit?prescribe=1`)
+            }
+          >
+            Complete & write prescription
+          </Button>
+          <Button
+            variant="bordered"
+            className="min-h-12 rounded-full border-white/30 text-white"
+            onPress={() => router.push('/appointments')}
+          >
+            Back to appointments
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === 'connecting') {
     return (

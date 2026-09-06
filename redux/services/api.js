@@ -67,6 +67,7 @@ export const api = createApi({
     "AuditLog",
     "Consultation",
     "MobilePromotion",
+    "Prescription",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -225,6 +226,64 @@ export const api = createApi({
         body,
       }),
       invalidatesTags: ["Appointment", "Invoice"],
+    }),
+
+    // =========================================================================
+    // PRESCRIPTION ENDPOINTS
+    // =========================================================================
+
+    getAppointmentPrescriptions: builder.query({
+      query: (appointmentId) => `/prescriptions/appointment/${appointmentId}`,
+      providesTags: (result, error, appointmentId) => [
+        { type: "Prescription", id: appointmentId },
+        "Prescription",
+      ],
+    }),
+
+    createPrescription: builder.mutation({
+      query: ({ appointmentId, ...body }) => ({
+        url: "/prescriptions",
+        method: "POST",
+        body: { appointment_id: appointmentId, ...body },
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: "Prescription", id: appointmentId },
+        "Prescription",
+      ],
+    }),
+
+    updatePrescription: builder.mutation({
+      query: ({ prescriptionId, appointmentId, ...body }) => ({
+        url: `/prescriptions/${prescriptionId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: "Prescription", id: appointmentId },
+        "Prescription",
+      ],
+    }),
+
+    sendPrescription: builder.mutation({
+      query: ({ prescriptionId, appointmentId }) => ({
+        url: `/prescriptions/${prescriptionId}/send`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: "Prescription", id: appointmentId },
+        "Prescription",
+      ],
+    }),
+
+    generatePrescriptionPdf: builder.mutation({
+      query: ({ prescriptionId, appointmentId }) => ({
+        url: `/prescriptions/${prescriptionId}/generate-pdf`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: "Prescription", id: appointmentId },
+        "Prescription",
+      ],
     }),
 
     // =========================================================================
@@ -1423,6 +1482,11 @@ export const {
   useUpdateAppointmentMutation,
   useDeleteAppointmentMutation,
   useCompleteAppointmentMutation,
+  useGetAppointmentPrescriptionsQuery,
+  useCreatePrescriptionMutation,
+  useUpdatePrescriptionMutation,
+  useSendPrescriptionMutation,
+  useGeneratePrescriptionPdfMutation,
   // Users & Roles
   useGetUsersQuery,
   useGetUserQuery,
