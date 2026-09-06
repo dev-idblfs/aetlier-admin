@@ -29,6 +29,11 @@ import { cn } from '@/utils/cn'
 
 const toIdString = (id) => String(id)
 
+const isActionsColumn = (column) =>
+  column?.priority === 'actions' ||
+  column?.key === 'actions' ||
+  column?.key === 'action'
+
 const inferPriority = (column, index, columns) => {
   if (column.priority) return column.priority
   if (column.key === 'actions' || column.key === 'action') return 'actions'
@@ -77,6 +82,11 @@ function SortIcon({ active, direction }) {
   )
 }
 
+/** Stop row/card clicks from eating action UI (menus, buttons, checkboxes). */
+const stopRowEvent = (event) => {
+  event.stopPropagation()
+}
+
 function DefaultMobileCard({
   row,
   columns,
@@ -101,30 +111,12 @@ function DefaultMobileCard({
     <article
       className={cn(
         'bg-white rounded-xl border border-gray-200 p-4 min-w-0',
-        onClick && 'cursor-pointer active:bg-gray-50',
         isSelected && 'ring-2 ring-primary-500 border-primary-500'
       )}
-      onClick={onClick}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onClick()
-              }
-            }
-          : undefined
-      }
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
     >
       <div className="flex items-start gap-3">
         {selectable && canSelect ? (
-          <div
-            className="pt-0.5 shrink-0"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="pt-0.5 shrink-0" onClick={stopRowEvent}>
             <Checkbox
               isSelected={isSelected}
               onValueChange={onSelect}
@@ -135,7 +127,26 @@ function DefaultMobileCard({
           </div>
         ) : null}
 
-        <div className="flex-1 min-w-0 space-y-2">
+        {/* Clickable content only — actions live outside this surface */}
+        <div
+          className={cn(
+            'flex-1 min-w-0 space-y-2',
+            onClick && 'cursor-pointer active:bg-gray-50 rounded-lg -m-1 p-1'
+          )}
+          onClick={onClick}
+          onKeyDown={
+            onClick
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onClick()
+                  }
+                }
+              : undefined
+          }
+          role={onClick ? 'button' : undefined}
+          tabIndex={onClick ? 0 : undefined}
+        >
           <div className="font-semibold text-gray-900 text-base leading-snug break-words">
             {renderCell(primary)}
           </div>
@@ -172,70 +183,65 @@ function DefaultMobileCard({
             </dl>
           ) : null}
 
-          {(hasExpand || actionCols.length > 0) && (
-            <div
-              className="flex flex-wrap items-center gap-2 pt-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {hasExpand ? (
-                <Button
-                  size="sm"
-                  variant="light"
-                  className="min-h-10 px-3 text-primary-600"
-                  onPress={() => setExpanded((v) => !v)}
-                  endContent={
-                    expanded ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )
-                  }
-                >
-                  {expanded ? 'Less' : 'More details'}
-                </Button>
-              ) : null}
-              {actionCols.map((column) => (
-                <div key={column.key} className="min-w-0">
-                  {renderCell(column)}
-                </div>
-              ))}
+          {hasExpand ? (
+            <div className="pt-1" onClick={stopRowEvent}>
+              <Button
+                size="sm"
+                variant="light"
+                className="min-h-10 px-3 text-primary-600"
+                onPress={() => setExpanded((v) => !v)}
+                endContent={
+                  expanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )
+                }
+              >
+                {expanded ? 'Less' : 'More details'}
+              </Button>
             </div>
-          )}
+          ) : null}
         </div>
 
-        {actions.length > 0 ? (
-          <div
-            className="shrink-0"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <Dropdown>
-              <DropdownTrigger>
-                <Button
-                  isIconOnly
-                  size="md"
-                  variant="flat"
-                  className="min-w-10 min-h-10"
-                  aria-label="Row actions"
-                >
-                  <MoreVertical className="w-5 h-5 text-gray-600" />
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu aria-label="Row actions">
-                {actions.map((action, index) => (
-                  <DropdownItem
-                    key={action.key || index}
-                    color={action.color || (action.danger ? 'danger' : 'default')}
-                    startContent={action.icon}
-                    onPress={() => action.onClick?.(row)}
+        {(actionCols.length > 0 || actions.length > 0) && (
+          <div className="shrink-0 flex flex-col items-end gap-2" onClick={stopRowEvent}>
+            {actionCols.map((column) => (
+              <div key={column.key} className="min-w-0">
+                {renderCell(column)}
+              </div>
+            ))}
+            {actions.length > 0 && actionCols.length === 0 ? (
+              <Dropdown placement="bottom-end">
+                <DropdownTrigger>
+                  <Button
+                    isIconOnly
+                    size="md"
+                    variant="flat"
+                    className="min-w-10 min-h-10"
+                    aria-label="Row actions"
                   >
-                    {action.label}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+                    <MoreVertical className="w-5 h-5 text-gray-600" />
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu aria-label="Row actions">
+                  {actions.map((action, index) => (
+                    <DropdownItem
+                      key={action.key || index}
+                      color={
+                        action.color || (action.danger ? 'danger' : 'default')
+                      }
+                      startContent={action.icon}
+                      onPress={() => action.onClick?.(row)}
+                    >
+                      {action.label}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+            ) : null}
           </div>
-        ) : null}
+        )}
       </div>
     </article>
   )
@@ -270,6 +276,8 @@ export default function DataTable({
     [resolvedColumns]
   )
   const tableColumns = resolvedColumns
+  const hasActionsColumn = tableColumns.some(isActionsColumn)
+  const showSharedActionsColumn = actions.length > 0 && !hasActionsColumn
 
   const selectedIdSet = useMemo(
     () => new Set((selectedIds || []).map(toIdString)),
@@ -480,8 +488,7 @@ export default function DataTable({
                     </div>
                   </th>
                 ))}
-                {actions.length > 0 &&
-                !tableColumns.some((c) => c.priority === 'actions') ? (
+                {showSharedActionsColumn ? (
                   <th className="px-3 py-3 w-12 text-right">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -498,16 +505,15 @@ export default function DataTable({
                   <tr
                     key={row.id || index}
                     className={cn(
-                      onRowClick && 'cursor-pointer hover:bg-gray-50',
+                      onRowClick && 'hover:bg-gray-50',
                       selectedIdSet.has(toIdString(row.id)) && 'bg-primary-50',
                       rowCls
                     )}
-                    onClick={() => onRowClick?.(row)}
                   >
                     {selectable ? (
                       <td
                         className="px-3 py-3.5 sticky left-0 bg-inherit z-[1]"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={stopRowEvent}
                       >
                         {canSelectRow(row) ? (
                           <Checkbox
@@ -519,28 +525,40 @@ export default function DataTable({
                         ) : null}
                       </td>
                     ) : null}
-                    {tableColumns.map((column) => (
-                      <td
-                        key={column.key}
-                        className={cn(
-                          'px-3 py-3.5 text-sm text-gray-900 align-middle max-w-[18rem]',
-                          cellAlign(column.align),
-                          hideBelowClass(column.hideBelow),
-                          column.priority === 'primary' && 'font-medium'
-                        )}
-                      >
-                        <div className="min-w-0 break-words">
-                          {column.render ? column.render(row) : row[column.key]}
-                        </div>
-                      </td>
-                    ))}
-                    {actions.length > 0 &&
-                    !tableColumns.some((c) => c.priority === 'actions') ? (
+                    {tableColumns.map((column) => {
+                      const actionsCol = isActionsColumn(column)
+                      return (
+                        <td
+                          key={column.key}
+                          className={cn(
+                            'px-3 py-3.5 text-sm text-gray-900 align-middle max-w-[18rem]',
+                            cellAlign(column.align),
+                            hideBelowClass(column.hideBelow),
+                            column.priority === 'primary' && 'font-medium',
+                            !actionsCol && onRowClick && 'cursor-pointer'
+                          )}
+                          onClick={
+                            actionsCol
+                              ? stopRowEvent
+                              : onRowClick
+                                ? () => onRowClick(row)
+                                : undefined
+                          }
+                        >
+                          <div className="min-w-0 break-words">
+                            {column.render
+                              ? column.render(row)
+                              : row[column.key]}
+                          </div>
+                        </td>
+                      )
+                    })}
+                    {showSharedActionsColumn ? (
                       <td
                         className="px-3 py-3.5 text-right"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={stopRowEvent}
                       >
-                        <Dropdown>
+                        <Dropdown placement="bottom-end">
                           <DropdownTrigger>
                             <Button
                               isIconOnly

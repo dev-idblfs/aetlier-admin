@@ -26,43 +26,53 @@ export default function MobileCard({
             animate={{ opacity: 1, y: 0 }}
             className={`
                 bg-white rounded-lg border border-gray-200 p-4
-                ${onClick ? 'cursor-pointer active:bg-gray-50' : ''}
                 ${isSelected ? 'ring-2 ring-primary-500 border-primary-500' : ''}
                 ${className}
             `}
-            onClick={onClick}
             {...props}
         >
             <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
+                {/* Clickable content only — menu is outside this surface */}
+                <div
+                    className={`flex-1 min-w-0 ${onClick ? 'cursor-pointer active:bg-gray-50 rounded-md -m-1 p-1' : ''}`}
+                    onClick={onClick}
+                    onKeyDown={
+                        onClick
+                            ? (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onClick();
+                                }
+                            }
+                            : undefined
+                    }
+                    role={onClick ? 'button' : undefined}
+                    tabIndex={onClick ? 0 : undefined}
+                >
                     {children}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                     {hasActions && (
-                        <Dropdown>
+                        <Dropdown placement="bottom-end">
                             <DropdownTrigger>
                                 <Button
-                  isIconOnly
-                  size="md"
-                  variant="flat"
-                  className="min-w-10 min-h-10"
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label="Card actions"
-                >
-                  <MoreVertical className="w-5 h-5 text-gray-500" />
-                </Button>
+                                    isIconOnly
+                                    size="md"
+                                    variant="flat"
+                                    className="min-w-10 min-h-10"
+                                    aria-label="Card actions"
+                                >
+                                    <MoreVertical className="w-5 h-5 text-gray-500" />
+                                </Button>
                             </DropdownTrigger>
                             <DropdownMenu aria-label="Actions">
                                 {actions.map((action, index) => (
                                     <DropdownItem
-                                        key={index}
-                                        color={action.color || 'default'}
+                                        key={action.key || index}
+                                        color={action.color || (action.danger ? 'danger' : 'default')}
                                         startContent={action.icon}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            action.onClick?.();
-                                        }}
+                                        onPress={() => action.onClick?.()}
                                     >
                                         {action.label}
                                     </DropdownItem>
