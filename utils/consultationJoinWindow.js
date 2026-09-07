@@ -72,7 +72,7 @@ export const DOCTOR_JOIN_TOOLTIP =
 export const PATIENT_LINK_TOOLTIP =
   'Copies the patient join link for the public web app (share via email/WhatsApp).';
 export const ACCESS_LOCK_TOOLTIP =
-  "Only the booked patient and assigned doctor (or clinic staff) can join this consultation.";
+  "Only the booked patient and assigned doctor can join this consultation.";
 export function isOnlineConsultation(appointment) {
   return appointment?.consultation_mode === "online";
 }

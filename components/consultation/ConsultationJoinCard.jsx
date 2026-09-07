@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Tooltip } from '@heroui/react';
+import { Button, Chip, Tooltip } from '@heroui/react';
 import { Video, Copy, Lock } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -118,8 +118,18 @@ export default function ConsultationJoinCard({
           <span className="inline-flex items-center rounded-full bg-[#5a8486]/15 px-2.5 py-0.5 text-xs font-semibold text-[#00677e]">
             Online
           </span>
+          {appointment.status ? (
+            <Chip
+              size="sm"
+              variant="bordered"
+              className="capitalize border-gray-200 text-gray-600"
+              title="Appointment status"
+            >
+              {String(appointment.status).replace(/_/g, ' ')}
+            </Chip>
+          ) : null}
           <ConsultationStatusChip
-            status={appointment.consultation_status || appointment.status}
+            status={appointment.consultation_status}
             consultation={consultation}
           />
         </div>

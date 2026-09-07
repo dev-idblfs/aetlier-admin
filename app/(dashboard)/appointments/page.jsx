@@ -77,6 +77,7 @@ import {
 } from '@/utils/permissions';
 import ConsultationJoinCard from '@/components/consultation/ConsultationJoinCard';
 import ConsultationJoinButton from '@/components/consultation/ConsultationJoinButton';
+import ConsultationStatusChip from '@/components/consultation/ConsultationStatusChip';
 import { isOnlineConsultation, isToday } from '@/utils/consultationJoinWindow';
 import { withUserPermissions } from '@/utils/navAccess';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -373,6 +374,7 @@ export default function AppointmentsPage() {
                     color={STATUS_COLORS[row.status] || 'default'}
                     variant="flat"
                     className={`capitalize ${(canChangeStatus || (row.status === 'invoiced' && row.invoice_id)) ? 'cursor-pointer' : ''}`}
+                    title="Appointment status"
                     onClick={() => {
                         if (row.status === 'invoiced' && row.invoice_id) {
                             handleViewInvoice(row);
@@ -392,7 +394,12 @@ export default function AppointmentsPage() {
             hideBelow: 'xl',
             render: (row) =>
                 isOnlineConsultation(row) ? (
-                    <ConsultationJoinButton appointment={row} size="sm" />
+                    <div className="flex flex-col items-start gap-1.5">
+                        {row.consultation_status ? (
+                            <ConsultationStatusChip status={row.consultation_status} size="sm" />
+                        ) : null}
+                        <ConsultationJoinButton appointment={row} size="sm" />
+                    </div>
                 ) : (
                     <span className="text-gray-400 text-xs">—</span>
                 ),
