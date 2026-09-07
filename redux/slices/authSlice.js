@@ -10,6 +10,7 @@ import {
   storeRefreshToken,
   usesCookieAuth,
 } from "@/services/sessionApi";
+import { api } from "@/redux/services/api";
 
 export const signIn = createAsyncThunk(
   "auth/signIn",
@@ -83,6 +84,7 @@ export const logout = createAsyncThunk(
     removeAccessTokenCookie();
     clearRefreshToken();
     dispatch(clearAuth());
+    dispatch(api.util.resetApiState());
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams();

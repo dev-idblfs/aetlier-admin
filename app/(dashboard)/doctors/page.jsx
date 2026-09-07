@@ -9,6 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useRouter } from 'next/navigation';
 import {
     Plus,
@@ -64,6 +65,7 @@ export default function DoctorsPage() {
     const canDelete = hasPermission(authUser, PERMISSIONS.DOCTOR_DELETE);
     const canReviewVerification = hasPermission(authUser, PERMISSIONS.VERIFICATION_VERIFY_ANY);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
     const [verificationFilter, setVerificationFilter] = useState('');
     const [activeFilter, setActiveFilter] = useState('');
     const [publishedFilter, setPublishedFilter] = useState('');
@@ -90,9 +92,9 @@ export default function DoctorsPage() {
         if (activeFilter === 'false') args.is_active = false;
         if (publishedFilter === 'true') args.is_published = true;
         if (publishedFilter === 'false') args.is_published = false;
-        if (search.trim()) args.q = search.trim();
+        if (debouncedSearch.trim()) args.q = debouncedSearch.trim();
         return args;
-    }, [verificationFilter, activeFilter, publishedFilter, search]);
+    }, [verificationFilter, activeFilter, publishedFilter, debouncedSearch]);
 
     const { data, isLoading, isError, error, refetch } = useGetDoctorsQuery(queryArgs, {
         skip: !canView,

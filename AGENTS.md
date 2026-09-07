@@ -57,7 +57,7 @@ constants/ config/ hooks/ contexts/
 
 ## Data fetching
 
-- **RTK Query is the single source** — add endpoints to `redux/services/api.js` (one `createApi` slice) and export the generated hook at the bottom of the file.
+- **RTK Query is the single source** — add endpoints to `redux/services/api.js` (one `createApi` slice) and export the generated hook at the bottom of the file. Debounce server-backed list search (~350ms). Do **not** add redux-persist for RTK caches or auth (cookie + `/auth/me`). Logout calls `api.util.resetApiState()`.
 - `fetchBaseQuery` injects the Bearer token from cookie `admin_access_token`; a global 401 handler clears the cookie and redirects to `/login`.
 - Use **tag-based caching**: declare `tagTypes`, set `providesTags` on queries and `invalidatesTags` on mutations.
 - Use axios `apiClient` (`lib/apiClient.js`) ONLY for the auth profile fetch in `authSlice`. Prefer RTK Query everywhere else — do not add new ad-hoc axios calls.

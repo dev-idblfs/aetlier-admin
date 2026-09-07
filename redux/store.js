@@ -1,5 +1,7 @@
 /**
  * Redux Store Configuration
+ *
+ * Auth is cookie + /auth/me (not redux-persist). RTK Query cache is in-memory only.
  */
 
 import { configureStore } from "@reduxjs/toolkit";
@@ -13,11 +15,7 @@ export const store = configureStore({
     auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
-      },
-    }).concat(api.middleware),
+    getDefaultMiddleware().concat(api.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 

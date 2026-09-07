@@ -119,9 +119,15 @@ function RolesTab() {
     const canDeleteRoles = hasPermission(currentUser, PERMISSIONS.ROLE_DELETE);
     const canManagePermissions = hasPermission(currentUser, PERMISSIONS.PERMISSION_ASSIGN);
     const canEditSystemFlags = isSuperAdmin(currentUser);
+    const canViewRoles = hasPermission(currentUser, PERMISSIONS.ROLE_READ);
+    const canViewPermissions = hasPermission(currentUser, PERMISSIONS.PERMISSION_READ);
 
-    const { data: roles = [], isLoading, error } = useGetRolesQuery();
-    const { data: permissions = [] } = useGetPermissionsQuery();
+    const { data: roles = [], isLoading, error } = useGetRolesQuery(undefined, {
+        skip: !canViewRoles,
+    });
+    const { data: permissions = [] } = useGetPermissionsQuery(undefined, {
+        skip: !canViewPermissions && !canManagePermissions,
+    });
     const [createRole, { isLoading: isCreating }] = useCreateRoleMutation();
     const [updateRole, { isLoading: isUpdating }] = useUpdateRoleMutation();
     const [deleteRole, { isLoading: isDeleting }] = useDeleteRoleMutation();
@@ -565,8 +571,16 @@ function RoleMobileCard({ role, isSystem, actions = [] }) {
 // ============================================================================
 
 function UserRolesTab() {
-    const { data: usersData, isLoading: isLoadingUsers } = useGetUsersQuery();
-    const { data: roles = [], isLoading: isLoadingRoles } = useGetRolesQuery();
+    const currentUser = useSelector((state) => state.auth.user);
+    const canViewRoles = hasPermission(currentUser, PERMISSIONS.ROLE_READ);
+    const { data: usersData, isLoading: isLoadingUsers } = useGetUsersQuery(
+        { limit: 100, skip: 0 },
+        { skip: !canViewRoles },
+    );
+    const { data: roles = [], isLoading: isLoadingRoles } = useGetRolesQuery(
+        undefined,
+        { skip: !canViewRoles },
+    );
     const [assignRole, { isLoading: isAssigning }] = useAssignUserRoleMutation();
     const [revokeRole, { isLoading: isRevoking }] = useRevokeUserRoleMutation();
 

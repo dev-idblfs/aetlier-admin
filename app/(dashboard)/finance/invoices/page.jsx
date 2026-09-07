@@ -9,6 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
     FileText,
     Search,
@@ -63,6 +64,7 @@ export default function InvoicesPage() {
     const router = useRouter();
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
     const [statusFilter, setStatusFilter] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState(null);
 
@@ -80,7 +82,7 @@ export default function InvoicesPage() {
         page,
         page_size: 20,
         status: statusFilter || undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
     }, { skip: !canView });
 
     const [cancelInvoice, { isLoading: isCancelling }] = useCancelInvoiceMutation();
@@ -116,7 +118,6 @@ export default function InvoicesPage() {
             await cancelInvoice(selectedInvoice.id).unwrap();
             toast.success('Invoice cancelled successfully');
             onDeleteClose();
-            refetch();
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to cancel invoice');
         }
@@ -137,7 +138,6 @@ export default function InvoicesPage() {
             }).unwrap();
             toast.success('Invoice sent successfully');
             onSendClose();
-            refetch();
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to send invoice');
         }

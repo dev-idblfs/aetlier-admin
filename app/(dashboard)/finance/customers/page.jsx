@@ -9,6 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
     Contact,
     Search,
@@ -61,6 +62,7 @@ export default function CustomersPage() {
     const router = useRouter();
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
     const [typeFilter, setTypeFilter] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
@@ -97,7 +99,7 @@ export default function CustomersPage() {
     const { data, isLoading, refetch } = useGetCustomersQuery({
         page,
         page_size: 20,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         customer_type: typeFilter || undefined,
     }, { skip: !canView });
 

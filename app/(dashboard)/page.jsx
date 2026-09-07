@@ -114,16 +114,25 @@ export default function DashboardPage() {
         { skip: !canViewAppointments },
     );
 
-    const { data: usersData } = useGetUsersQuery({ size: 1 }, { skip: !canViewUsers });
-    const { data: doctorsData } = useGetDoctorsQuery({ size: 1 }, { skip: !canViewDoctors });
+    const { data: usersData } = useGetUsersQuery(
+        { limit: 1, skip: 0 },
+        { skip: !canViewUsers },
+    );
+    const { data: doctorsData } = useGetDoctorsQuery(
+        undefined,
+        { skip: !canViewDoctors },
+    );
 
     const appointments = appointmentsData?.appointments || [];
+    const doctorsList = Array.isArray(doctorsData)
+        ? doctorsData
+        : doctorsData?.doctors || [];
 
     const stats = {
         totalAppointments: appointmentsData?.total || 0,
         pendingAppointments: pendingData?.total || 0,
         totalUsers: usersData?.total || 0,
-        totalDoctors: doctorsData?.total || 0,
+        totalDoctors: doctorsList.length,
     };
 
     const recentAppointments = appointments.slice(0, 5);

@@ -9,6 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
     Receipt,
     Search,
@@ -55,6 +56,7 @@ export default function ExpensesPage() {
     const router = useRouter();
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [selectedExpense, setSelectedExpense] = useState(null);
@@ -72,7 +74,7 @@ export default function ExpensesPage() {
         page_size: 20,
         category_id: categoryFilter || undefined,
         payment_status: statusFilter || undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
     }, { skip: !canView });
 
     const { data: categories } = useGetExpenseCategoriesQuery();

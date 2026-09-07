@@ -103,6 +103,8 @@ export const api = createApi({
     "Customer",
     "Report",
     "Navigation",
+    "NavigationPresets",
+    "Preferences",
     "Integration",
     "Wallet",
     "Category",
@@ -444,7 +446,9 @@ export const api = createApi({
     // GET /users/:userId/preferences - Get user preferences
     getUserPreferences: builder.query({
       query: (userId) => `/users/${userId}/preferences`,
-      providesTags: (result, error, userId) => [{ type: "User", id: userId }],
+      providesTags: (result, error, userId) => [
+        { type: "Preferences", id: userId },
+      ],
     }),
 
     // PATCH /users/:userId/preferences - Update user preferences
@@ -455,7 +459,7 @@ export const api = createApi({
         body: preferences,
       }),
       invalidatesTags: (result, error, { userId }) => [
-        { type: "User", id: userId },
+        { type: "Preferences", id: userId },
       ],
     }),
 
@@ -1384,7 +1388,7 @@ export const api = createApi({
 
     getNavigationPermissionPresets: builder.query({
       query: () => "/settings/navigation/permission-presets",
-      providesTags: ["Navigation"],
+      providesTags: ["NavigationPresets"],
     }),
 
     // GET /settings/navigation/all - Get all navigation for admin management

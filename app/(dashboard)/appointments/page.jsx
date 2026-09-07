@@ -9,6 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
     Download,
     Eye,
@@ -95,6 +96,7 @@ export default function AppointmentsPage() {
         date_to: '',
         sort: 'date_desc',
     });
+    const debouncedQ = useDebounce(filters.q, 350);
     const [onlineTodayOnly, setOnlineTodayOnly] = useState(false);
 
     // Modal states
@@ -112,7 +114,7 @@ export default function AppointmentsPage() {
         {
             page,
             page_size: 10,
-            q: filters.q || undefined,
+            q: debouncedQ || undefined,
             status: filters.status || undefined,
             doctor_id: filters.doctor_id || undefined,
             service_id: filters.service_id || undefined,
@@ -394,7 +396,6 @@ export default function AppointmentsPage() {
         try {
             await updateAppointment({ id, status }).unwrap();
             toast.success(`Appointment ${status}`);
-            refetch();
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to update status');
         }
@@ -415,7 +416,6 @@ export default function AppointmentsPage() {
             }).unwrap();
             toast.success(`Status updated to ${newStatus.replace('_', ' ')}`);
             onStatusOpenChange(false);
-            refetch();
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to update status');
         }
@@ -437,7 +437,6 @@ export default function AppointmentsPage() {
             }).unwrap();
             toast.success('Appointment cancelled');
             onCancelOpenChange(false);
-            refetch();
         } catch (error) {
             toast.error(error.data?.detail || 'Failed to cancel appointment');
         }

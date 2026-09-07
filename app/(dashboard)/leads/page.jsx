@@ -8,6 +8,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useRouter } from 'next/navigation';
 import {
     Trash2,
@@ -74,6 +75,7 @@ export default function LeadsPage() {
     const canDelete = hasPermission(user, PERMISSIONS.LEAD_DELETE);
 
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
     const [statusFilter, setStatusFilter] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedLead, setSelectedLead] = useState(null);
@@ -85,7 +87,7 @@ export default function LeadsPage() {
         page: currentPage,
         page_size: pageSize,
         status: statusFilter || undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
     }, { skip: !canView });
 
     const [updateLead] = useUpdateLeadMutation();
