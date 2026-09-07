@@ -15,6 +15,10 @@ import {
   getAppointmentDateTime,
 } from '@/utils/consultationJoinWindow';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
+import {
+  formatDoctorConsultationError,
+  preflightMediaPermissions,
+} from '@/utils/consultationErrors';
 import DoctorConsultationRoom from './DoctorConsultationRoom';
 
 const PHASE = {
@@ -27,6 +31,7 @@ export default function DoctorConsultationShell({ appointmentId }) {
   const [phase, setPhase] = useState(PHASE.LOBBY);
   const [mediaMode, setMediaMode] = useState('video');
   const [isJoining, setIsJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
 
   const {
     data: appointment,
@@ -60,13 +65,23 @@ export default function DoctorConsultationShell({ appointmentId }) {
 
   const handleJoin = async () => {
     setIsJoining(true);
+    setJoinError('');
     try {
-      await setMediaModeApi({ appointmentId, media_mode: mediaMode }).unwrap();
+      const media = await preflightMediaPermissions(mediaMode);
+      if (!media.ok) {
+        setJoinError(formatDoctorConsultationError(media.error));
+        return;
+      }
+      try {
+        await setMediaModeApi({ appointmentId, media_mode: mediaMode }).unwrap();
+      } catch {
+        // non-fatal
+      }
+      setPhase(PHASE.CALL);
     } catch (e) {
-      console.warn('Media mode update failed, proceeding:', e);
+      setJoinError(formatDoctorConsultationError(e));
     } finally {
       setIsJoining(false);
-      setPhase(PHASE.CALL);
     }
   };
 
@@ -92,7 +107,7 @@ export default function DoctorConsultationShell({ appointmentId }) {
         </p>
         <p className="mb-6 max-w-sm text-sm text-white/60">
           {isDenied
-            ? 'Only the assigned doctor or clinic staff can open this consultation.'
+            ? 'Only the assigned doctor can join this consultation.'
             : 'Check the link or return to appointments.'}
         </p>
         <Button
@@ -180,6 +195,12 @@ export default function DoctorConsultationShell({ appointmentId }) {
         </button>
       </div>
 
+      {joinError ? (
+        <p className="mb-4 max-w-sm text-sm text-red-400" role="alert">
+          {joinError}
+        </p>
+      ) : null}
+
       <Button
         className="min-h-12 w-full max-w-xs rounded-full bg-[#db924b] font-semibold text-white"
         isDisabled={!joinAvailable || isJoining}
@@ -193,6 +214,9 @@ export default function DoctorConsultationShell({ appointmentId }) {
       {!joinAvailable && (
         <p className="mt-2 text-xs text-amber-400/80">Outside join window</p>
       )}
+      <p className="mt-3 max-w-xs text-[10px] text-white/35">
+        Browser will request camera and microphone before connecting.
+      </p>
       <button
         type="button"
         className="mt-6 text-sm text-white/40 underline hover:text-white/70"

@@ -1,7 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent, ConnectionState, Track } from 'livekit-client';
+import {
+  Room,
+  RoomEvent,
+  ConnectionState,
+  Track,
+  DisconnectReason,
+} from 'livekit-client';
 import { Button, Spinner } from '@heroui/react';
 import {
   Mic,
@@ -18,22 +24,15 @@ import {
   useStartConsultationMutation,
   useEndConsultationMutation,
 } from '@/redux/services/api';
+import { formatDoctorConsultationError } from '@/utils/consultationErrors';
+import { notifyConsultationEnded } from '@/utils/openConsultationWindow';
+
+const RECONNECT_TIMEOUT_MS = 45000;
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-function formatError(err) {
-  const detail = err?.data?.detail ?? err?.message;
-  if (!detail) return 'Unable to connect. Check your connection and try again.';
-  if (detail === 'consultation_access_denied') {
-    return 'You do not have access to this consultation.';
-  }
-  if (typeof detail === 'string') return detail;
-  if (Array.isArray(detail)) return detail.map((d) => d.msg || String(d)).join(', ');
-  return String(detail);
 }
 
 function VideoTile({ track, muted, className, mirror }) {
@@ -84,9 +83,12 @@ export default function DoctorConsultationRoom({
   const [remoteVideo, setRemoteVideo] = useState(null);
   const [localVideo, setLocalVideo] = useState(null);
   const [connectAttempt, setConnectAttempt] = useState(0);
+  const [peerLeft, setPeerLeft] = useState(false);
 
   const timerRef = useRef(null);
   const startRef = useRef(null);
+  const endedRef = useRef(false);
+  const reconnectTimeoutRef = useRef(null);
 
   const [getToken] = useGetConsultationTokenMutation();
   const [startConsultation] = useStartConsultationMutation();
@@ -94,17 +96,21 @@ export default function DoctorConsultationRoom({
 
   const getTokenRef = useRef(getToken);
   const startConsultationRef = useRef(startConsultation);
+  const endConsultationRef = useRef(endConsultation);
   getTokenRef.current = getToken;
   startConsultationRef.current = startConsultation;
+  endConsultationRef.current = endConsultation;
 
   const refreshTracks = useCallback(() => {
     let remote = null;
     for (const participant of room.remoteParticipants.values()) {
       for (const pub of participant.videoTrackPublications.values()) {
-        if (pub.source === Track.Source.ScreenShare) continue;
-        if (pub.track) {
+        if (pub.source === Track.Source.ScreenShare && pub.track) {
           remote = pub.track;
           break;
+        }
+        if (pub.track) {
+          remote = pub.track;
         }
       }
       if (remote) break;
@@ -129,15 +135,60 @@ export default function DoctorConsultationRoom({
     }
   }, []);
 
+  const clearReconnectTimeout = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  }, []);
+
+  const finishCall = useCallback(
+    async (reason = 'completed') => {
+      if (endedRef.current) return;
+      endedRef.current = true;
+      stopTimer();
+      clearReconnectTimeout();
+      try {
+        await endConsultationRef
+          .current({ appointmentId, end_reason: reason })
+          .unwrap();
+      } catch {
+        // best-effort
+      }
+      try {
+        await room.disconnect();
+      } catch {
+        // ignore
+      }
+      notifyConsultationEnded(appointmentId);
+      setPhase('ended');
+    },
+    [appointmentId, clearReconnectTimeout, room, stopTimer]
+  );
+
   useEffect(() => {
     const onState = (state) => {
-      if (state === ConnectionState.Reconnecting) setPhase('reconnecting');
+      if (state === ConnectionState.Reconnecting) {
+        setPhase('reconnecting');
+        clearReconnectTimeout();
+        reconnectTimeoutRef.current = setTimeout(() => {
+          setErrorMessage(
+            'Connection could not be restored. Check your network and try again.'
+          );
+          setPhase('error');
+          stopTimer();
+        }, RECONNECT_TIMEOUT_MS);
+      }
       if (state === ConnectionState.Connected) {
+        clearReconnectTimeout();
         setPhase((p) => (p === 'error' ? p : 'active'));
         startTimer();
         refreshTracks();
       }
-      if (state === ConnectionState.Disconnected) stopTimer();
+      if (state === ConnectionState.Disconnected) {
+        clearReconnectTimeout();
+        stopTimer();
+      }
     };
 
     room.on(RoomEvent.ConnectionStateChanged, onState);
@@ -145,10 +196,27 @@ export default function DoctorConsultationRoom({
     room.on(RoomEvent.TrackUnsubscribed, refreshTracks);
     room.on(RoomEvent.LocalTrackPublished, refreshTracks);
     room.on(RoomEvent.ParticipantConnected, () => {
+      setPeerLeft(false);
       refreshTracks();
       setPhase('active');
     });
-    room.on(RoomEvent.ParticipantDisconnected, refreshTracks);
+    room.on(RoomEvent.ParticipantDisconnected, () => {
+      refreshTracks();
+      if (room.remoteParticipants.size === 0) {
+        setPeerLeft(true);
+        setPhase('waiting');
+      }
+    });
+    room.on(RoomEvent.Disconnected, (reason) => {
+      if (endedRef.current) return;
+      if (
+        reason === DisconnectReason.CLIENT_INITIATED ||
+        reason === DisconnectReason.ROOM_DELETED ||
+        reason === DisconnectReason.PARTICIPANT_REMOVED
+      ) {
+        finishCall('disconnected');
+      }
+    });
 
     return () => {
       room.off(RoomEvent.ConnectionStateChanged, onState);
@@ -156,7 +224,14 @@ export default function DoctorConsultationRoom({
       room.off(RoomEvent.TrackUnsubscribed, refreshTracks);
       room.off(RoomEvent.LocalTrackPublished, refreshTracks);
     };
-  }, [room, refreshTracks, startTimer, stopTimer]);
+  }, [
+    room,
+    refreshTracks,
+    startTimer,
+    stopTimer,
+    clearReconnectTimeout,
+    finishCall,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,6 +239,8 @@ export default function DoctorConsultationRoom({
     const connect = async () => {
       setPhase('connecting');
       setErrorMessage('');
+      setPeerLeft(false);
+      endedRef.current = false;
       try {
         const tokenData = await getTokenRef
           .current({ appointmentId, media_mode: mediaMode })
@@ -176,17 +253,18 @@ export default function DoctorConsultationRoom({
         await room.connect(url, tokenData.token);
         if (cancelled) return;
 
-        try {
-          await startConsultationRef.current({ appointmentId }).unwrap();
-        } catch (e) {
-          console.warn('Start consultation API failed:', e);
-        }
+        await startConsultationRef.current({ appointmentId }).unwrap();
 
-        await room.localParticipant.setMicrophoneEnabled(true);
-        if (mediaMode === 'video') {
-          await room.localParticipant.setCameraEnabled(true);
-        } else {
-          await room.localParticipant.setCameraEnabled(false);
+        try {
+          await room.localParticipant.setMicrophoneEnabled(true);
+          if (mediaMode === 'video') {
+            await room.localParticipant.setCameraEnabled(true);
+          } else {
+            await room.localParticipant.setCameraEnabled(false);
+          }
+        } catch (mediaErr) {
+          await room.disconnect();
+          throw mediaErr;
         }
 
         refreshTracks();
@@ -197,8 +275,7 @@ export default function DoctorConsultationRoom({
           startTimer();
         }
       } catch (err) {
-        console.error('Consultation connect failed :', err);
-        setErrorMessage(formatError(err));
+        setErrorMessage(formatDoctorConsultationError(err));
         setPhase('error');
         stopTimer();
       }
@@ -208,10 +285,27 @@ export default function DoctorConsultationRoom({
 
     return () => {
       cancelled = true;
+      clearReconnectTimeout();
       stopTimer();
+      if (!endedRef.current) {
+        endedRef.current = true;
+        endConsultationRef
+          .current({ appointmentId, end_reason: 'navigated_away' })
+          .catch(() => {});
+        notifyConsultationEnded(appointmentId);
+      }
       room.disconnect();
     };
-  }, [appointmentId, mediaMode, connectAttempt, room, refreshTracks, startTimer, stopTimer]);
+  }, [
+    appointmentId,
+    mediaMode,
+    connectAttempt,
+    room,
+    refreshTracks,
+    startTimer,
+    stopTimer,
+    clearReconnectTimeout,
+  ]);
 
   const handleToggleMute = async () => {
     const next = !isMuted;
@@ -227,14 +321,7 @@ export default function DoctorConsultationRoom({
   };
 
   const handleEndCall = async () => {
-    stopTimer();
-    try {
-      await endConsultation({ appointmentId }).unwrap();
-    } catch (e) {
-      console.warn('End consultation API failed:', e);
-    }
-    await room.disconnect();
-    setPhase('ended');
+    await finishCall('completed');
   };
 
   if (phase === 'ended') {
@@ -316,7 +403,11 @@ export default function DoctorConsultationRoom({
       <header className="flex items-center justify-between px-4 py-3">
         <div>
           <p className="text-sm font-medium">
-            {phase === 'waiting' ? `Waiting for ${patientName}` : patientName}
+            {phase === 'waiting'
+              ? peerLeft
+                ? `${patientName} left — waiting to rejoin`
+                : `Waiting for ${patientName}`
+              : patientName}
           </p>
           <p className="text-xs text-white/50 tabular-nums">{formatElapsed(elapsed)}</p>
         </div>
@@ -331,7 +422,21 @@ export default function DoctorConsultationRoom({
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-white/60">
             <Spinner color="warning" />
-            <p className="text-sm">Waiting for patient video…</p>
+            <p className="text-sm">
+              {peerLeft
+                ? 'Patient left the call'
+                : 'Waiting for patient video…'}
+            </p>
+            {phase === 'waiting' ? (
+              <Button
+                size="sm"
+                variant="bordered"
+                className="mt-2 rounded-full border-white/30 text-white"
+                onPress={handleEndCall}
+              >
+                Leave waiting room
+              </Button>
+            ) : null}
           </div>
         )}
 
