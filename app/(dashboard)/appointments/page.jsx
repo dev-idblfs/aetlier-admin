@@ -13,13 +13,10 @@ import {
     Download,
     Eye,
     Edit,
-    Trash2,
     CheckCircle,
     BadgeCheck,
     XCircle,
     RefreshCw,
-    Filter,
-    X,
     FileText,
     FileCheck,
     Plus,
@@ -35,8 +32,6 @@ import {
     useDisclosure,
     Textarea,
     Chip,
-    Spinner,
-    Pagination,
 } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -60,10 +55,13 @@ import {
     canReadAppointments,
     getAppointmentListScope,
 } from '@/utils/permissions';
-import ConsultationJoinCard from '@/components/consultation/ConsultationJoinCard';
-import ConsultationJoinButton from '@/components/consultation/ConsultationJoinButton';
-import ConsultationStatusChip from '@/components/consultation/ConsultationStatusChip';
-import { isOnlineConsultation, isToday } from '@/utils/consultationJoinWindow';
+import {
+    isOnlineConsultation,
+    isToday,
+    canJoinConsultation,
+    buildPatientConsultationJoinUrl,
+} from '@/utils/consultationJoinWindow';
+import { openConsultationWindow } from '@/utils/openConsultationWindow';
 import { withUserPermissions } from '@/utils/navAccess';
 import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
@@ -73,10 +71,10 @@ import {
 } from '@/features/appointments/constants';
 import {
     getDoctorName,
+    getPatientName,
     getPaymentSummary,
     getClinicName,
     shortAppointmentId,
-    copyText,
     escapeCsvValue,
 } from '@/features/appointments/utils';
 import AppointmentListCard from '@/features/appointments/components/AppointmentListCard';
@@ -258,30 +256,8 @@ export default function AppointmentsPage() {
         }
     };
 
-    // Table columns with permission-based actions
+    // Table columns — keep rows compact; join lives in overflow menu
     const columns = [
-        {
-            key: 'id',
-            label: 'ID',
-            priority: 'tertiary',
-            hideBelow: 'md',
-            render: (row) => (
-                <button
-                    type="button"
-                    className="font-mono text-xs text-gray-600 hover:text-primary-700 inline-flex items-center gap-1"
-                    title={row.id}
-                    aria-label="Copy appointment ID"
-                    onClick={async (e) => {
-                        e.stopPropagation();
-                        const ok = await copyText(row.id);
-                        if (ok) toast.success('Appointment ID copied');
-                    }}
-                >
-                    {shortAppointmentId(row.id)}
-                    <Copy className="w-3 h-3 opacity-60" />
-                </button>
-            ),
-        },
         {
             key: 'patient',
             label: 'Patient',
@@ -294,8 +270,8 @@ export default function AppointmentsPage() {
                         <EntityLink href={patientId ? `/users/${patientId}/edit` : null}>
                             {patientName}
                         </EntityLink>
-                        <p className="text-sm text-gray-500">
-                            {row.patient_info?.email || row.user?.email}
+                        <p className="text-xs text-gray-400 font-mono mt-0.5">
+                            {shortAppointmentId(row.id)}
                         </p>
                     </div>
                 );
@@ -324,17 +300,6 @@ export default function AppointmentsPage() {
                     </EntityLink>
                 );
             },
-        },
-        {
-            key: 'clinic',
-            label: 'Clinic',
-            priority: 'tertiary',
-            hideBelow: 'lg',
-            render: (row) => (
-                <span className="text-sm text-gray-700">
-                    {getClinicName(row) || '—'}
-                </span>
-            ),
         },
         {
             key: 'consultation_mode',
@@ -375,7 +340,8 @@ export default function AppointmentsPage() {
                     type="button"
                     className={`${(canChangeStatus || (row.status === 'invoiced' && row.invoice_id)) ? 'cursor-pointer' : 'cursor-default'}`}
                     title="Appointment status"
-                    onClick={() => {
+                    onClick={(e) => {
+                        e.stopPropagation();
                         if (row.status === 'invoiced' && row.invoice_id) {
                             handleViewInvoice(row);
                         } else if (canChangeStatus) {
@@ -399,21 +365,15 @@ export default function AppointmentsPage() {
             ),
         },
         {
-            key: 'consultation_join',
-            label: 'Video',
+            key: 'clinic',
+            label: 'Clinic',
             priority: 'tertiary',
             hideBelow: 'xl',
-            render: (row) =>
-                isOnlineConsultation(row) ? (
-                    <div className="flex flex-col items-start gap-1.5">
-                        {row.consultation_status ? (
-                            <ConsultationStatusChip status={row.consultation_status} size="sm" />
-                        ) : null}
-                        <ConsultationJoinButton appointment={row} size="sm" />
-                    </div>
-                ) : (
-                    <span className="text-gray-400 text-xs">—</span>
-                ),
+            render: (row) => (
+                <span className="text-sm text-gray-600">
+                    {getClinicName(row) || '—'}
+                </span>
+            ),
         },
     ];
 
@@ -482,6 +442,29 @@ export default function AppointmentsPage() {
             toast.error(error.data?.detail || 'Failed to cancel appointment');
         }
     };
+
+    const handleJoinVideo = (appointment) => {
+        const result = openConsultationWindow(appointment.id);
+        if (result.mode === 'same-tab') {
+            router.push(`/consultation/${appointment.id}`);
+        }
+    };
+
+    const handleCopyPatientLink = async (appointment) => {
+        try {
+            await navigator.clipboard.writeText(
+                buildPatientConsultationJoinUrl(appointment.id),
+            );
+            toast.success('Patient join link copied');
+        } catch {
+            toast.error('Could not copy link');
+        }
+    };
+
+    const joinableOnline = useMemo(
+        () => appointments.filter((apt) => canJoinConsultation(apt)),
+        [appointments],
+    );
 
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -643,6 +626,7 @@ export default function AppointmentsPage() {
                 searchPlaceholder="Search patient name, email, phone..."
                 activeFiltersCount={activeFiltersCount}
                 onClearAll={clearFilters}
+                defaultExpanded={false}
             >
                 <Select
                     label="Status"
@@ -747,7 +731,13 @@ export default function AppointmentsPage() {
                     labelPlacement="outside"
                     placeholder=" "
                     value={filters.date_from}
-                    onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                    onChange={(eOrValue) => {
+                        const next =
+                            typeof eOrValue === 'string'
+                                ? eOrValue
+                                : eOrValue?.target?.value ?? '';
+                        handleFilterChange('date_from', next);
+                    }}
                     size="sm"
                 />
                 <Input
@@ -756,7 +746,13 @@ export default function AppointmentsPage() {
                     labelPlacement="outside"
                     placeholder=" "
                     value={filters.date_to}
-                    onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                    onChange={(eOrValue) => {
+                        const next =
+                            typeof eOrValue === 'string'
+                                ? eOrValue
+                                : eOrValue?.target?.value ?? '';
+                        handleFilterChange('date_to', next);
+                    }}
                     size="sm"
                 />
                 <div className="flex items-end gap-2">
@@ -775,20 +771,25 @@ export default function AppointmentsPage() {
                 </div>
             </FilterBar>
 
-            {/* Desktop — online consultation cards */}
-            {appointments.some(isOnlineConsultation) && (
-                <div className="hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {appointments
-                        .filter(isOnlineConsultation)
-                        .map((apt) => (
-                            <ConsultationJoinCard
-                                key={`online-${apt.id}`}
-                                appointment={apt}
-                                variant="compact"
-                            />
-                        ))}
+            {joinableOnline.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5">
+                    <Video className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span className="text-sm text-amber-900 font-medium">
+                        {joinableOnline.length} ready to join
+                    </span>
+                    {joinableOnline.slice(0, 4).map((apt) => (
+                        <Button
+                            key={apt.id}
+                            size="sm"
+                            color="warning"
+                            className="bg-[#db924b] text-white"
+                            onPress={() => handleJoinVideo(apt)}
+                        >
+                            {getPatientName(apt) || 'Join'}
+                        </Button>
+                    ))}
                 </div>
-            )}
+            ) : null}
 
             <BulkActionBar
                 count={selectedCount}
@@ -825,6 +826,23 @@ export default function AppointmentsPage() {
                 actions={(row) => [
                     ...(canView
                         ? [{ key: 'view', label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: handleViewDetails }]
+                        : []),
+                    ...(isOnlineConsultation(row)
+                        ? [
+                            {
+                                key: 'join',
+                                label: canJoinConsultation(row) ? 'Join video' : 'Join video (outside window)',
+                                icon: <Video className="w-4 h-4" />,
+                                onClick: handleJoinVideo,
+                                color: 'warning',
+                            },
+                            {
+                                key: 'copy-link',
+                                label: 'Copy patient link',
+                                icon: <Copy className="w-4 h-4" />,
+                                onClick: handleCopyPatientLink,
+                            },
+                        ]
                         : []),
                     ...(canEdit
                         ? [{ key: 'edit', label: 'Reschedule', icon: <Edit className="w-4 h-4" />, onClick: handleEditClick }]

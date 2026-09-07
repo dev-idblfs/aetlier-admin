@@ -14,18 +14,15 @@ import {
 } from '@/lib/heroui'
 import { MoreVertical } from '@/lib/icons'
 import { EntityLink, StatusBadge } from '@/components/ui'
-import ConsultationJoinCard from '@/components/consultation/ConsultationJoinCard'
 import { formatDate, formatTime } from '@/utils/dateFormatters'
-import { isOnlineConsultation } from '@/utils/consultationJoinWindow'
 import {
-  getClinicName,
   getDoctorName,
   getPaymentSummary,
   shortAppointmentId,
 } from '../utils'
 
 /**
- * Mobile list card for appointments.
+ * Mobile list card for appointments — compact, no join chrome.
  */
 export default function AppointmentListCard({
   appointment,
@@ -38,7 +35,6 @@ export default function AppointmentListCard({
   const canSelect = selectable && apt.status !== 'cancelled'
   const patientId = apt.user_id || apt.user?.id
   const doctorId = apt.doctor_id || apt.doctor?.id || apt.doctor_user_id
-  const clinicName = getClinicName(apt)
 
   return (
     <HeroCard className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500' : ''}`}>
@@ -67,9 +63,6 @@ export default function AppointmentListCard({
             </div>
             <p className="text-xs text-gray-400 font-mono">
               {shortAppointmentId(apt.id)}
-            </p>
-            <p className="text-sm text-gray-500 truncate">
-              {apt.patient_info?.email || apt.user?.email}
             </p>
           </div>
           {actions.length > 0 ? (
@@ -100,12 +93,6 @@ export default function AppointmentListCard({
 
         <Divider className="my-3" />
 
-        {isOnlineConsultation(apt) ? (
-          <div className="mb-3">
-            <ConsultationJoinCard appointment={apt} variant="compact" />
-          </div>
-        ) : null}
-
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <p className="text-gray-500">Service</p>
@@ -120,32 +107,16 @@ export default function AppointmentListCard({
             </EntityLink>
           </div>
           <div>
-            <p className="text-gray-500">Date</p>
+            <p className="text-gray-500">When</p>
             <p className="font-medium text-gray-900">
               {formatDate(apt.appointment_date || apt.preferred_date)}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500">Time</p>
-            <p className="font-medium text-gray-900">
+              {' · '}
               {formatTime(apt.appointment_time || apt.preferred_time)}
             </p>
           </div>
-          {clinicName ? (
-            <div>
-              <p className="text-gray-500">Clinic</p>
-              <p className="font-medium text-gray-900 truncate">{clinicName}</p>
-            </div>
-          ) : null}
-          {apt.patient_info?.phone ? (
-            <div>
-              <p className="text-gray-500">Phone</p>
-              <p className="font-medium text-gray-900">{apt.patient_info.phone}</p>
-            </div>
-          ) : null}
-          <div className="col-span-2">
+          <div>
             <p className="text-gray-500">Payment</p>
-            <p className="font-medium text-gray-900">{getPaymentSummary(apt)}</p>
+            <p className="font-medium text-gray-900 truncate">{getPaymentSummary(apt)}</p>
           </div>
         </div>
       </CardBody>
