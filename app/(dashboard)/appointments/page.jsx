@@ -47,7 +47,7 @@ import {
     useCompleteAppointmentMutation,
     useBulkCancelAppointmentsMutation,
 } from '@/redux/services/api';
-import { formatDate, formatTime } from '@/utils/dateFormatters';
+import { formatDate, formatTime, formatLocalDateYmd } from '@/utils/dateFormatters';
 import {
     hasAnyPermission,
     hasAllPermissions,
@@ -590,7 +590,7 @@ export default function AppointmentsPage() {
                         className="cursor-pointer"
                         startContent={<Video className="w-3.5 h-3.5" />}
                         onClick={() => {
-                            const today = new Date().toISOString().slice(0, 10);
+                            const today = formatLocalDateYmd();
                             setOnlineTodayOnly((v) => {
                                 const next = !v;
                                 if (next) {

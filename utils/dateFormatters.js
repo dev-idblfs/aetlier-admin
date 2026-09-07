@@ -188,3 +188,48 @@ export function formatCurrency(amount, currency = "INR", locale = "en-IN") {
     return `₹${amount}`;
   }
 }
+
+/** Matches backend `TIME_ZONE` (wall-clock for preferred_date/time). */
+export const APP_TIME_ZONE = "Asia/Kolkata";
+
+export function formatLocalDateYmd(date = new Date()) {
+  const value = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(value.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+}
+
+export function addLocalDaysYmd(days, fromDate = new Date()) {
+  const base =
+    typeof fromDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fromDate)
+      ? fromDate
+      : formatLocalDateYmd(fromDate);
+  const [year, month, day] = base.split("-").map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + Number(days || 0)));
+  const y = next.getUTCFullYear();
+  const m = String(next.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(next.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function ymdToLocalDate(ymd) {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const [year, month, day] = ymd.split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
+/** Display an API UTC instant in APP_TIME_ZONE (or given timezone). */
+export function formatUtcInstant(value, options = {}) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-IN", {
+    timeZone: options.timeZone || APP_TIME_ZONE,
+    ...options,
+  });
+}
+

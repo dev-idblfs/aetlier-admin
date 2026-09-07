@@ -1,4 +1,9 @@
 import config from "@/config";
+import {
+  APP_TIME_ZONE,
+  ymdToLocalDate,
+  formatLocalDateYmd,
+} from "@/utils/dateFormatters";
 
 export const JOIN_WINDOW_BEFORE_MIN = 15;
 export const JOIN_WINDOW_AFTER_MIN = 180;
@@ -18,6 +23,19 @@ export function getAppointmentDateTime(appointment) {
   };
 }
 
+/** Local wall-clock start from preferred_date/time. */
+export function getAppointmentStartInstant(appointment) {
+  if (!appointment) return null;
+  const { date, time } = getAppointmentDateTime(appointment);
+  if (!date || !time) return null;
+  const ymd = String(date).slice(0, 10);
+  const [h, m] = String(time).split(":").map(Number);
+  const local = ymdToLocalDate(ymd);
+  if (!local) return null;
+  local.setHours(h || 0, m || 0, 0, 0);
+  return local;
+}
+
 export function canJoinConsultation(appointment) {
   if (!appointment || appointment.consultation_mode !== "online") return false;
 
@@ -26,12 +44,9 @@ export function canJoinConsultation(appointment) {
   ).toLowerCase();
   if (!JOINABLE_STATUSES.has(status)) return false;
 
-  const { date, time } = getAppointmentDateTime(appointment);
-  if (!date || !time) return false;
+  const start = getAppointmentStartInstant(appointment);
+  if (!start) return false;
 
-  const [h, m] = time.split(":").map(Number);
-  const start = new Date(date);
-  start.setHours(h, m || 0, 0, 0);
   const windowStart = new Date(
     start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60 * 1000,
   );
@@ -43,7 +58,7 @@ export function canJoinConsultation(appointment) {
 }
 
 export function getJoinWindowHint() {
-  return `Join window: ${JOIN_WINDOW_BEFORE_MIN} min before – ${JOIN_WINDOW_AFTER_MIN} min after`;
+  return `Join window: ${JOIN_WINDOW_BEFORE_MIN} min before – ${JOIN_WINDOW_AFTER_MIN} min after (${APP_TIME_ZONE})`;
 }
 
 /** Doctor/staff join — stays on admin (same session). */
@@ -67,10 +82,10 @@ export function buildConsultationJoinUrl(appointmentId) {
 }
 
 export const DOCTOR_JOIN_TOOLTIP =
-  'Opens the secure consultation room in admin. You stay signed in — no patient-app hop.';
+  "Opens the secure consultation room in admin. You stay signed in — no patient-app hop.";
 
 export const PATIENT_LINK_TOOLTIP =
-  'Copies the patient join link for the public web app (share via email/WhatsApp).';
+  "Copies the patient join link for the public web app (share via email/WhatsApp).";
 export const ACCESS_LOCK_TOOLTIP =
   "Only the booked patient and assigned doctor can join this consultation.";
 export function isOnlineConsultation(appointment) {
@@ -79,6 +94,6 @@ export function isOnlineConsultation(appointment) {
 
 export function isToday(dateStr) {
   if (!dateStr) return false;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = formatLocalDateYmd();
   return String(dateStr).slice(0, 10) === today;
 }
