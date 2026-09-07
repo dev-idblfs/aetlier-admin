@@ -4,6 +4,7 @@ import { Button, Tooltip } from '@heroui/react';
 import { Video, Copy, Lock } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
 import { cn } from '@/utils/cn';
 import ConsultationStatusChip from './ConsultationStatusChip';
@@ -16,14 +17,31 @@ import {
   getAppointmentDateTime,
   getJoinWindowHint,
 } from '@/utils/consultationJoinWindow';
+import {
+  openConsultationWindow,
+  subscribeConsultationEvents,
+} from '@/utils/openConsultationWindow';
 
 export default function ConsultationJoinCard({
   appointment,
   consultation,
   variant = 'compact',
   className,
+  onConsultationEnded,
 }) {
   const router = useRouter();
+
+  useEffect(() => {
+    if (!appointment?.id) return undefined;
+    return subscribeConsultationEvents((msg) => {
+      if (
+        msg?.type === 'consultation-ended' &&
+        String(msg.appointmentId) === String(appointment.id)
+      ) {
+        onConsultationEnded?.(appointment.id);
+      }
+    });
+  }, [appointment?.id, onConsultationEnded]);
 
   if (!appointment || appointment.consultation_mode !== 'online') {
     return null;
@@ -38,7 +56,10 @@ export default function ConsultationJoinCard({
     'Patient';
 
   const handleJoin = () => {
-    router.push(`/consultation/${appointment.id}`);
+    const result = openConsultationWindow(appointment.id);
+    if (result.mode === 'same-tab') {
+      router.push(`/consultation/${appointment.id}`);
+    }
   };
 
   const handleCopyPatientLink = async () => {
@@ -144,7 +165,7 @@ export default function ConsultationJoinCard({
       <Tooltip content={ACCESS_LOCK_TOOLTIP} placement="bottom">
         <p className="flex items-center gap-1.5 text-xs text-gray-500">
           <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>Patient &amp; doctor only — secure room</span>
+          <span>Patient &amp; doctor only — opens in a secure window</span>
         </p>
       </Tooltip>
     </div>

@@ -4,6 +4,7 @@ import { Button, Tooltip } from '@heroui/react';
 import { Video } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import {
   buildPatientConsultationJoinUrl,
   canJoinConsultation,
@@ -11,14 +12,31 @@ import {
   PATIENT_LINK_TOOLTIP,
   getJoinWindowHint,
 } from '@/utils/consultationJoinWindow';
+import {
+  openConsultationWindow,
+  subscribeConsultationEvents,
+} from '@/utils/openConsultationWindow';
 
 export default function ConsultationJoinButton({
   appointment,
   size = 'sm',
   className,
   label = 'Join video call',
+  onConsultationEnded,
 }) {
   const router = useRouter();
+
+  useEffect(() => {
+    if (!appointment?.id) return undefined;
+    return subscribeConsultationEvents((msg) => {
+      if (
+        msg?.type === 'consultation-ended' &&
+        String(msg.appointmentId) === String(appointment.id)
+      ) {
+        onConsultationEnded?.(appointment.id);
+      }
+    });
+  }, [appointment?.id, onConsultationEnded]);
 
   if (!appointment || appointment.consultation_mode !== 'online') {
     return null;
@@ -28,7 +46,10 @@ export default function ConsultationJoinButton({
   const patientJoinUrl = buildPatientConsultationJoinUrl(appointment.id);
 
   const handleJoin = () => {
-    router.push(`/consultation/${appointment.id}`);
+    const result = openConsultationWindow(appointment.id);
+    if (result.mode === 'same-tab') {
+      router.push(`/consultation/${appointment.id}`);
+    }
   };
 
   const handleCopyPatientLink = async (e) => {
