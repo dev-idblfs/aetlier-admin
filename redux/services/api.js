@@ -111,6 +111,7 @@ export const api = createApi({
     "Consultation",
     "MobilePromotion",
     "Prescription",
+    "Location",
   ],
   endpoints: (builder) => ({
     // =========================================================================
@@ -1249,6 +1250,28 @@ export const api = createApi({
       providesTags: ["Customer"],
     }),
 
+    getIndiaStates: builder.query({
+      query: () => "/locations/states",
+      providesTags: [{ type: "Location", id: "STATES" }],
+    }),
+
+    getIndiaCities: builder.query({
+      query: ({ stateId, q, limit = 500 } = {}) => {
+        const params = new URLSearchParams();
+        if (stateId) params.append("state_id", stateId);
+        if (q) params.append("q", q);
+        if (limit) params.append("limit", String(limit));
+        const qs = params.toString();
+        return `/locations/cities${qs ? `?${qs}` : ""}`;
+      },
+      providesTags: (result, error, arg) => [
+        {
+          type: "Location",
+          id: `CITIES-${arg?.stateId || "ALL"}-${arg?.q || ""}`,
+        },
+      ],
+    }),
+
     // GET /customers/:id - Get single customer
     getCustomer: builder.query({
       query: (id) => `/customers/${id}`,
@@ -1663,6 +1686,8 @@ export const {
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,
+  useGetIndiaStatesQuery,
+  useGetIndiaCitiesQuery,
   // Wallet
   useGetUserWalletQuery,
   // Financial Reports

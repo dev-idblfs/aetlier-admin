@@ -24,6 +24,10 @@ import { Search, Plus, User, Mail, Phone, MapPin, Building2 } from '@/lib/icons'
 import { useDebounce } from '@/hooks/useDebounce';
 import { toast } from 'react-hot-toast';
 import { invoiceCustomerQuickSchema } from '@/lib/validation';
+import {
+    useGetIndiaStatesQuery,
+    useGetIndiaCitiesQuery,
+} from '@/redux/services/api';
 
 export default function CustomerSelector({
     value = null,
@@ -60,9 +64,20 @@ export default function CustomerSelector({
         billing_address_line2: '',
         billing_city: '',
         billing_state: '',
+        billing_state_id: '',
+        billing_city_id: '',
         billing_pincode: '',
         customer_type: 'individual',
     });
+
+    const { data: indiaStates = [], isLoading: statesLoading } = useGetIndiaStatesQuery(
+        undefined,
+        { skip: !isCreateModalOpen }
+    );
+    const { data: indiaCities = [], isLoading: citiesLoading } = useGetIndiaCitiesQuery(
+        { stateId: newCustomer.billing_state_id, limit: 2000 },
+        { skip: !isCreateModalOpen || !newCustomer.billing_state_id }
+    );
 
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const searchRequestId = useRef(0);
@@ -186,6 +201,8 @@ export default function CustomerSelector({
             }
             if (data.billing_city?.trim()) customerData.billing_city = data.billing_city.trim();
             if (data.billing_state?.trim()) customerData.billing_state = data.billing_state.trim();
+            if (data.billing_state_id) customerData.billing_state_id = data.billing_state_id;
+            if (data.billing_city_id) customerData.billing_city_id = data.billing_city_id;
             if (data.billing_pincode?.trim()) {
                 customerData.billing_pincode = data.billing_pincode.trim();
             }
@@ -216,6 +233,8 @@ export default function CustomerSelector({
                 billing_address_line2: '',
                 billing_city: '',
                 billing_state: '',
+                billing_state_id: '',
+                billing_city_id: '',
                 billing_pincode: '',
                 customer_type: 'individual',
             });
@@ -456,22 +475,70 @@ export default function CustomerSelector({
                             />
 
                             <div className="grid grid-cols-2 gap-3">
-                                <Input
+                                <Select
+                                    label="State / UT"
+                                    placeholder={statesLoading ? 'Loading…' : 'Select state'}
+                                    selectedKeys={
+                                        newCustomer.billing_state_id
+                                            ? [String(newCustomer.billing_state_id)]
+                                            : []
+                                    }
+                                    onSelectionChange={(keys) => {
+                                        const selected = Array.from(keys)[0];
+                                        const stateId = selected ? String(selected) : '';
+                                        const match = indiaStates.find(
+                                            (s) => String(s.id) === stateId
+                                        );
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            billing_state_id: stateId,
+                                            billing_state: match?.name || '',
+                                            billing_city_id: '',
+                                            billing_city: '',
+                                        });
+                                    }}
+                                    isDisabled={statesLoading}
+                                >
+                                    {indiaStates.map((state) => (
+                                        <SelectItem key={String(state.id)} value={String(state.id)} textValue={state.name}>
+                                            {state.name}
+                                        </SelectItem>
+                                    ))}
+                                </Select>
+                                <Select
                                     label="City"
-                                    placeholder="City"
-                                    value={newCustomer.billing_city}
-                                    onChange={(e) =>
-                                        setNewCustomer({ ...newCustomer, billing_city: e.target.value })
+                                    placeholder={
+                                        !newCustomer.billing_state_id
+                                            ? 'Select state first'
+                                            : citiesLoading
+                                              ? 'Loading…'
+                                              : 'Select city'
                                     }
-                                />
-                                <Input
-                                    label="State"
-                                    placeholder="State"
-                                    value={newCustomer.billing_state}
-                                    onChange={(e) =>
-                                        setNewCustomer({ ...newCustomer, billing_state: e.target.value })
+                                    selectedKeys={
+                                        newCustomer.billing_city_id
+                                            ? [String(newCustomer.billing_city_id)]
+                                            : []
                                     }
-                                />
+                                    onSelectionChange={(keys) => {
+                                        const selected = Array.from(keys)[0];
+                                        const cityId = selected ? String(selected) : '';
+                                        const match = indiaCities.find(
+                                            (c) => String(c.id) === cityId
+                                        );
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            billing_city_id: cityId,
+                                            billing_city: match?.name || '',
+                                        });
+                                    }}
+                                    isDisabled={!newCustomer.billing_state_id || citiesLoading}
+                                >
+                                    {indiaCities.map((city) => (
+                                        <SelectItem key={String(city.id)} value={String(city.id)} textValue={city.name}>
+                                            {city.name}
+                                        </SelectItem>
+                                    ))}
+                                </Select>
                             </div>
 
                             <Input

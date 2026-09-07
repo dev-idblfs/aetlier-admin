@@ -19,6 +19,7 @@ import {
   FormRow,
   FormDivider,
 } from '@/components/ui/FormFields';
+import { IndiaStateCityFields } from '@/components/ui/IndiaStateCityFields';
 import {
   FormPageLayout,
   FormSectionCard,
@@ -49,6 +50,8 @@ const emptyDefaults = {
   patient_gender: '',
   patient_date_of_birth: '',
   patient_city: '',
+  patient_state_id: '',
+  patient_city_id: '',
   patient_address: '',
   patient_user_id: '',
   service_id: '',
@@ -98,6 +101,8 @@ const buildCreatePayload = (data) => {
     patient_gender: data.patient_gender || undefined,
     patient_date_of_birth: data.patient_date_of_birth || undefined,
     patient_city: data.patient_city || undefined,
+    patient_state_id: data.patient_state_id || undefined,
+    patient_city_id: data.patient_city_id || undefined,
     patient_address: data.patient_address || undefined,
   };
   if (data.consultation_mode === 'online' && data.media_mode) {
@@ -207,6 +212,8 @@ export default function NewAppointmentPage() {
     setValue('patient_gender', row.gender || '');
     setValue('patient_date_of_birth', formatDob(row.date_of_birth));
     setValue('patient_city', row.city || '');
+    setValue('patient_state_id', row.state_id || '');
+    setValue('patient_city_id', row.city_id || '');
     setValue('patient_address', row.address || '');
     toast.success('Patient linked');
   };
@@ -226,7 +233,11 @@ export default function NewAppointmentPage() {
         toast.error('Phone is required for new patients');
         return;
       }
-      if (!data.patient_gender || !data.patient_date_of_birth || !data.patient_city?.trim()) {
+      if (
+        !data.patient_gender ||
+        !data.patient_date_of_birth ||
+        !(data.patient_city?.trim() || data.patient_city_id)
+      ) {
         toast.error('Gender, date of birth, and city are required for new patients');
         return;
       }
@@ -380,7 +391,15 @@ export default function NewAppointmentPage() {
                 </SelectItem>
               </FormSelect>
               <FormInput name="patient_date_of_birth" label="Date of birth" type="date" />
-              <FormInput name="patient_city" label="City" />
+              <div className="sm:col-span-2">
+                <IndiaStateCityFields
+                  stateIdField="patient_state_id"
+                  cityIdField="patient_city_id"
+                  cityNameField="patient_city"
+                  stateNameField="patient_state_name"
+                  isRequired={!linkedPatient}
+                />
+              </div>
               <div className="sm:col-span-2">
                 <FormInput name="patient_address" label="Address" />
               </div>

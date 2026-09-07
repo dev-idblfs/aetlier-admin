@@ -73,6 +73,7 @@ constants/ config/ hooks/ contexts/
 - Sidebar nav is permission-filtered **server-side** via `useGetNavigationQuery`. To add a nav icon, extend `ICON_MAP` in `components/layout/Sidebar.jsx`.
 - **Audit logs**: `app/(dashboard)/audit/page.jsx` lists all audit activity via `useGetAuditLogsQuery` with filters, permission-gated with `skip: !canView`. Entity IDs link to detail pages via `EntityLink` when a route mapping exists (`ENTITY_ROUTES`). Timeline component (`components/audit/AuditTimeline.jsx`) shows history for a single entity.
 - **Mobile home**: `app/(dashboard)/settings/mobile-home/page.jsx` manages mobile app banners/promotions via `GET /api/mobile/home`. Linked from Settings → General → Quick Links card.
+- **India locations:** RTK `getIndiaStates` / `getIndiaCities` in `redux/services/api.js`; RHF picker `components/ui/IndiaStateCityFields.jsx`. Used on appointment create and invoice customer quick-create (`CustomerSelector`) — optional `*_state_id` / `*_city_id` plus display names; street address stays free-text.
 
 ## Coding Principles (apply to every change)
 
