@@ -17,10 +17,13 @@ import {
   CheckCircle,
   XCircle,
   BadgeCheck,
+  User,
+  Calendar,
 } from '@/lib/icons'
 import { FormPageLayout, ConfirmModal } from '@/components/ui'
 import AccessDenied from '@/components/AccessDenied'
 import AppointmentDetailBody from '@/features/appointments/components/AppointmentDetailBody'
+import ConsultationJoinButton from '@/components/consultation/ConsultationJoinButton'
 import {
   useGetAppointmentQuery,
   useUpdateAppointmentMutation,
@@ -38,6 +41,7 @@ import {
   getPatientName,
   getServiceName,
 } from '@/features/appointments/utils'
+import { isOnlineConsultation } from '@/utils/consultationJoinWindow'
 
 export default function AppointmentDetailPage() {
   const params = useParams()
@@ -116,6 +120,8 @@ export default function AppointmentDetailPage() {
 
   const patientName = getPatientName(appointment) || 'Appointment'
   const serviceName = getServiceName(appointment)
+  const patientId = appointment.user_id || appointment.user?.id
+  const isOnline = isOnlineConsultation(appointment)
 
   const handleConfirm = async () => {
     try {
@@ -172,16 +178,70 @@ export default function AppointmentDetailPage() {
         { label: serviceName || 'Detail' },
       ]}
       cancelHref="/appointments"
-      actions={
+    >
+      <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Primary actions
+        </p>
         <div className="flex flex-wrap gap-2">
+          {isOnline ? (
+            <ConsultationJoinButton appointment={appointment} size="md" />
+          ) : null}
+          {patientId ? (
+            <Button
+              size="sm"
+              variant="flat"
+              startContent={<User className="h-4 w-4" />}
+              onPress={() => router.push(`/users/${patientId}/edit`)}
+            >
+              View patient
+            </Button>
+          ) : null}
           {canEdit ? (
             <Button
               size="sm"
               color="primary"
+              variant="flat"
+              startContent={<Calendar className="h-4 w-4" />}
+              onPress={() =>
+                router.push(`/appointments/${appointmentId}/edit#schedule`)
+              }
+            >
+              Reschedule
+            </Button>
+          ) : null}
+          {canEdit ? (
+            <Button
+              size="sm"
+              variant="bordered"
               startContent={<Edit className="h-4 w-4" />}
               onPress={() => router.push(`/appointments/${appointmentId}/edit`)}
             >
-              Edit
+              Update
+            </Button>
+          ) : null}
+          {canChangeStatus && appointment.status === 'pending' ? (
+            <Button
+              size="sm"
+              color="success"
+              variant="flat"
+              startContent={<BadgeCheck className="h-4 w-4" />}
+              isLoading={isUpdating}
+              onPress={handleConfirm}
+            >
+              Confirm
+            </Button>
+          ) : null}
+          {canComplete && appointment.status === 'confirmed' ? (
+            <Button
+              size="sm"
+              color="success"
+              variant="flat"
+              startContent={<CheckCircle className="h-4 w-4" />}
+              isLoading={isCompleting}
+              onPress={handleComplete}
+            >
+              Complete & invoice
             </Button>
           ) : null}
           {canPrescribe && appointment.status === 'completed' ? (
@@ -194,7 +254,7 @@ export default function AppointmentDetailPage() {
                 router.push(`/appointments/${appointmentId}/edit?prescribe=1`)
               }
             >
-              Prescribe
+              Prescription
             </Button>
           ) : null}
           {canGenerateInvoice &&
@@ -225,9 +285,20 @@ export default function AppointmentDetailPage() {
               View invoice
             </Button>
           ) : null}
+          {canDelete && appointment.status !== 'cancelled' ? (
+            <Button
+              size="sm"
+              color="danger"
+              variant="flat"
+              startContent={<XCircle className="h-4 w-4" />}
+              onPress={onCancelOpen}
+            >
+              Cancel
+            </Button>
+          ) : null}
         </div>
-      }
-    >
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <HeroCard className="lg:col-span-2">
           <CardBody className="p-4 md:p-6">
@@ -237,43 +308,7 @@ export default function AppointmentDetailPage() {
 
         <HeroCard>
           <CardBody className="space-y-3 p-4">
-            <h3 className="text-sm font-semibold text-gray-800">Quick actions</h3>
-            {canChangeStatus && appointment.status === 'pending' ? (
-              <Button
-                fullWidth
-                color="success"
-                variant="flat"
-                startContent={<BadgeCheck className="h-4 w-4" />}
-                isLoading={isUpdating}
-                onPress={handleConfirm}
-              >
-                Confirm
-              </Button>
-            ) : null}
-            {canComplete && appointment.status === 'confirmed' ? (
-              <Button
-                fullWidth
-                color="success"
-                variant="flat"
-                startContent={<CheckCircle className="h-4 w-4" />}
-                isLoading={isCompleting}
-                onPress={handleComplete}
-              >
-                Complete & invoice
-              </Button>
-            ) : null}
-            {canEdit ? (
-              <Button
-                fullWidth
-                variant="bordered"
-                startContent={<Edit className="h-4 w-4" />}
-                onPress={() =>
-                  router.push(`/appointments/${appointmentId}/edit`)
-                }
-              >
-                Edit details
-              </Button>
-            ) : null}
+            <h3 className="text-sm font-semibold text-gray-800">More</h3>
             {canPrescribe ? (
               <Button
                 fullWidth
@@ -286,7 +321,19 @@ export default function AppointmentDetailPage() {
                   )
                 }
               >
-                Prescription
+                Prescription workspace
+              </Button>
+            ) : null}
+            {canEdit ? (
+              <Button
+                fullWidth
+                variant="bordered"
+                startContent={<Edit className="h-4 w-4" />}
+                onPress={() =>
+                  router.push(`/appointments/${appointmentId}/edit`)
+                }
+              >
+                Full edit
               </Button>
             ) : null}
             {canDelete && appointment.status !== 'cancelled' ? (

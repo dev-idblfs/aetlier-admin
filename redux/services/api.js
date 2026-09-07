@@ -159,6 +159,7 @@ export const api = createApi({
         doctor_id,
         service_id,
         consultation_mode,
+        sort,
       } = {}) => {
         const params = new URLSearchParams({
           page: page.toString(),
@@ -172,6 +173,7 @@ export const api = createApi({
         if (doctor_id) params.append("doctor_id", doctor_id);
         if (service_id) params.append("service_id", service_id);
         if (consultation_mode) params.append("consultation_mode", consultation_mode);
+        if (sort) params.append("sort", sort);
         return `/appointments?${params.toString()}`;
       },
       providesTags: ["Appointment"],
@@ -181,6 +183,16 @@ export const api = createApi({
     getAppointment: builder.query({
       query: (id) => `/appointments/${id}`,
       providesTags: (result, error, id) => [{ type: "Appointment", id }],
+    }),
+
+    // GET /appointments/availability/:serviceId/:date
+    getAppointmentDateAvailability: builder.query({
+      query: ({ serviceId, date, doctorId }) => {
+        const params = new URLSearchParams();
+        if (doctorId) params.append("doctor_id", doctorId);
+        const qs = params.toString();
+        return `/appointments/availability/${serviceId}/${date}${qs ? `?${qs}` : ""}`;
+      },
     }),
 
     // GET /appointments/:id/consultation - Consultation status & join metadata
@@ -567,11 +579,18 @@ export const api = createApi({
 
     // GET /doctors/:id/services - Doctor service assignments
     getDoctorServices: builder.query({
-      query: (doctorId) => `/doctors/${doctorId}/services`,
-      providesTags: (result, error, doctorId) => [
-        { type: "Doctor", id: doctorId },
-        "DoctorService",
-      ],
+      query: (arg) => {
+        const doctorId = typeof arg === "string" ? arg : arg?.doctorId;
+        const mode = typeof arg === "object" ? arg?.mode : undefined;
+        const params = new URLSearchParams();
+        if (mode) params.append("mode", mode);
+        const qs = params.toString();
+        return `/doctors/${doctorId}/services${qs ? `?${qs}` : ""}`;
+      },
+      providesTags: (result, error, arg) => {
+        const doctorId = typeof arg === "string" ? arg : arg?.doctorId;
+        return [{ type: "Doctor", id: doctorId }, "DoctorService"];
+      },
     }),
 
     // PUT /doctors/:id/services - Replace doctor service assignments
@@ -1556,6 +1575,7 @@ export const {
   // Appointments
   useGetAppointmentsQuery,
   useGetAppointmentQuery,
+  useGetAppointmentDateAvailabilityQuery,
   useGetConsultationQuery,
   useGetConsultationTokenMutation,
   useSetMediaModeMutation,

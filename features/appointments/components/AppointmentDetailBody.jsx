@@ -1,20 +1,25 @@
 'use client'
 
 import { Divider } from '@/lib/heroui'
-import { Calendar, Clock, User, Mail, Phone } from '@/lib/icons'
+import { Calendar, Clock, User, Mail, Phone, Copy } from '@/lib/icons'
+import { toast } from 'react-hot-toast'
 import { DetailRow, EntityLink, StatusBadge } from '@/components/ui'
 import ConsultationJoinCard from '@/components/consultation/ConsultationJoinCard'
 import { useGetConsultationQuery } from '@/redux/services/api'
 import { formatDate, formatTime } from '@/utils/dateFormatters'
 import { isOnlineConsultation } from '@/utils/consultationJoinWindow'
 import {
+  copyText,
+  getClinicName,
   getDoctorName,
   getFeeLabel,
   getModeLabel,
   getPatientEmail,
   getPatientName,
   getPatientPhone,
+  getPaymentSummary,
   getServiceName,
+  shortAppointmentId,
 } from '../utils'
 
 function ConsultationJoinCardSection({ appointment }) {
@@ -41,10 +46,16 @@ export default function AppointmentDetailBody({ appointment }) {
   const email = getPatientEmail(appointment)
   const phone = getPatientPhone(appointment)
   const fee = getFeeLabel(appointment)
+  const clinicName = getClinicName(appointment)
   const patientId = appointment.user_id || appointment.user?.id
   const doctorId = appointment.doctor_id || appointment.doctor?.id || appointment.doctor_user_id
   const serviceId = appointment.service_id || appointment.service?.id
   const invoiceId = appointment.invoice_id
+
+  const handleCopyId = async () => {
+    const ok = await copyText(appointment.id)
+    if (ok) toast.success('Appointment ID copied')
+  }
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -91,6 +102,20 @@ export default function AppointmentDetailBody({ appointment }) {
         </h4>
         <div className="space-y-3">
           <DetailRow
+            label="Appointment ID"
+            value={
+              <button
+                type="button"
+                onClick={handleCopyId}
+                className="inline-flex items-center gap-1.5 font-mono text-xs text-gray-700 hover:text-primary-700"
+                aria-label="Copy appointment ID"
+              >
+                {shortAppointmentId(appointment.id)}
+                <Copy className="h-3 w-3 opacity-60" />
+              </button>
+            }
+          />
+          <DetailRow
             icon={<Calendar className="h-4 w-4" />}
             label="Date"
             value={formatDate(
@@ -120,25 +145,32 @@ export default function AppointmentDetailBody({ appointment }) {
               </EntityLink>
             }
           />
-          <DetailRow
-            label="Fee / payment"
-            value={
-              appointment.invoice_number ? (
-                <EntityLink href={invoiceId ? `/finance/invoices/${invoiceId}` : null}>
-                  {`${appointment.invoice_number}${fee ? ` · ${fee}` : ''}${
-                    appointment.invoice_status
-                      ? ` · ${appointment.invoice_status}`
-                      : ''
-                  }`}
-                </EntityLink>
-              ) : fee ? (
-                `${fee} · Pay at clinic`
-              ) : (
-                'Pay at clinic'
-              )
-            }
-          />
+          <DetailRow label="Clinic" value={clinicName || '—'} />
+          <DetailRow label="Fee preview" value={fee || '—'} />
         </div>
+      </div>
+
+      <Divider />
+
+      <div>
+        <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">
+          Payment
+        </h4>
+        <DetailRow
+          label="Status"
+          value={
+            appointment.invoice_number ? (
+              <EntityLink href={invoiceId ? `/finance/invoices/${invoiceId}` : null}>
+                {getPaymentSummary(appointment)}
+                {appointment.invoice_status
+                  ? ` · ${appointment.invoice_status}`
+                  : ''}
+              </EntityLink>
+            ) : (
+              getPaymentSummary(appointment)
+            )
+          }
+        />
       </div>
 
       {appointment.special_notes ? (
@@ -158,12 +190,17 @@ export default function AppointmentDetailBody({ appointment }) {
       {isOnlineConsultation(appointment) ? (
         <>
           <Divider />
-          <ConsultationJoinCardSection appointment={appointment} />
+          <div>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">
+              Consultation
+            </h4>
+            <ConsultationJoinCardSection appointment={appointment} />
+          </div>
         </>
       ) : null}
 
       <div className="space-y-1 border-t border-gray-100 pt-4 text-xs text-gray-400">
-        <p>ID: {appointment.id}</p>
+        <p className="font-mono break-all">Full ID: {appointment.id}</p>
         {appointment.created_at ? (
           <p>
             Created{' '}

@@ -19,6 +19,15 @@ export const getServiceName = (appointment) =>
 export const getModeLabel = (mode) =>
   String(mode || 'in_person').toLowerCase() === 'online' ? 'Online' : 'In-clinic'
 
+export const getClinicName = (appointment) =>
+  appointment?.clinic?.name || null
+
+export const shortAppointmentId = (id) => {
+  if (!id) return '—'
+  const s = String(id)
+  return s.length > 8 ? `${s.slice(0, 8)}…` : s
+}
+
 export const getFeeLabel = (appointment) => {
   const fee = appointment?.fee_display
   if (fee === null || fee === undefined || fee === '') return null
@@ -42,4 +51,14 @@ export const escapeCsvValue = (value) => {
     return `"${text.replace(/"/g, '""')}"`
   }
   return text
+}
+
+export const copyText = async (text) => {
+  if (!text || typeof navigator === 'undefined' || !navigator.clipboard) return false
+  try {
+    await navigator.clipboard.writeText(String(text))
+    return true
+  } catch {
+    return false
+  }
 }

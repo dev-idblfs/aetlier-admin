@@ -20,12 +20,12 @@ import {
     RefreshCw,
     Filter,
     X,
-    MoreVertical,
     FileText,
     FileCheck,
     Plus,
     Video,
     AlertCircle,
+    Copy,
 } from '@/lib/icons';
 import {
     Button,
@@ -35,16 +35,8 @@ import {
     useDisclosure,
     Textarea,
     Chip,
-    Card as HeroCard,
-    CardBody,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
     Spinner,
     Pagination,
-    Divider,
-    Checkbox,
 } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -82,8 +74,12 @@ import {
 import {
     getDoctorName,
     getPaymentSummary,
+    getClinicName,
+    shortAppointmentId,
+    copyText,
     escapeCsvValue,
 } from '@/features/appointments/utils';
+import AppointmentListCard from '@/features/appointments/components/AppointmentListCard';
 
 export default function AppointmentsPage() {
     const router = useRouter();
@@ -99,6 +95,7 @@ export default function AppointmentsPage() {
         consultation_mode: '',
         date_from: '',
         date_to: '',
+        sort: 'date_desc',
     });
     const [onlineTodayOnly, setOnlineTodayOnly] = useState(false);
 
@@ -124,6 +121,7 @@ export default function AppointmentsPage() {
             consultation_mode: filters.consultation_mode || undefined,
             date_from: filters.date_from || undefined,
             date_to: filters.date_to || undefined,
+            sort: filters.sort || 'date_desc',
             ...(appointmentListScope ? { scope: appointmentListScope } : {}),
         },
         { skip: !canViewAppointments },
@@ -263,6 +261,28 @@ export default function AppointmentsPage() {
     // Table columns with permission-based actions
     const columns = [
         {
+            key: 'id',
+            label: 'ID',
+            priority: 'tertiary',
+            hideBelow: 'md',
+            render: (row) => (
+                <button
+                    type="button"
+                    className="font-mono text-xs text-gray-600 hover:text-primary-700 inline-flex items-center gap-1"
+                    title={row.id}
+                    aria-label="Copy appointment ID"
+                    onClick={async (e) => {
+                        e.stopPropagation();
+                        const ok = await copyText(row.id);
+                        if (ok) toast.success('Appointment ID copied');
+                    }}
+                >
+                    {shortAppointmentId(row.id)}
+                    <Copy className="w-3 h-3 opacity-60" />
+                </button>
+            ),
+        },
+        {
             key: 'patient',
             label: 'Patient',
             priority: 'primary',
@@ -304,6 +324,17 @@ export default function AppointmentsPage() {
                     </EntityLink>
                 );
             },
+        },
+        {
+            key: 'clinic',
+            label: 'Clinic',
+            priority: 'tertiary',
+            hideBelow: 'lg',
+            render: (row) => (
+                <span className="text-sm text-gray-700">
+                    {getClinicName(row) || '—'}
+                </span>
+            ),
         },
         {
             key: 'consultation_mode',
@@ -466,14 +497,18 @@ export default function AppointmentsPage() {
             consultation_mode: '',
             date_from: '',
             date_to: '',
+            sort: 'date_desc',
         });
         setOnlineTodayOnly(false);
         setPage(1);
     };
 
     const activeFiltersCount =
-        Object.entries(filters).filter(([key, value]) => key !== 'q' && Boolean(value)).length
-        + (onlineTodayOnly ? 1 : 0);
+        Object.entries(filters).filter(
+            ([key, value]) => key !== 'q' && key !== 'sort' && Boolean(value),
+        ).length
+        + (onlineTodayOnly ? 1 : 0)
+        + (filters.sort && filters.sort !== 'date_desc' ? 1 : 0);
 
     const handleExportCsv = () => {
         if (!appointments.length) {
@@ -481,11 +516,13 @@ export default function AppointmentsPage() {
             return;
         }
         const headers = [
+            'ID',
             'Patient',
             'Email',
             'Phone',
             'Service',
             'Doctor',
+            'Clinic',
             'Mode',
             'Date',
             'Time',
@@ -493,11 +530,13 @@ export default function AppointmentsPage() {
             'Invoice',
         ];
         const rows = appointments.map((apt) => [
+            apt.id || '',
             apt.patient_info?.full_name || apt.user?.name || '',
             apt.patient_info?.email || apt.user?.email || '',
             apt.patient_info?.phone || '',
             apt.service_name || apt.service?.name || '',
             getDoctorName(apt) || '',
+            getClinicName(apt) || '',
             apt.consultation_mode === 'online' ? 'Online' : 'In-clinic',
             apt.appointment_date || apt.preferred_date || '',
             apt.appointment_time || apt.preferred_time || '',
@@ -683,6 +722,25 @@ export default function AppointmentsPage() {
                         </SelectItem>
                     ))}
                 </Select>
+                <Select
+                    label="Sort"
+                    selectedKeys={[filters.sort || 'date_desc']}
+                    onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0] || 'date_desc';
+                        handleFilterChange('sort', value);
+                    }}
+                    size="sm"
+                >
+                    <SelectItem key="date_desc" value="date_desc" textValue="Date (newest)">
+                        Date (newest)
+                    </SelectItem>
+                    <SelectItem key="date_asc" value="date_asc" textValue="Date (oldest)">
+                        Date (oldest)
+                    </SelectItem>
+                    <SelectItem key="created_desc" value="created_desc" textValue="Recently created">
+                        Recently created
+                    </SelectItem>
+                </Select>
                 <Input
                     type="date"
                     label="From Date"
@@ -769,7 +827,7 @@ export default function AppointmentsPage() {
                         ? [{ key: 'view', label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: handleViewDetails }]
                         : []),
                     ...(canEdit
-                        ? [{ key: 'edit', label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: handleEditClick }]
+                        ? [{ key: 'edit', label: 'Reschedule', icon: <Edit className="w-4 h-4" />, onClick: handleEditClick }]
                         : []),
                     ...(row.status === 'invoiced' && row.invoice_id
                         ? [{ key: 'view-invoice', label: 'View Invoice', icon: <FileText className="w-4 h-4" />, onClick: handleViewInvoice, color: 'primary' }]
@@ -794,7 +852,7 @@ export default function AppointmentsPage() {
                         : []),
                 ]}
                 renderMobileCard={(apt, { isSelected, onSelect, actions }) => (
-                    <AppointmentCard
+                    <AppointmentListCard
                         appointment={apt}
                         actions={actions}
                         selectable={canDelete}
@@ -867,120 +925,5 @@ export default function AppointmentsPage() {
                 </Select>
             </FormModal>
         </ListPageLayout>
-    );
-}
-
-// Mobile Appointment Card Component
-function AppointmentCard({
-    appointment,
-    actions = [],
-    selectable = false,
-    isSelected = false,
-    onSelect,
-}) {
-    const apt = appointment;
-    const canSelect = selectable && apt.status !== 'cancelled';
-    const patientId = apt.user_id || apt.user?.id;
-    const doctorId = apt.doctor_id || apt.doctor?.id || apt.doctor_user_id;
-
-    return (
-        <HeroCard className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500' : ''}`}>
-            <CardBody className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                    {canSelect ? (
-                        <div onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                                isSelected={isSelected}
-                                onValueChange={onSelect}
-                                aria-label={`Select appointment ${apt.id}`}
-                            />
-                        </div>
-                    ) : null}
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <EntityLink href={patientId ? `/users/${patientId}/edit` : null}>
-                                {apt.patient_info?.full_name || apt.user?.name || 'N/A'}
-                            </EntityLink>
-                            <StatusBadge status={apt.status} />
-                            {(apt.consultation_mode === 'online') && (
-                                <Chip size="sm" color="secondary" variant="flat">
-                                    Online
-                                </Chip>
-                            )}
-                        </div>
-                        <p className="text-sm text-gray-500 truncate">
-                            {apt.patient_info?.email || apt.user?.email}
-                        </p>
-                    </div>
-                    {actions.length > 0 ? (
-                        <Dropdown>
-                            <DropdownTrigger>
-                                <Button variant="light" isIconOnly size="sm" aria-label="More actions">
-                                    <MoreVertical className="w-4 h-4" />
-                                </Button>
-                            </DropdownTrigger>
-                            <DropdownMenu aria-label="Actions">
-                                {actions.map((action, index) => (
-                                    <DropdownItem
-                                        key={action.key || index}
-                                        color={action.color || (action.danger ? 'danger' : 'default')}
-                                        className={action.danger || action.color === 'danger' ? 'text-danger' : undefined}
-                                        startContent={action.icon}
-                                        onPress={() => action.onClick?.()}
-                                    >
-                                        {action.label}
-                                    </DropdownItem>
-                                ))}
-                            </DropdownMenu>
-                        </Dropdown>
-                    ) : null}
-                </div>
-
-                <Divider className="my-3" />
-
-                {isOnlineConsultation(apt) && (
-                    <div className="mb-3">
-                        <ConsultationJoinCard appointment={apt} variant="compact" />
-                    </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                        <p className="text-gray-500">Service</p>
-                        <p className="font-medium text-gray-900 truncate">
-                            {apt.service_name || apt.service?.name || 'N/A'}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-gray-500">Doctor</p>
-                        <EntityLink href={doctorId ? `/doctors/${doctorId}/edit` : null}>
-                            {getDoctorName(apt) || '—'}
-                        </EntityLink>
-                    </div>
-                    <div>
-                        <p className="text-gray-500">Date</p>
-                        <p className="font-medium text-gray-900">
-                            {formatDate(apt.appointment_date || apt.preferred_date)}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-gray-500">Time</p>
-                        <p className="font-medium text-gray-900">
-                            {formatTime(apt.appointment_time || apt.preferred_time)}
-                        </p>
-                    </div>
-                    {apt.patient_info?.phone && (
-                        <div>
-                            <p className="text-gray-500">Phone</p>
-                            <p className="font-medium text-gray-900">{apt.patient_info.phone}</p>
-                        </div>
-                    )}
-                    <div className="col-span-2">
-                        <p className="text-gray-500">Payment</p>
-                        <p className="font-medium text-gray-900">{getPaymentSummary(apt)}</p>
-                    </div>
-                </div>
-            </CardBody>
-        </HeroCard>
     );
 }
