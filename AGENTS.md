@@ -51,7 +51,7 @@ constants/ config/ hooks/ contexts/
 - Add route-level `loading.jsx` for sections with data fetching, matching existing sections.
 - Import shared UI from the barrel: `import { PageHeader, DataTable, Button } from '@/components/ui'`.
 - Table row actions: use DataTable/ResponsiveTable `actions` (array or `(row) => array`) for the shared **three-dot** menu. Do not add inline/split icon button columns for Edit/View/Delete.
-- Forms: react-hook-form + Zod + `FormFields`. Prefer `FormPageLayout` + `FormCompactCard`. For related records on edit/detail, use `RelatedLinks` (pass items; no fetch layer). Prefer tightening layout over new abstractions; keep list `FormModal` create paths until the page path is verified.
+- Forms: react-hook-form + Zod + `FormFields`. Prefer `FormPageLayout` + `FormCompactCard`. Appointment create is `/appointments/new` (not a list modal). Complex CRM pages (appointment edit, invoice new/edit, verification review) use a **workspace layout**: related strip → primary job first → secondary context; invoices use a sticky totals rail on `lg+`. For related records, use `RelatedLinks` (pass items; no fetch layer). Keep list `FormModal` create paths only until a dedicated page path is verified.
 - Prefer Tailwind utility classes for layout/spacing (e.g. `min-h-11` for 44px touch targets, `px-3 py-3 md:px-4` for page padding). Avoid inventing custom CSS variables or inline `style={{}}` for theme chrome.
 - Set page title/breadcrumbs via `SidebarContext` (from `AdminLayout`).
 

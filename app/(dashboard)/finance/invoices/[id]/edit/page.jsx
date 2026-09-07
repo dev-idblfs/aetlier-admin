@@ -399,7 +399,6 @@ export default function EditInvoicePage({ params }) {
                     ]}
                 />
 
-                {/* Warning for invoices with payments */}
                 {invoice.amount_paid > 0 && (
                     <InvoiceAlert
                         variant="warning"
@@ -407,82 +406,85 @@ export default function EditInvoicePage({ params }) {
                         title="Payment recorded"
                         message={`${formatCurrency(invoice.amount_paid)} paid — line item edits change balance due.`}
                         compact
+                        className="mb-3"
                     />
                 )}
 
-                <InvoiceSection title="Customer & invoice" compact>
-                    <div className="space-y-3">
-                        <CustomerSelector
-                            value={selectedCustomer}
-                            onChange={onCustomerSelect}
-                            searchCustomers={handleSearchCustomers}
-                            createCustomer={handleCreateCustomer}
-                            isLoadingSearch={isSearchingCustomers}
-                            isLoadingCreate={isCreatingCustomer}
-                            readonly={customerLocked}
-                            showCreateButton={!customerLocked}
-                            hideSelectedPreview
-                            compact
-                        />
-                        <InvoiceCustomerBillingFields
-                            nameDisabled={customerLocked}
-                            fieldsDisabled={customerLocked}
-                        />
-                        <div className="border-t border-gray-100 pt-3">
-                            <InvoiceDetailsFields compact />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+                    <div className="lg:col-span-8 space-y-3 min-w-0">
+                        <InvoiceSection title="Customer & invoice" compact>
+                            <div className="space-y-3">
+                                <CustomerSelector
+                                    value={selectedCustomer}
+                                    onChange={onCustomerSelect}
+                                    searchCustomers={handleSearchCustomers}
+                                    createCustomer={handleCreateCustomer}
+                                    isLoadingSearch={isSearchingCustomers}
+                                    isLoadingCreate={isCreatingCustomer}
+                                    readonly={customerLocked}
+                                    showCreateButton={!customerLocked}
+                                    hideSelectedPreview
+                                    compact
+                                />
+                                <InvoiceCustomerBillingFields
+                                    nameDisabled={customerLocked}
+                                    fieldsDisabled={customerLocked}
+                                />
+                                <div className="border-t border-gray-100 pt-3">
+                                    <InvoiceDetailsFields compact />
+                                </div>
+                            </div>
+                        </InvoiceSection>
+
+                        <InvoiceSection title="Line Items" compact>
+                            <Controller
+                                name="line_items"
+                                control={control}
+                                render={({ field }) => (
+                                    <LineItemsTable
+                                        items={field.value}
+                                        onChange={field.onChange}
+                                        services={services}
+                                        compact
+                                    />
+                                )}
+                            />
+                        </InvoiceSection>
+
+                        <InvoiceSection title="Notes" compact>
+                            <InvoiceNotesFields
+                                compact
+                                notesLabel="Customer Notes"
+                                notesPlaceholder="Add notes for the customer"
+                                termsPlaceholder="Add terms and conditions"
+                            />
+                        </InvoiceSection>
+                    </div>
+
+                    <aside className="lg:col-span-4 min-w-0">
+                        <div className="lg:sticky lg:top-20 space-y-3">
+                            {invoice?.user_id && (
+                                <CoinsRedemption
+                                    value={coinsRedeemed}
+                                    onChange={(value) => setValue('coins_redeemed', value)}
+                                    walletBalance={walletData?.balance ?? walletData?.coin_balance ?? 0}
+                                    subtotal={calculations.subtotal}
+                                    discount={calculations.discount}
+                                    isLoadingWallet={isLoadingWallet}
+                                    compact
+                                />
+                            )}
+                            <CalculationSummary
+                                lineItems={lineItems}
+                                discountType={discountType}
+                                discountValue={discountValue}
+                                coinsRedeemed={coinsRedeemed}
+                                onDiscountTypeChange={(type) => setValue('discount_type', type)}
+                                onDiscountValueChange={(value) => setValue('discount_value', value)}
+                                compact
+                            />
                         </div>
-                    </div>
-                </InvoiceSection>
-
-                <InvoiceSection title="Line Items" compact>
-                    <Controller
-                        name="line_items"
-                        control={control}
-                        render={({ field }) => (
-                            <LineItemsTable
-                                items={field.value}
-                                onChange={field.onChange}
-                                services={services}
-                                compact
-                            />
-                        )}
-                    />
-                </InvoiceSection>
-
-                {/* Calculation & Notes */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <InvoiceSection title="Additional Information" compact>
-                        <InvoiceNotesFields
-                            compact
-                            notesLabel="Customer Notes"
-                            notesPlaceholder="Add notes for the customer"
-                            termsPlaceholder="Add terms and conditions"
-                        />
-                    </InvoiceSection>
-
-                    {/* Summary with Coins */}
-                    <div className="space-y-4">
-                        {invoice?.user_id && (
-                            <CoinsRedemption
-                                value={coinsRedeemed}
-                                onChange={(value) => setValue('coins_redeemed', value)}
-                                walletBalance={walletData?.balance ?? walletData?.coin_balance ?? 0}
-                                subtotal={calculations.subtotal}
-                                discount={calculations.discount}
-                                isLoadingWallet={isLoadingWallet}
-                                compact
-                            />
-                        )}
-                        <CalculationSummary
-                            lineItems={lineItems}
-                            discountType={discountType}
-                            discountValue={discountValue}
-                            coinsRedeemed={coinsRedeemed}
-                            onDiscountTypeChange={(type) => setValue('discount_type', type)}
-                            onDiscountValueChange={(value) => setValue('discount_value', value)}
-                            compact
-                        />
-                    </div>
+                    </aside>
                 </div>
             </Form>
         </InvoiceLayout>

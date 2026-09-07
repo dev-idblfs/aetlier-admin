@@ -2,14 +2,18 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft } from '@/lib/icons';
-import { Button, Spinner } from '@/lib/heroui';
+import { useParams } from 'next/navigation';
+import { Spinner } from '@/lib/heroui';
 import { useSelector } from 'react-redux';
+import { useGetAdminVerificationRecordQuery } from '@/redux/services/api';
 import {
-  useGetAdminVerificationRecordQuery,
-} from '@/redux/services/api';
-import { StatusBadge, RelatedLinks, Alert } from '@/components/ui';
+  FormPageLayout,
+  FormCompactCard,
+  FormSectionCard,
+  RelatedLinks,
+  StatusBadge,
+  Alert,
+} from '@/components/ui';
 import DocumentReviewCard from '@/components/verification/DocumentReviewCard';
 import VerificationActions from '@/components/verification/VerificationActions';
 import VerificationReviewSteps from '@/components/verification/VerificationReviewSteps';
@@ -19,7 +23,6 @@ import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 
 export default function VerificationReviewPage() {
   const params = useParams();
-  const router = useRouter();
   const verificationId = params.id;
   const user = useSelector((s) => s.auth.user);
   const canView = hasPermission(user, PERMISSIONS.VERIFICATION_VERIFY_ANY);
@@ -30,17 +33,27 @@ export default function VerificationReviewPage() {
     data: record,
     isLoading,
     refetch,
-  } = useGetAdminVerificationRecordQuery(verificationId, { skip: !canView || !verificationId });
+  } = useGetAdminVerificationRecordQuery(verificationId, {
+    skip: !canView || !verificationId,
+  });
 
   if (!canView) {
     return (
-      <div className="p-6">
+      <FormPageLayout
+        title="Verification"
+        breadcrumbs={[
+          { label: 'Verification', href: '/verification' },
+          { label: 'Review' },
+        ]}
+        cancelHref="/verification"
+        maxWidth="md"
+      >
         <Alert
           variant="warning"
           title="Permission required"
           message="You do not have permission to review verifications."
         />
-      </div>
+      </FormPageLayout>
     );
   }
 
@@ -54,81 +67,112 @@ export default function VerificationReviewPage() {
 
   if (!record) {
     return (
-      <div className="p-6">
-        <p className="text-gray-600">Verification not found.</p>
-        <Button className="mt-4" variant="flat" onPress={() => router.push('/verification')}>
-          Back to queue
-        </Button>
-      </div>
+      <FormPageLayout
+        title="Verification"
+        breadcrumbs={[
+          { label: 'Verification', href: '/verification' },
+          { label: 'Not found' },
+        ]}
+        cancelHref="/verification"
+        maxWidth="md"
+      >
+        <FormCompactCard>
+          <p className="text-sm text-gray-600">Verification not found.</p>
+        </FormCompactCard>
+      </FormPageLayout>
     );
   }
 
+  const title = record.doctor_name || 'Doctor verification';
+
   return (
-    <div className="space-y-3 max-w-3xl">
-      <div className="flex items-center gap-3">
-        <Button isIconOnly variant="light" onPress={() => router.push('/verification')}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-semibold text-gray-900 truncate">
-            {record.doctor_name || 'Doctor verification'}
-          </h1>
-          <p className="text-sm text-gray-500">{record.doctor_email}</p>
-        </div>
-        <StatusBadge status={record.status} />
-      </div>
+    <FormPageLayout
+      title={title}
+      breadcrumbs={[
+        { label: 'Verification', href: '/verification' },
+        { label: 'Review' },
+      ]}
+      cancelHref="/verification"
+      maxWidth="md"
+      actions={<StatusBadge status={record.status} />}
+    >
+      <div className="space-y-3">
+        {record.doctor_email ? (
+          <p className="text-sm text-gray-500 -mt-1">{record.doctor_email}</p>
+        ) : null}
 
-      <RelatedLinks
-        title="Related"
-        items={[
-          ...(record.doctor_user_id
-            ? [
-                {
-                  label: record.doctor_name || 'Doctor profile',
-                  href: `/doctors/${record.doctor_user_id}/edit`,
-                  meta: 'Doctor',
-                },
-              ]
-            : []),
-          { label: 'Verification queue', href: '/verification', meta: 'List' },
-        ]}
-      />
-
-      <VerificationReviewSteps
-        verification={record}
-        canVerify={canVerify}
-        canApprove={canApprove}
-      />
-
-      {record.status === VERIFICATION_STATUS.REJECTED && record.rejection_reason && (
-        <Alert
-          variant="danger"
-          title="Rejection reason"
-          message={record.rejection_reason}
+        <RelatedLinks
+          title="Related"
+          items={[
+            ...(record.doctor_user_id
+              ? [
+                  {
+                    label: record.doctor_name || 'Doctor profile',
+                    href: `/doctors/${record.doctor_user_id}/edit`,
+                    meta: 'Doctor',
+                  },
+                ]
+              : []),
+            { label: 'Verification queue', href: '/verification', meta: 'List' },
+          ]}
         />
-      )}
 
-      <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 sm:px-4 sm:py-3 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-900">Documents</h2>
-        {(record.documents?.length ?? 0) === 0 ? (
-          <p className="text-sm text-gray-500">No documents uploaded yet.</p>
-        ) : (
-          record.documents.map((doc) => (
-            <DocumentReviewCard key={doc.id} doc={doc} onUpdated={refetch} />
-          ))
-        )}
-      </div>
+        <FormCompactCard>
+          <FormSectionCard
+            embedded
+            title="Review steps"
+            description="Primary verification workflow for this submission"
+          >
+            <VerificationReviewSteps
+              verification={record}
+              canVerify={canVerify}
+              canApprove={canApprove}
+            />
+          </FormSectionCard>
+        </FormCompactCard>
 
-      <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 sm:px-4 sm:py-3">
-        <VerificationActions verification={record} onUpdated={refetch} />
-      </div>
+        {record.status === VERIFICATION_STATUS.REJECTED && record.rejection_reason ? (
+          <Alert
+            variant="danger"
+            title="Rejection reason"
+            message={record.rejection_reason}
+          />
+        ) : null}
 
-      <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 sm:px-4 sm:py-3">
-        <AuditTimeline
-          entityType="doctor_verifications"
-          entityId={record.id}
-        />
+        <FormCompactCard>
+          <FormSectionCard embedded title="Documents">
+            {(record.documents?.length ?? 0) === 0 ? (
+              <p className="text-sm text-gray-500">No documents uploaded yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {record.documents.map((doc) => (
+                  <DocumentReviewCard key={doc.id} doc={doc} onUpdated={refetch} />
+                ))}
+              </div>
+            )}
+          </FormSectionCard>
+        </FormCompactCard>
+
+        <FormCompactCard>
+          <FormSectionCard embedded title="Actions">
+            <VerificationActions verification={record} onUpdated={refetch} />
+          </FormSectionCard>
+        </FormCompactCard>
+
+        <FormCompactCard>
+          <FormSectionCard
+            embedded
+            title="Audit history"
+            description="Secondary record of changes on this verification"
+          >
+            <AuditTimeline
+              entityType="doctor_verifications"
+              entityId={record.id}
+              compact
+            />
+          </FormSectionCard>
+        </FormCompactCard>
       </div>
-    </div>
+    </FormPageLayout>
   );
 }

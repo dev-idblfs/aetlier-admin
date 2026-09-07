@@ -7,8 +7,15 @@ import { Save, AlertCircle } from '@/lib/icons';
 import { Button, Input, Select, SelectItem, Textarea, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';
-import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard, Alert, RelatedLinks } from '@/components/ui';
-import { FormDivider } from '@/components/ui/FormFields';
+import {
+    FormPageLayout,
+    FormSectionCard,
+    FormActions,
+    FormCompactCard,
+    Alert,
+    RelatedLinks,
+    StatusBadge,
+} from '@/components/ui';
 import PrescriptionPanel from '@/components/prescription/PrescriptionPanel';
 import AccessDenied from '@/components/AccessDenied';
 import {
@@ -129,8 +136,8 @@ export default function EditAppointmentPage() {
             await updateAppointment(payload).unwrap();
             toast.success('Appointment updated successfully');
             router.push(`/appointments/${appointmentId}`);
-        } catch (error) {
-            toast.error(error?.data?.detail || 'Failed to update appointment');
+        } catch (err) {
+            toast.error(err?.data?.detail || 'Failed to update appointment');
         }
     };
 
@@ -173,6 +180,12 @@ export default function EditAppointmentPage() {
     const canSave = canEdit || canChangeStatus;
     const patientUserId = appointment.user_id || appointment.user?.id;
     const serviceId = appointment.service_id || appointment.service?.id;
+    const paymentLabel = appointment.invoice_number
+        ? `${appointment.invoice_number}${feeLabel ? ` · ${feeLabel}` : ''}`
+        : feeLabel
+          ? `${feeLabel} · Pay at clinic`
+          : 'Pay at clinic';
+
     const relatedItems = [
         {
             label: patientName,
@@ -217,107 +230,117 @@ export default function EditAppointmentPage() {
                 { label: 'Edit' },
             ]}
             cancelHref={`/appointments/${appointmentId}`}
+            maxWidth="lg"
         >
-            <form onSubmit={handleSubmit}>
-                <FormCompactCard
-                    footer={canSave ? (
-                        <FormActions inline>
-                            <Button
-                                color="primary"
-                                type="submit"
-                                isLoading={isUpdating}
-                                startContent={!isUpdating && <Save className="w-4 h-4" />}
-                                className="w-full sm:w-auto"
-                            >
-                                Save Changes
-                            </Button>
-                        </FormActions>
-                    ) : null}
-                >
-                    {isError && (
-                        <Alert
-                            variant="danger"
-                            title="Failed to load appointment"
-                            message={error?.data?.detail || error?.message || 'Unable to load appointment details.'}
-                            icon={<AlertCircle className="w-5 h-5" />}
-                        />
-                    )}
-                    {isUpdateError && (
-                        <Alert
-                            variant="danger"
-                            title="Failed to update appointment"
-                            message={updateError?.data?.detail || updateError?.message || 'Unable to save changes.'}
-                            icon={<AlertCircle className="w-5 h-5" />}
-                        />
-                    )}
+            <div className="space-y-3">
+                {isError && (
+                    <Alert
+                        variant="danger"
+                        title="Failed to load appointment"
+                        message={error?.data?.detail || error?.message || 'Unable to load appointment details.'}
+                        icon={<AlertCircle className="w-5 h-5" />}
+                    />
+                )}
+                {isUpdateError && (
+                    <Alert
+                        variant="danger"
+                        title="Failed to update appointment"
+                        message={updateError?.data?.detail || updateError?.message || 'Unable to save changes.'}
+                        icon={<AlertCircle className="w-5 h-5" />}
+                    />
+                )}
 
-                    <RelatedLinks title="Related" items={relatedItems} className="mb-1" />
+                <RelatedLinks title="Related" items={relatedItems} />
 
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Update Details">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {canChangeStatus && (
-                                <Select
-                                    label="Status"
-                                    placeholder="Select status"
-                                    selectedKeys={[formData.status]}
-                                    onSelectionChange={(keys) => handleChange('status', Array.from(keys)[0])}
-                                    classNames={{ trigger: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                <form onSubmit={handleSubmit} className="space-y-3">
+                    <FormCompactCard
+                        footer={canSave ? (
+                            <FormActions inline>
+                                <Button
+                                    color="primary"
+                                    type="submit"
+                                    isLoading={isUpdating}
+                                    startContent={!isUpdating && <Save className="w-4 h-4" />}
+                                    className="w-full sm:w-auto"
                                 >
-                                    {APPOINTMENT_STATUSES.map((status) => (
-                                        <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>
-                                    ))}
-                                </Select>
-                            )}
+                                    Save Changes
+                                </Button>
+                            </FormActions>
+                        ) : null}
+                    >
+                        <FormSectionCard
+                            embedded
+                            title="Schedule & status"
+                            description="Primary updates for this visit"
+                            headerAction={
+                                appointment.status ? (
+                                    <StatusBadge status={appointment.status} size="sm" />
+                                ) : null
+                            }
+                        >
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {canChangeStatus && (
+                                    <Select
+                                        label="Status"
+                                        placeholder="Select status"
+                                        selectedKeys={[formData.status]}
+                                        onSelectionChange={(keys) => handleChange('status', Array.from(keys)[0])}
+                                        classNames={{ trigger: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                    >
+                                        {APPOINTMENT_STATUSES.map((status) => (
+                                            <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>
+                                        ))}
+                                    </Select>
+                                )}
+                                {canEdit && (
+                                    <>
+                                        <Input
+                                            type="date"
+                                            label="Appointment date"
+                                            value={formData.appointment_date}
+                                            onChange={(e) => handleChange('appointment_date', e.target.value)}
+                                            classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                        />
+                                        <Input
+                                            type="time"
+                                            label="Appointment time"
+                                            value={formData.appointment_time}
+                                            onChange={(e) => handleChange('appointment_time', e.target.value)}
+                                            classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                        />
+                                    </>
+                                )}
+                            </div>
                             {canEdit && (
-                                <>
-                                    <Input
-                                        type="date"
-                                        label="Appointment date"
-                                        value={formData.appointment_date}
-                                        onChange={(e) => handleChange('appointment_date', e.target.value)}
-                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                                    />
-                                    <Input
-                                        type="time"
-                                        label="Appointment time"
-                                        value={formData.appointment_time}
-                                        onChange={(e) => handleChange('appointment_time', e.target.value)}
-                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                                    />
-                                </>
+                                <Textarea
+                                    label="Special notes"
+                                    placeholder="Add any notes or special instructions"
+                                    value={formData.special_notes}
+                                    onValueChange={(value) => handleChange('special_notes', value)}
+                                    minRows={2}
+                                    className="mt-3"
+                                    classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                />
                             )}
-                        </div>
-                        {canEdit && (
-                            <Textarea
-                                label="Special notes"
-                                placeholder="Add any notes or special instructions"
-                                value={formData.special_notes}
-                                onValueChange={(value) => handleChange('special_notes', value)}
-                                minRows={2}
-                                className="mt-3"
-                                classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                            />
-                        )}
-                        {!canEdit && !canChangeStatus && (
-                            <p className="text-sm text-gray-500">
-                                You can view prescriptions here, but you do not have permission to edit appointment details.
-                            </p>
-                        )}
-                    </FormSectionCard>
+                            {!canEdit && !canChangeStatus && (
+                                <p className="text-sm text-gray-500">
+                                    You can view prescriptions below, but you do not have permission to edit appointment details.
+                                </p>
+                            )}
+                        </FormSectionCard>
+                    </FormCompactCard>
+                </form>
 
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Summary">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-sm">
+                <FormCompactCard>
+                    <FormSectionCard embedded title="Visit context" description="Read-only details for this booking">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                             <div>
                                 <p className="text-gray-500 text-xs">Mode</p>
-                                <p className="font-medium">{consultationMode}</p>
+                                <p className="font-medium text-gray-900">{consultationMode}</p>
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Scheduled</p>
-                                <p className="font-medium">
+                                <p className="font-medium text-gray-900">
                                     {formatDate(
                                         appointment.appointment_date ||
                                             appointment.preferred_date
@@ -330,28 +353,20 @@ export default function EditAppointmentPage() {
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Fee / payment</p>
-                                <p className="font-medium">
-                                    {appointment.invoice_number
-                                        ? `${appointment.invoice_number}${
-                                              feeLabel ? ` · ${feeLabel}` : ''
-                                          }`
-                                        : feeLabel
-                                          ? `${feeLabel} · Pay at clinic`
-                                          : 'Pay at clinic'}
-                                </p>
+                                <p className="font-medium text-gray-900">{paymentLabel}</p>
                             </div>
                             {appointment.patient_info?.phone ? (
                                 <div>
                                     <p className="text-gray-500 text-xs">Phone</p>
-                                    <p className="font-medium">
+                                    <p className="font-medium text-gray-900">
                                         {appointment.patient_info.phone}
                                     </p>
                                 </div>
                             ) : null}
                             {appointment.patient_info?.email || appointment.user?.email ? (
-                                <div>
+                                <div className="min-w-0 sm:col-span-2">
                                     <p className="text-gray-500 text-xs">Email</p>
-                                    <p className="font-medium truncate">
+                                    <p className="font-medium text-gray-900 truncate">
                                         {appointment.patient_info?.email ||
                                             appointment.user?.email}
                                     </p>
@@ -359,19 +374,23 @@ export default function EditAppointmentPage() {
                             ) : null}
                         </div>
                     </FormSectionCard>
-
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Prescription">
-                        <PrescriptionPanel
-                            appointmentId={appointmentId}
-                            appointmentStatus={formData.status || appointment.status}
-                            doctorUserId={doctorUserId}
-                            autoFocus={prescribeMode}
-                        />
-                    </FormSectionCard>
                 </FormCompactCard>
-            </form>
+
+                {canPrescribe || canEdit || canChangeStatus ? (
+                    <div id="prescribe-panel">
+                        <FormCompactCard>
+                            <FormSectionCard embedded title="Prescription">
+                                <PrescriptionPanel
+                                    appointmentId={appointmentId}
+                                    appointmentStatus={formData.status || appointment.status}
+                                    doctorUserId={doctorUserId}
+                                    autoFocus={prescribeMode}
+                                />
+                            </FormSectionCard>
+                        </FormCompactCard>
+                    </div>
+                ) : null}
+            </div>
         </FormPageLayout>
     );
 }

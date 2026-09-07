@@ -100,47 +100,59 @@ function VerificationSection({ doctorUserId }) {
     }
 
     return (
-        <FormCompactCard>
-            <FormSectionCard embedded title="Verification">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <p className="text-xs text-gray-500">Review submitted credentials and documents</p>
-                    <StatusBadge status={verification.status} />
-                </div>
-
-                <div className="space-y-3">
+        <div className="space-y-3">
+            <FormCompactCard>
+                <FormSectionCard
+                    embedded
+                    title="Review steps"
+                    description="Credentials and status for this doctor"
+                    headerAction={<StatusBadge status={verification.status} size="sm" />}
+                >
                     <VerificationReviewSteps
                         verification={verification}
                         canVerify={canVerify}
                         canApprove={canApprove}
                     />
-
-                    {verification.status === VERIFICATION_STATUS.REJECTED && verification.rejection_reason && (
+                    {verification.status === VERIFICATION_STATUS.REJECTED && verification.rejection_reason ? (
                         <Alert
                             variant="danger"
                             title="Rejection reason"
                             message={verification.rejection_reason}
                             compact
+                            className="mt-3"
                         />
-                    )}
+                    ) : null}
+                </FormSectionCard>
+            </FormCompactCard>
 
-                    {verification.documents?.length > 0 && (
+            {verification.documents?.length > 0 ? (
+                <FormCompactCard>
+                    <FormSectionCard embedded title="Documents">
                         <div className="space-y-2">
-                            <p className="text-sm font-medium text-gray-700">Uploaded documents</p>
                             {verification.documents.map((doc) => (
                                 <DocumentReviewCard key={doc.id} doc={doc} onUpdated={refetch} />
                             ))}
                         </div>
-                    )}
+                    </FormSectionCard>
+                </FormCompactCard>
+            ) : null}
 
+            <FormCompactCard>
+                <FormSectionCard embedded title="Actions">
                     <VerificationActions verification={verification} onUpdated={refetch} />
+                </FormSectionCard>
+            </FormCompactCard>
+
+            <FormCompactCard>
+                <FormSectionCard embedded title="Audit history">
                     <AuditTimeline
                         entityType="doctor_verifications"
                         entityId={verification.id}
                         compact
                     />
-                </div>
-            </FormSectionCard>
-        </FormCompactCard>
+                </FormSectionCard>
+            </FormCompactCard>
+        </div>
     );
 }
 

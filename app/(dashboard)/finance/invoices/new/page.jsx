@@ -249,58 +249,62 @@ export default function NewInvoicePage() {
             ]}
         >
             <Form methods={methods} onSubmit={onSubmit} className="contents">
-                <InvoiceSection title="Customer & invoice" compact>
-                    <div className="space-y-3">
-                        <CustomerSelector
-                            value={selectedCustomer}
-                            onChange={onCustomerSelect}
-                            searchCustomers={handleSearchCustomers}
-                            createCustomer={handleCreateCustomer}
-                            isLoadingSearch={isSearchingCustomers}
-                            isLoadingCreate={isCreatingCustomer}
-                            hideSelectedPreview
-                            compact
-                        />
-                        <InvoiceCustomerBillingFields />
-                        <div className="border-t border-gray-100 pt-3">
-                            <InvoiceDetailsFields compact />
-                        </div>
-                    </div>
-                </InvoiceSection>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+                    <div className="lg:col-span-8 space-y-3 min-w-0">
+                        <InvoiceSection title="Customer & invoice" compact>
+                            <div className="space-y-3">
+                                <CustomerSelector
+                                    value={selectedCustomer}
+                                    onChange={onCustomerSelect}
+                                    searchCustomers={handleSearchCustomers}
+                                    createCustomer={handleCreateCustomer}
+                                    isLoadingSearch={isSearchingCustomers}
+                                    isLoadingCreate={isCreatingCustomer}
+                                    hideSelectedPreview
+                                    compact
+                                />
+                                <InvoiceCustomerBillingFields />
+                                <div className="border-t border-gray-100 pt-3">
+                                    <InvoiceDetailsFields compact />
+                                </div>
+                            </div>
+                        </InvoiceSection>
 
-                <InvoiceSection title="Line Items" compact>
-                    <Controller
-                        name="line_items"
-                        control={control}
-                        render={({ field }) => (
-                            <LineItemsTable
-                                key="new-invoice-line-items"
-                                items={field.value}
-                                onChange={field.onChange}
-                                services={services}
-                                isLoadingServices={isLoadingServices}
+                        <InvoiceSection title="Line Items" compact>
+                            <Controller
+                                name="line_items"
+                                control={control}
+                                render={({ field }) => (
+                                    <LineItemsTable
+                                        key="new-invoice-line-items"
+                                        items={field.value}
+                                        onChange={field.onChange}
+                                        services={services}
+                                        isLoadingServices={isLoadingServices}
+                                        compact
+                                    />
+                                )}
+                            />
+                        </InvoiceSection>
+
+                        <InvoiceSection title="Notes" compact>
+                            <InvoiceNotesFields compact />
+                        </InvoiceSection>
+                    </div>
+
+                    <aside className="lg:col-span-4 min-w-0">
+                        <div className="lg:sticky lg:top-20 space-y-3">
+                            <CalculationSummary
+                                lineItems={lineItems}
+                                discountType={discountType}
+                                discountValue={discountValue}
+                                coinsRedeemed={coinsRedeemed}
+                                onDiscountTypeChange={(val) => setValue('discount_type', val)}
+                                onDiscountValueChange={(val) => setValue('discount_value', val)}
                                 compact
                             />
-                        )}
-                    />
-                </InvoiceSection>
-
-                {/* Notes and Summary */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <InvoiceSection title="Additional Information" compact>
-                        <InvoiceNotesFields compact />
-                    </InvoiceSection>
-
-                    {/* Summary */}
-                    <CalculationSummary
-                        lineItems={lineItems}
-                        discountType={discountType}
-                        discountValue={discountValue}
-                        coinsRedeemed={coinsRedeemed}
-                        onDiscountTypeChange={(val) => setValue('discount_type', val)}
-                        onDiscountValueChange={(val) => setValue('discount_value', val)}
-                        compact
-                    />
+                        </div>
+                    </aside>
                 </div>
             </Form>
         </InvoiceLayout>

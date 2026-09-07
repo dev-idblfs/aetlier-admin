@@ -52,7 +52,6 @@ import { useSelector } from 'react-redux';
 import { ListPageLayout, DataTable, StatusBadge, FilterBar, FormModal, ConfirmModal, BulkActionBar, Alert, EntityLink } from '@/components/ui';
 import {
     useGetAppointmentsQuery,
-    useCreateAppointmentMutation,
     useUpdateAppointmentMutation,
     useDeleteAppointmentMutation,
     useGetServicesQuery,
@@ -74,10 +73,6 @@ import ConsultationJoinButton from '@/components/consultation/ConsultationJoinBu
 import ConsultationStatusChip from '@/components/consultation/ConsultationStatusChip';
 import { isOnlineConsultation, isToday } from '@/utils/consultationJoinWindow';
 import { withUserPermissions } from '@/utils/navAccess';
-import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { appointmentSchema } from '@/lib/validation';
-import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
 import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 import {
@@ -108,33 +103,12 @@ export default function AppointmentsPage() {
     const [onlineTodayOnly, setOnlineTodayOnly] = useState(false);
 
     // Modal states
-    const { isOpen: isCreateOpen, onOpen: onCreateOpen, onOpenChange: onCreateOpenChange } = useDisclosure();
     const { isOpen: isCancelOpen, onOpen: onCancelOpen, onOpenChange: onCancelOpenChange } = useDisclosure();
     const { isOpen: isStatusOpen, onOpen: onStatusOpen, onOpenChange: onStatusOpenChange } = useDisclosure();
 
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
     const [newStatus, setNewStatus] = useState('');
-
-    const createMethods = useForm({
-        resolver: zodResolver(appointmentSchema),
-        defaultValues: {
-            patient_name: '',
-            patient_email: '',
-            patient_phone: '',
-            service_id: '',
-            doctor_id: '',
-            consultation_mode: 'in_person',
-            preferred_date: '',
-            preferred_time: '',
-            special_notes: '',
-        },
-    });
-
-    const {
-        reset: resetCreate,
-        handleSubmit: handleCreateHookSubmit,
-    } = createMethods;
 
     const canViewAppointments = canReadAppointments(authUser);
 
@@ -160,7 +134,6 @@ export default function AppointmentsPage() {
     const { data: servicesData } = useGetServicesQuery(undefined, { skip: !canReadServices });
     const { data: doctorsData } = useGetDoctorsQuery(undefined, { skip: !canReadDoctors });
 
-    const [createAppointment, { isLoading: isCreating }] = useCreateAppointmentMutation();
     const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
     const [deleteAppointment, { isLoading: isDeleting }] = useDeleteAppointmentMutation();
     const [completeAppointment, { isLoading: isCompleting }] = useCompleteAppointmentMutation();
@@ -415,46 +388,7 @@ export default function AppointmentsPage() {
 
     // Handlers
     const handleCreateClick = () => {
-        resetCreate({
-            patient_name: '',
-            patient_email: '',
-            patient_phone: '',
-            service_id: '',
-            doctor_id: '',
-            consultation_mode: 'in_person',
-            preferred_date: '',
-            preferred_time: '',
-            special_notes: '',
-        });
-        onCreateOpen();
-    };
-
-    const buildCreatePayload = (data) => {
-        const nameParts = data.patient_name.trim().split(/\s+/);
-        return {
-            book_for_other: true,
-            patient_first_name: nameParts[0],
-            patient_last_name: nameParts.slice(1).join(' ') || nameParts[0],
-            patient_email: data.patient_email,
-            patient_phone: data.patient_phone || undefined,
-            service_id: data.service_id,
-            preferred_date: data.preferred_date,
-            preferred_time: data.preferred_time,
-            special_notes: data.special_notes || '',
-            consultation_mode: data.consultation_mode || 'in_person',
-            ...(data.doctor_id ? { doctor_id: data.doctor_id } : {}),
-        };
-    };
-
-    const onCreateSubmit = async (data) => {
-        try {
-            await createAppointment(buildCreatePayload(data)).unwrap();
-            toast.success('Appointment created successfully');
-            onCreateOpenChange(false);
-            refetch();
-        } catch (error) {
-            toast.error(error?.data?.detail || 'Failed to create appointment');
-        }
+        router.push('/appointments/new');
     };
 
     const handleViewDetails = (appointment) => {
@@ -869,104 +803,6 @@ export default function AppointmentsPage() {
                     />
                 )}
             />
-
-            {/* Create Appointment Modal */}
-            <FormModal
-                isOpen={isCreateOpen}
-                onOpenChange={onCreateOpenChange}
-                onSubmit={handleCreateHookSubmit(onCreateSubmit)}
-                title="Add Appointment"
-                submitLabel="Create Appointment"
-                isLoading={isCreating}
-            >
-                <FormProvider {...createMethods}>
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <FormInput
-                                name="patient_name"
-                                label="Patient Name"
-                                placeholder="Enter patient name"
-                                isRequired
-                            />
-                            <FormInput
-                                name="patient_email"
-                                label="Patient Email"
-                                type="email"
-                                placeholder="Enter email"
-                                isRequired
-                            />
-                        </div>
-                        <FormInput
-                            name="patient_phone"
-                            label="Phone Number"
-                            placeholder="Enter phone number"
-                        />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <FormSelect
-                                name="service_id"
-                                label="Service"
-                                placeholder="Select service"
-                            >
-                                {services.map((service) => (
-                                    <SelectItem key={service.id} value={service.id} textValue={service.name}>
-                                        {service.name}
-                                    </SelectItem>
-                                ))}
-                            </FormSelect>
-                            <FormSelect
-                                name="doctor_id"
-                                label="Doctor (optional)"
-                                placeholder="Select doctor"
-                            >
-                                {doctors.map((doctor) => {
-                                    const doctorId = doctor.user_id || doctor.id;
-                                    const doctorName =
-                                        doctor.name ||
-                                        `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim() ||
-                                        doctor.email ||
-                                        String(doctorId);
-                                    return (
-                                        <SelectItem key={doctorId} value={doctorId} textValue={doctorName}>
-                                            {doctorName}
-                                        </SelectItem>
-                                    );
-                                })}
-                            </FormSelect>
-                        </div>
-                        <FormSelect
-                            name="consultation_mode"
-                            label="Consultation Mode"
-                            placeholder="Select mode"
-                        >
-                            <SelectItem key="in_person" value="in_person" textValue="In-clinic">
-                                In-clinic
-                            </SelectItem>
-                            <SelectItem key="online" value="online" textValue="Online">
-                                Online
-                            </SelectItem>
-                        </FormSelect>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <FormInput
-                                name="preferred_date"
-                                type="date"
-                                label="Preferred Date"
-                                isRequired
-                            />
-                            <FormInput
-                                name="preferred_time"
-                                type="time"
-                                label="Preferred Time"
-                                isRequired
-                            />
-                        </div>
-                        <FormTextarea
-                            name="special_notes"
-                            label="Special Notes"
-                            placeholder="Any special instructions..."
-                        />
-                    </div>
-                </FormProvider>
-            </FormModal>
 
             {/* Cancel Modal */}
             <FormModal
