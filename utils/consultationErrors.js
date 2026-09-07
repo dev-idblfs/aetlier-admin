@@ -20,12 +20,22 @@ const ERROR_LABELS = {
     'Camera or microphone permission denied. Allow access and try again.',
   NotFoundError: 'No camera or microphone found.',
   NotReadableError: 'Camera or microphone is in use by another app.',
+  'could not establish pc connection':
+    'Video media path failed. Network may be blocking WebRTC — try another network, or ask ops to open TCP 7881 + UDP media ports on the LiveKit host.',
 };
 
 export function formatDoctorConsultationError(err) {
   const detail = err?.data?.detail ?? err?.message ?? err?.name;
   if (!detail) return 'Unable to connect. Check your connection and try again.';
-  if (typeof detail === 'string') return ERROR_LABELS[detail] || detail;
+  if (typeof detail === 'string') {
+    const mapped = ERROR_LABELS[detail];
+    if (mapped) return mapped;
+    const lower = detail.toLowerCase();
+    if (lower.includes('pc connection') || lower.includes('peerconnection')) {
+      return ERROR_LABELS['could not establish pc connection'];
+    }
+    return detail;
+  }
   if (Array.isArray(detail)) {
     return detail.map((d) => d.msg || String(d)).join(', ');
   }

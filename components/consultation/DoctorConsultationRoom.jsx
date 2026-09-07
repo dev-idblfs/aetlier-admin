@@ -24,6 +24,7 @@ import {
   useEndConsultationMutation,
 } from '@/redux/services/api';
 import { formatDoctorConsultationError } from '@/utils/consultationErrors';
+import { normalizeLiveKitUrl } from '@/utils/normalizeLiveKitUrl';
 import { notifyConsultationEnded } from '@/utils/openConsultationWindow';
 
 const RECONNECT_TIMEOUT_MS = 45000;
@@ -235,7 +236,9 @@ export default function DoctorConsultationRoom({
         const tokenData = await getTokenRef
           .current({ appointmentId, media_mode: mediaMode })
           .unwrap();
-        const url = tokenData.livekit_url || tokenData.url || tokenData.server_url;
+        const url = normalizeLiveKitUrl(
+          tokenData.livekit_url || tokenData.url || tokenData.server_url
+        );
         if (!url || !tokenData.token) {
           throw new Error('Missing LiveKit credentials');
         }
