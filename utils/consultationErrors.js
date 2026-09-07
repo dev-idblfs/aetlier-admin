@@ -10,7 +10,7 @@ const ERROR_LABELS = {
   consultation_access_denied:
     'Only the assigned doctor can join this consultation.',
   join_window_closed:
-    'The join window has closed (open until 60 min after the scheduled start).',
+    'The join window has closed (open until 3 hours after the scheduled start).',
   join_window_not_open:
     'Join opens 15 minutes before the scheduled start.',
   appointment_not_joinable: 'This appointment cannot be joined.',

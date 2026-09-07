@@ -1,7 +1,7 @@
 import config from "@/config";
 
 export const JOIN_WINDOW_BEFORE_MIN = 15;
-export const JOIN_WINDOW_AFTER_MIN = 60;
+export const JOIN_WINDOW_AFTER_MIN = 180;
 
 const JOINABLE_STATUSES = new Set([
   "confirmed",
