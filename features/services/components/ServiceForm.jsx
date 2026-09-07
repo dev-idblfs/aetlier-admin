@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Save } from '@/lib/icons';
 import { Button, SelectItem } from '@heroui/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-hot-toast';
+import { useSelector } from 'react-redux';
 
 import {
     useGetCategoriesQuery,
     useUploadServiceImageMutation,
+    useGetDoctorsQuery,
 } from '@/redux/services/api';
 import { serviceSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
@@ -29,6 +31,8 @@ import {
     FormFileUpload,
     FormRepeater,
 } from '@/components/ui';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import { normalizeApiList } from '@/utils/normalizeApiList';
 
 const FEE_FIELDS = [
     { key: 'name', label: 'Charge name', type: 'text', required: true },
@@ -77,9 +81,28 @@ export default function ServiceForm({
     submitLabel = 'Save',
     cancelHref = '/services',
 }) {
+    const authUser = useSelector((s) => s.auth.user);
+    const canAssignDoctors = hasPermission(authUser, PERMISSIONS.DOCTOR_UPDATE);
     const { data: categories } = useGetCategoriesQuery({ type: 'SERVICE' });
+    const { data: doctorsData } = useGetDoctorsQuery(
+        { active_only: false },
+        { skip: !canAssignDoctors }
+    );
     const [uploadServiceImage] = useUploadServiceImageMutation();
     const [pendingImageFile, setPendingImageFile] = useState(null);
+
+    const doctorOptions = useMemo(() => {
+        const list = normalizeApiList(doctorsData);
+        return list
+            .map((d) => ({
+                id: d.user_id || d.id,
+                name:
+                    d.name ||
+                    [d.first_name, d.last_name].filter(Boolean).join(' ') ||
+                    'Doctor',
+            }))
+            .filter((d) => d.id);
+    }, [doctorsData]);
 
     const defaultValues = {
         name: initialData?.name || '',
@@ -100,6 +123,7 @@ export default function ServiceForm({
         content_blocks: initialData?.content_blocks || [],
         image_url: initialData?.image_url || '',
         is_active: initialData?.is_active ?? true,
+        doctor_ids: [],
     };
 
     const methods = useForm({
@@ -110,7 +134,23 @@ export default function ServiceForm({
     const {
         control,
         formState: { isSubmitting },
+        setValue,
+        watch,
     } = methods;
+
+    const selectedDoctorIds = watch('doctor_ids') || [];
+
+    const handleSelectAllDoctors = () => {
+        setValue(
+            'doctor_ids',
+            doctorOptions.map((d) => String(d.id)),
+            { shouldDirty: true }
+        );
+    };
+
+    const handleClearDoctors = () => {
+        setValue('doctor_ids', [], { shouldDirty: true });
+    };
 
     const handleImageFileSelect = async (file) => {
         setPendingImageFile(file);
@@ -160,6 +200,12 @@ export default function ServiceForm({
                 sort_order: block.sort_order ?? index,
             })),
         };
+
+        if (canAssignDoctors && Array.isArray(data.doctor_ids) && data.doctor_ids.length > 0) {
+            formattedData.doctor_ids = data.doctor_ids.map(String);
+        } else {
+            delete formattedData.doctor_ids;
+        }
 
         await onSubmit(formattedData, methods, { pendingImageFile });
     };
@@ -309,6 +355,56 @@ export default function ServiceForm({
                             description="Available for booking"
                         />
                     </FormSectionCard>
+
+                    {canAssignDoctors && (
+                        <>
+                            <FormDivider />
+                            <FormSectionCard
+                                embedded
+                                title="Assign to doctors"
+                                description={
+                                    serviceId
+                                        ? 'Add this service to selected doctors (merge). To remove, edit the doctor’s services list. Online Consultation is online-only; other services default to in-clinic.'
+                                        : 'Optionally attach this service to one or more doctors on create. Online Consultation is online-only; other services default to in-clinic. Set each doctor’s consultation fee on their profile.'
+                                }
+                            >
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    <Button
+                                        size="sm"
+                                        variant="flat"
+                                        onPress={handleSelectAllDoctors}
+                                        isDisabled={doctorOptions.length === 0}
+                                    >
+                                        Select all
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="light"
+                                        onPress={handleClearDoctors}
+                                        isDisabled={selectedDoctorIds.length === 0}
+                                    >
+                                        Clear
+                                    </Button>
+                                    <span className="text-xs text-gray-500 self-center">
+                                        {selectedDoctorIds.length} selected
+                                    </span>
+                                </div>
+                                <FormSelect
+                                    name="doctor_ids"
+                                    label="Doctors"
+                                    placeholder="Select doctors"
+                                    selectionMode="multiple"
+                                    description="Requires doctor.update.any"
+                                >
+                                    {doctorOptions.map((doc) => (
+                                        <SelectItem key={String(doc.id)} value={String(doc.id)}>
+                                            {doc.name}
+                                        </SelectItem>
+                                    ))}
+                                </FormSelect>
+                            </FormSectionCard>
+                        </>
+                    )}
                 </FormCompactCard>
             </Form>
         </FormPageLayout>

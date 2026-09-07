@@ -243,8 +243,11 @@ export function FormSelect({
                             selectedKeys={keys}
                             onSelectionChange={(k) => {
                                 const arr = Array.from(k);
-                                const value =
-                                    selectionMode === 'multiple' ? arr : arr[0];
+                                if (selectionMode === 'multiple') {
+                                    field.onChange(arr);
+                                    return;
+                                }
+                                const value = arr[0];
                                 if (
                                     value !== undefined &&
                                     value !== null &&

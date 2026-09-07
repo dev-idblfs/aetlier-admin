@@ -135,7 +135,7 @@ export default function DoctorServiceAssignments({ doctorId }) {
             <FormSectionCard
                 embedded
                 title="Services offered"
-                description="Select treatments this doctor can perform and consultation modes."
+                description="Select treatments this doctor performs. Online Consultation is online-only; other services are typically in-clinic. Modes can be adjusted per service."
             >
                 <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg max-h-96 overflow-y-auto">
                     {allServices.length === 0 ? (
