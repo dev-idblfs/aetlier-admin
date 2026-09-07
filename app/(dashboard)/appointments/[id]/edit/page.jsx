@@ -16,15 +16,15 @@ import {
     PERMISSIONS,
 } from '@/utils/permissions';
 import { withUserPermissions } from '@/utils/navAccess';
-
-const APPOINTMENT_STATUSES = [
-    { key: 'pending', label: 'Pending' },
-    { key: 'confirmed', label: 'Confirmed' },
-    { key: 'completed', label: 'Completed' },
-    { key: 'cancelled', label: 'Cancelled' },
-    { key: 'rescheduled', label: 'Rescheduled' },
-    { key: 'invoiced', label: 'Invoiced' },
-];
+import { APPOINTMENT_STATUSES } from '@/features/appointments/constants';
+import {
+    getDoctorName,
+    getFeeLabel,
+    getModeLabel,
+    getPatientName,
+    getServiceName,
+} from '@/features/appointments/utils';
+import { formatDate, formatTime } from '@/utils/dateFormatters';
 
 const toDateInputValue = (value) => {
     if (!value) return '';
@@ -128,7 +128,7 @@ export default function EditAppointmentPage() {
             }
             await updateAppointment(payload).unwrap();
             toast.success('Appointment updated successfully');
-            router.push('/appointments');
+            router.push(`/appointments/${appointmentId}`);
         } catch (error) {
             toast.error(error?.data?.detail || 'Failed to update appointment');
         }
@@ -165,21 +165,11 @@ export default function EditAppointmentPage() {
         appointment.doctor_id ||
         appointment.doctor?.user_id ||
         appointment.doctor?.id;
-    const patientName =
-        appointment.patient_info?.full_name ||
-        appointment.user?.name ||
-        appointment.user_name ||
-        'N/A';
-    const serviceName =
-        appointment.service?.name ||
-        appointment.service_name ||
-        'N/A';
-    const doctorName =
-        appointment.doctor?.name ||
-        appointment.doctor_name ||
-        '—';
-    const consultationMode =
-        appointment.consultation_mode === 'online' ? 'Online' : 'In-clinic';
+    const patientName = getPatientName(appointment) || 'N/A';
+    const serviceName = getServiceName(appointment) || 'N/A';
+    const doctorName = getDoctorName(appointment) || '—';
+    const consultationMode = getModeLabel(appointment.consultation_mode);
+    const feeLabel = getFeeLabel(appointment);
     const canSave = canEdit || canChangeStatus;
 
     return (
@@ -187,9 +177,13 @@ export default function EditAppointmentPage() {
             title="Edit Appointment"
             breadcrumbs={[
                 { label: 'Appointments', href: '/appointments' },
-                { label: patientName !== 'N/A' ? patientName : 'Edit' },
+                {
+                    label: patientName !== 'N/A' ? patientName : 'Detail',
+                    href: `/appointments/${appointmentId}`,
+                },
+                { label: 'Edit' },
             ]}
-            cancelHref="/appointments"
+            cancelHref={`/appointments/${appointmentId}`}
         >
             <form onSubmit={handleSubmit}>
                 <FormCompactCard
@@ -207,7 +201,7 @@ export default function EditAppointmentPage() {
                         </FormActions>
                     ) : null}
                 >
-                    <FormSectionCard embedded title="Appointment Information">
+                    <FormSectionCard embedded title="Operational summary">
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                             <div>
                                 <p className="text-gray-500 text-xs">Patient</p>
@@ -225,12 +219,48 @@ export default function EditAppointmentPage() {
                                 <p className="text-gray-500 text-xs">Mode</p>
                                 <p className="font-medium">{consultationMode}</p>
                             </div>
-                            {appointment.invoice_number && (
+                            <div>
+                                <p className="text-gray-500 text-xs">Scheduled</p>
+                                <p className="font-medium">
+                                    {formatDate(
+                                        appointment.appointment_date ||
+                                            appointment.preferred_date
+                                    )}{' '}
+                                    {formatTime(
+                                        appointment.appointment_time ||
+                                            appointment.preferred_time
+                                    )}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500 text-xs">Fee / payment</p>
+                                <p className="font-medium">
+                                    {appointment.invoice_number
+                                        ? `${appointment.invoice_number}${
+                                              feeLabel ? ` · ${feeLabel}` : ''
+                                          }`
+                                        : feeLabel
+                                          ? `${feeLabel} · Pay at clinic`
+                                          : 'Pay at clinic'}
+                                </p>
+                            </div>
+                            {appointment.patient_info?.phone ? (
                                 <div>
-                                    <p className="text-gray-500 text-xs">Invoice</p>
-                                    <p className="font-medium">{appointment.invoice_number}</p>
+                                    <p className="text-gray-500 text-xs">Phone</p>
+                                    <p className="font-medium">
+                                        {appointment.patient_info.phone}
+                                    </p>
                                 </div>
-                            )}
+                            ) : null}
+                            {appointment.patient_info?.email || appointment.user?.email ? (
+                                <div>
+                                    <p className="text-gray-500 text-xs">Email</p>
+                                    <p className="font-medium truncate">
+                                        {appointment.patient_info?.email ||
+                                            appointment.user?.email}
+                                    </p>
+                                </div>
+                            ) : null}
                             <div>
                                 <p className="text-gray-500 text-xs">Created</p>
                                 <p className="font-medium">

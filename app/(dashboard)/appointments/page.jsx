@@ -10,7 +10,6 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useMemo } from 'react';
 import {
-    Calendar,
     Download,
     Eye,
     Edit,
@@ -18,14 +17,9 @@ import {
     CheckCircle,
     BadgeCheck,
     XCircle,
-    Clock,
     RefreshCw,
     Filter,
     X,
-    ChevronDown,
-    Phone,
-    Mail,
-    User,
     MoreVertical,
     FileText,
     FileCheck,
@@ -54,7 +48,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, DetailModal, DetailRow, DetailGrid, ConfirmModal, BulkActionBar, SearchInput } from '@/components/ui';
+import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, ConfirmModal, BulkActionBar, SearchInput } from '@/components/ui';
 import {
     useGetAppointmentsQuery,
     useCreateAppointmentMutation,
@@ -63,7 +57,6 @@ import {
     useGetServicesQuery,
     useGetDoctorsQuery,
     useCompleteAppointmentMutation,
-    useGetConsultationQuery,
     useBulkCancelAppointmentsMutation,
 } from '@/redux/services/api';
 import { formatDate, formatTime } from '@/utils/dateFormatters';
@@ -82,46 +75,19 @@ import { isOnlineConsultation, isToday } from '@/utils/consultationJoinWindow';
 import { withUserPermissions } from '@/utils/navAccess';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { appointmentSchema, appointmentUpdateSchema } from '@/lib/validation';
+import { appointmentSchema } from '@/lib/validation';
 import { FormInput, FormSelect, FormTextarea } from '@/components/ui/FormFields';
 import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
-
-const STATUS_OPTIONS = [
-    { value: '', label: 'All Statuses' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'confirmed', label: 'Confirmed' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
-    { value: 'rescheduled', label: 'Rescheduled' },
-    { value: 'invoiced', label: 'Invoiced' },
-];
-
-const STATUS_COLORS = {
-    pending: 'warning',
-    confirmed: 'primary',
-    completed: 'success',
-    cancelled: 'danger',
-    rescheduled: 'warning',
-    invoiced: 'secondary',
-};
-
-const MODE_OPTIONS = [
-    { value: '', label: 'All Modes' },
-    { value: 'in_person', label: 'In-clinic' },
-    { value: 'online', label: 'Online' },
-];
-
-const getDoctorName = (appointment) =>
-    appointment?.doctor?.name || appointment?.doctor_name || null;
-
-const escapeCsvValue = (value) => {
-    const text = value == null ? '' : String(value);
-    if (/[",\n]/.test(text)) {
-        return `"${text.replace(/"/g, '""')}"`;
-    }
-    return text;
-};
+import {
+    STATUS_OPTIONS,
+    MODE_OPTIONS,
+} from '@/features/appointments/constants';
+import {
+    getDoctorName,
+    getPaymentSummary,
+    escapeCsvValue,
+} from '@/features/appointments/utils';
 
 export default function AppointmentsPage() {
     const router = useRouter();
@@ -143,8 +109,6 @@ export default function AppointmentsPage() {
 
     // Modal states
     const { isOpen: isCreateOpen, onOpen: onCreateOpen, onOpenChange: onCreateOpenChange } = useDisclosure();
-    const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
-    const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure();
     const { isOpen: isCancelOpen, onOpen: onCancelOpen, onOpenChange: onCancelOpenChange } = useDisclosure();
     const { isOpen: isStatusOpen, onOpen: onStatusOpen, onOpenChange: onStatusOpenChange } = useDisclosure();
 
@@ -167,24 +131,10 @@ export default function AppointmentsPage() {
         },
     });
 
-    const editMethods = useForm({
-        resolver: zodResolver(appointmentUpdateSchema),
-        defaultValues: {
-            preferred_date: '',
-            preferred_time: '',
-            special_notes: '',
-        },
-    });
-
     const {
         reset: resetCreate,
         handleSubmit: handleCreateHookSubmit,
     } = createMethods;
-
-    const {
-        reset: resetEdit,
-        handleSubmit: handleEditHookSubmit,
-    } = editMethods;
 
     const canViewAppointments = canReadAppointments(authUser);
 
@@ -327,10 +277,10 @@ export default function AppointmentsPage() {
         }
     };
 
-    // Row click handler for table
+    // Row click → detail hub
     const handleRowClick = (row) => {
-        if (row.status === 'invoiced' && row.invoice_id) {
-            handleViewInvoice(row);
+        if (canView) {
+            router.push(`/appointments/${row.id}`);
         }
     };
 
@@ -404,11 +354,9 @@ export default function AppointmentsPage() {
             label: 'Status',
             priority: 'secondary',
             render: (row) => (
-                <Chip
-                    size="sm"
-                    color={STATUS_COLORS[row.status] || 'default'}
-                    variant="flat"
-                    className={`capitalize ${(canChangeStatus || (row.status === 'invoiced' && row.invoice_id)) ? 'cursor-pointer' : ''}`}
+                <button
+                    type="button"
+                    className={`${(canChangeStatus || (row.status === 'invoiced' && row.invoice_id)) ? 'cursor-pointer' : 'cursor-default'}`}
                     title="Appointment status"
                     onClick={() => {
                         if (row.status === 'invoiced' && row.invoice_id) {
@@ -418,8 +366,19 @@ export default function AppointmentsPage() {
                         }
                     }}
                 >
-                    {row.status?.replace('_', ' ')}
-                </Chip>
+                    <StatusBadge status={row.status} />
+                </button>
+            ),
+        },
+        {
+            key: 'payment',
+            label: 'Payment',
+            priority: 'tertiary',
+            hideBelow: 'lg',
+            render: (row) => (
+                <span className="text-sm text-gray-700">
+                    {getPaymentSummary(row)}
+                </span>
             ),
         },
         {
@@ -590,29 +549,11 @@ export default function AppointmentsPage() {
     };
 
     const handleViewDetails = (appointment) => {
-        setSelectedAppointment(appointment);
-        onDetailOpen();
+        router.push(`/appointments/${appointment.id}`);
     };
 
     const handleEditClick = (appointment) => {
         router.push(`/appointments/${appointment.id}/edit`);
-    };
-
-    const onEditSubmit = async (data) => {
-        if (!selectedAppointment) return;
-        try {
-            await updateAppointment({
-                id: selectedAppointment.id,
-                appointment_date: data.preferred_date,
-                appointment_time: data.preferred_time,
-                special_notes: data.special_notes,
-            }).unwrap();
-            toast.success('Appointment updated successfully');
-            onEditOpenChange(false);
-            refetch();
-        } catch (error) {
-            toast.error(error?.data?.detail || 'Failed to update appointment');
-        }
     };
 
     const handleQuickStatus = async (id, status) => {
@@ -1130,156 +1071,6 @@ export default function AppointmentsPage() {
                 </FormProvider>
             </FormModal>
 
-            {/* Detail Modal */}
-            <DetailModal
-                isOpen={isDetailOpen}
-                onOpenChange={onDetailOpenChange}
-                title={
-                    <div className="flex items-center gap-3">
-                        <span>Appointment Details</span>
-                        {selectedAppointment && (
-                            <Chip
-                                size="sm"
-                                color={STATUS_COLORS[selectedAppointment.status] || 'default'}
-                                variant="flat"
-                                className="capitalize"
-                            >
-                                {selectedAppointment.status?.replace('_', ' ')}
-                            </Chip>
-                        )}
-                    </div>
-                }
-            >
-                {selectedAppointment && (
-                    <div className="space-y-6">
-                        {/* Patient Info */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                                Patient Information
-                            </h4>
-                            <div className="space-y-3">
-                                <DetailRow
-                                    icon={<User className="w-4 h-4" />}
-                                    label="Name"
-                                    value={selectedAppointment.patient_info?.full_name || selectedAppointment.user?.name}
-                                />
-                                <DetailRow
-                                    icon={<Mail className="w-4 h-4" />}
-                                    label="Email"
-                                    value={selectedAppointment.patient_info?.email || selectedAppointment.user?.email}
-                                />
-                                {selectedAppointment.patient_info?.phone && (
-                                    <DetailRow
-                                        icon={<Phone className="w-4 h-4" />}
-                                        label="Phone"
-                                        value={selectedAppointment.patient_info.phone}
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        <Divider />
-
-                        {/* Appointment Info */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                                Appointment Details
-                            </h4>
-                            <div className="space-y-3">
-                                <DetailRow
-                                    icon={<Calendar className="w-4 h-4" />}
-                                    label="Date"
-                                    value={formatDate(selectedAppointment.appointment_date || selectedAppointment.preferred_date)}
-                                />
-                                <DetailRow
-                                    icon={<Clock className="w-4 h-4" />}
-                                    label="Time"
-                                    value={formatTime(selectedAppointment.appointment_time || selectedAppointment.preferred_time)}
-                                />
-                                <DetailRow
-                                    label="Service"
-                                    value={selectedAppointment.service_name || selectedAppointment.service?.name}
-                                />
-                                <DetailRow
-                                    label="Doctor"
-                                    value={getDoctorName(selectedAppointment) || '—'}
-                                />
-                                <DetailRow
-                                    label="Consultation mode"
-                                    value={
-                                        selectedAppointment.consultation_mode === 'online'
-                                            ? 'Online'
-                                            : 'In-clinic'
-                                    }
-                                />
-                                {selectedAppointment.invoice_number && (
-                                    <DetailRow
-                                        label="Invoice"
-                                        value={selectedAppointment.invoice_number}
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        {selectedAppointment.special_notes && (
-                            <>
-                                <Divider />
-                                <div>
-                                    <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        Special Notes
-                                    </h4>
-                                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
-                                        {selectedAppointment.special_notes}
-                                    </p>
-                                </div>
-                            </>
-                        )}
-
-                        {isOnlineConsultation(selectedAppointment) && (
-                            <>
-                                <Divider />
-                                <ConsultationJoinCardSection appointment={selectedAppointment} />
-                            </>
-                        )}
-                    </div>
-                )}
-            </DetailModal>
-
-            {/* Edit Modal */}
-            <FormModal
-                isOpen={isEditOpen}
-                onOpenChange={onEditOpenChange}
-                onSubmit={handleEditHookSubmit(onEditSubmit)}
-                title="Edit Appointment"
-                submitLabel="Save Changes"
-                isLoading={isUpdating}
-            >
-                <FormProvider {...editMethods}>
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormInput
-                                name="preferred_date"
-                                type="date"
-                                label="Preferred Date"
-                                labelPlacement="outside"
-                            />
-                            <FormInput
-                                name="preferred_time"
-                                type="time"
-                                label="Preferred Time"
-                                labelPlacement="outside"
-                            />
-                        </div>
-                        <FormTextarea
-                            name="special_notes"
-                            label="Special Notes"
-                            labelPlacement="outside"
-                            placeholder="Any special instructions..."
-                        />
-                    </div>
-                </FormProvider>
-            </FormModal>
-
             {/* Cancel Modal */}
             < FormModal
                 isOpen={isCancelOpen}
@@ -1348,20 +1139,6 @@ export default function AppointmentsPage() {
     );
 }
 
-function ConsultationJoinCardSection({ appointment }) {
-    const { data: consultation } = useGetConsultationQuery(appointment.id, {
-        skip: !appointment?.id,
-    });
-
-    return (
-        <ConsultationJoinCard
-            appointment={appointment}
-            consultation={consultation}
-            variant="detail"
-        />
-    );
-}
-
 // Mobile Appointment Card Component
 function AppointmentCard({
     appointment,
@@ -1406,14 +1183,7 @@ function AppointmentCard({
                             <h3 className="font-semibold text-gray-900 truncate">
                                 {apt.patient_info?.full_name || apt.user?.name || 'N/A'}
                             </h3>
-                            <Chip
-                                size="sm"
-                                color={STATUS_COLORS[apt.status] || 'default'}
-                                variant="flat"
-                                className="capitalize"
-                            >
-                                {apt.status?.replace('_', ' ')}
-                            </Chip>
+                            <StatusBadge status={apt.status} />
                             {(apt.consultation_mode === 'online') && (
                                 <Chip size="sm" color="secondary" variant="flat">
                                     Online
@@ -1519,6 +1289,10 @@ function AppointmentCard({
                             <p className="font-medium text-gray-900">{apt.patient_info.phone}</p>
                         </div>
                     )}
+                    <div className="col-span-2">
+                        <p className="text-gray-500">Payment</p>
+                        <p className="font-medium text-gray-900">{getPaymentSummary(apt)}</p>
+                    </div>
                 </div>
             </CardBody>
         </HeroCard>

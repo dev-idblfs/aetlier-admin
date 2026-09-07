@@ -20,6 +20,7 @@ const statusConfig = {
     completed: { color: 'primary', icon: CheckCircle, label: 'Completed' },
     cancelled: { color: 'danger', icon: XCircle, label: 'Cancelled' },
     rescheduled: { color: 'secondary', icon: AlertCircle, label: 'Rescheduled' },
+    invoiced: { color: 'secondary', icon: CheckCircle, label: 'Invoiced' },
 
     // User statuses
     active: { color: 'success', icon: CheckCircle, label: 'Active' },
