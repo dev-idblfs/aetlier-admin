@@ -22,7 +22,7 @@ import {
     SelectItem,
     useDisclosure,
     Pagination,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton, ServiceThumbnail, BulkActionBar } from '@/components/ui';
 import {

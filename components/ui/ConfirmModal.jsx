@@ -13,7 +13,7 @@ import {
     ModalBody,
     ModalFooter,
     Button,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 const iconMap = {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Textarea } from '@heroui/react';
+import { Button, Textarea } from '@/lib/heroui';
 import { CheckCircle, XCircle } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useUpdateVerificationStatusMutation } from '@/redux/services/api';

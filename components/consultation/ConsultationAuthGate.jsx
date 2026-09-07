@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
-import { Spinner } from '@heroui/react';
+import { Spinner } from '@/lib/heroui';
 import Cookies from 'js-cookie';
 import config from '@/config';
 import { fetchUserProfile } from '@/redux/slices/authSlice';

@@ -12,7 +12,7 @@ import {
     ModalBody,
     ModalFooter,
     Button,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { Edit } from '@/lib/icons';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 

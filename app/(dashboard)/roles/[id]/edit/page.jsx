@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Save } from '@/lib/icons';
-import { Button, Checkbox, CheckboxGroup, Spinner } from '@heroui/react';
+import { Button, Checkbox, CheckboxGroup, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

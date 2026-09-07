@@ -6,7 +6,7 @@
 'use client';
 
 import { Inbox, Search, AlertCircle, FileX } from '@/lib/icons';
-import { Button } from '@heroui/react';
+import { Button } from '@/lib/heroui';
 
 const iconMap = {
     inbox: Inbox,

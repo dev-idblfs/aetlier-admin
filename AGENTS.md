@@ -8,7 +8,8 @@ canonical guide for AI agents. Read it before making changes.
 - **Next.js 16** (App Router) + **React 19**
 - **JavaScript** (`.jsx`/`.js`) — NOT TypeScript. Do not add TS unless explicitly asked.
 - **Redux Toolkit + RTK Query** for state/data
-- **Tailwind CSS v4** + **HeroUI**; `framer-motion`, `lucide-react`
+- **Tailwind CSS v4** + **HeroUI v3** (`@heroui/react` + `@heroui/styles`); `framer-motion` for custom motion
+- Import HeroUI through `@/lib/heroui` (v2-compatible wrappers over v3 compound APIs). Do not add `styled-components`.
 - Forms: `react-hook-form` + `@hookform/resolvers/zod` (schemas in `lib/validation/`)
 - Package manager: **Yarn 1.22**. Import alias `@/*` → repo root.
 
@@ -80,5 +81,7 @@ constants/ config/ hooks/ contexts/
 ## Gotchas
 
 - Tailwind v4 config lives in `hero.ts` (imported via `@config` in `app/globals.css`), not a classic `tailwind.config.js`.
+- HeroUI v3 tokens come from `@import "@heroui/styles"` in `app/globals.css`. Terracotta brand maps to `--accent`. Do not import `@heroui/react` in pages — use `@/lib/heroui`.
+- `yarn lint` is stricter under `eslint-config-next` 16.3 (react-compiler / hooks). Existing screens may fail lint; that is not a HeroUI-layer regression unless the error is in `lib/heroui.jsx`.
 - No Prettier/format script — keep diffs consistent with surrounding code.
 - Many root-level `*_IMPLEMENTATION.md` / `INVOICE_*.md` are historical notes, not coding conventions.

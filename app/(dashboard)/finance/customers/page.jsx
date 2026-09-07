@@ -38,7 +38,7 @@ import {
     Radio,
     Pagination,
     Avatar,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, DetailModal, BulkActionBar } from '@/components/ui';

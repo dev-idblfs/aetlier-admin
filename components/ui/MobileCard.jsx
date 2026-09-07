@@ -6,7 +6,7 @@
 'use client';
 
 import { ChevronRight, MoreVertical } from '@/lib/icons';
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react';
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@/lib/heroui';
 import { motion } from 'framer-motion';
 
 export default function MobileCard({

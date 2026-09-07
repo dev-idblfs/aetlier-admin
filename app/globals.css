@@ -1,7 +1,16 @@
 @import "tailwindcss";
+@import "@heroui/styles";
 @config "../hero.ts";
 
 :root {
+  --accent: #c94a34;
+  --accent-foreground: #ffffff;
+  --accent-hover: #a83c29;
+  --accent-soft: #fdf4f3;
+  --accent-soft-foreground: #753124;
+  --accent-soft-hover: #fce8e6;
+  --focus: #c94a34;
+  --link: #c94a34;
   --primary-50: #fdf4f3;
   --primary-100: #fce8e6;
   --primary-200: #f9d5d1;

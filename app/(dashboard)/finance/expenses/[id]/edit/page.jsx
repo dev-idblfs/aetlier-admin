@@ -18,7 +18,7 @@ import {
     Button,
     SelectItem,
     Spinner,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';

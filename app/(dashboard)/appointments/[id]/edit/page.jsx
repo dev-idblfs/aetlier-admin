@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { Save } from '@/lib/icons';
-import { Button, Input, Select, SelectItem, Textarea, Spinner } from '@heroui/react';
+import { Button, Input, Select, SelectItem, Textarea, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';
 import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';

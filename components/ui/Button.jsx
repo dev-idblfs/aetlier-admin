@@ -4,7 +4,7 @@
 
 'use client';
 
-import { Button as HeroButton } from '@heroui/react';
+import { Button as HeroButton } from '@/lib/heroui';
 import { Loader2 } from '@/lib/icons';
 import { forwardRef } from 'react';
 

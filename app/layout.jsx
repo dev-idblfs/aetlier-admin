@@ -14,7 +14,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
     return (
-        <html lang="en">
+        <html lang="en" className="light" data-theme="light">
             <head>
                 {/* Enable View Transitions API for smoother page transitions */}
                 <meta name="view-transition" content="same-origin" />

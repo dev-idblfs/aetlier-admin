@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ShieldOff } from '@/lib/icons';
-import { Button } from '@heroui/react';
+import { Button } from '@/lib/heroui';
 
 export default function AccessDenied({ title = 'Access denied', message }) {
   return (

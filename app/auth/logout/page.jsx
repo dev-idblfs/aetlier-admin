@@ -11,7 +11,7 @@ import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { removeAccessTokenCookie } from '@/lib/authCookies';
 import { clearRefreshToken } from '@/services/sessionApi';
-import { Spinner } from '@heroui/react';
+import { Spinner } from '@/lib/heroui';
 
 function getFrontendUrl() {
     return process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
-import { Button, Input, Textarea, Spinner, Select, SelectItem } from '@heroui/react'
+import { Button, Input, Textarea, Spinner, Select, SelectItem } from '@/lib/heroui'
 import { toast } from 'react-hot-toast'
 import { FileText, Plus, Save, Send, Trash2 } from '@/lib/icons'
 import {

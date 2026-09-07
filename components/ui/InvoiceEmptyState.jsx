@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { Button } from '@heroui/react';
+import { Button } from '@/lib/heroui';
 import Link from 'next/link';
 
 export default function InvoiceEmptyState({

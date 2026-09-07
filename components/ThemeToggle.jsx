@@ -4,7 +4,7 @@
 'use client';
 
 import { usePreferences } from '@/contexts/PreferencesContext';
-import { Switch } from '@heroui/react';
+import { Switch } from '@/lib/heroui';
 import { Sun, Moon } from '@/lib/icons';
 
 export default function ThemeToggle() {

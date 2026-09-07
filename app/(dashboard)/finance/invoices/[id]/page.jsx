@@ -16,7 +16,7 @@ import {
     DollarSign,
     AlertCircle,
 } from '@/lib/icons';
-import { Button, Spinner, useDisclosure } from '@heroui/react';
+import { Button, Spinner, useDisclosure } from '@/lib/heroui';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';

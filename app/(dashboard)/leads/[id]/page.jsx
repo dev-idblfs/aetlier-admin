@@ -15,7 +15,7 @@ import {
     SelectItem,
     Chip,
     Spinner,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { Save, Mail, Phone, User } from '@/lib/icons';
 import {

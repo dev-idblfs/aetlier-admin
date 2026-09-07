@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle2, XCircle, AlertCircle, Activity } from '@/lib/icons';
-import { Spinner } from '@heroui/react';
+import { Spinner } from '@/lib/heroui';
 import { useGetEntityAuditLogsQuery } from '@/redux/services/api';
 
 const ACTION_LABELS = {

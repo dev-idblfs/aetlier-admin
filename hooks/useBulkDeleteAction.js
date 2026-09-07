@@ -1,6 +1,6 @@
 'use client';
 
-import { useDisclosure } from '@heroui/react';
+import { useDisclosure } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 
 /**

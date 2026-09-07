@@ -22,7 +22,7 @@ import {
     Pagination,
     Select,
     SelectItem,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import {
     ListPageLayout,

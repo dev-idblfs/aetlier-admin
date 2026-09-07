@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Button } from '@heroui/react';
+import { Button } from '@/lib/heroui';
 import { useSidebar } from '@/components/layout';
 import { cn } from '@/utils/cn';
 

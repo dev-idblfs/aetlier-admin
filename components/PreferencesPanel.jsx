@@ -4,7 +4,7 @@
 'use client';
 
 import { usePreferences } from '@/contexts/PreferencesContext';
-import { Switch, Card, CardBody, Divider } from '@heroui/react';
+import { Switch, Card, CardBody, Divider } from '@/lib/heroui';
 import {
     Sun,
     Moon,

@@ -8,7 +8,7 @@
 import { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Spinner } from '@heroui/react';
+import { Spinner } from '@/lib/heroui';
 import Cookies from 'js-cookie';
 import Sidebar from './Sidebar';
 import Header from './Header';

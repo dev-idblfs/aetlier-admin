@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Save } from '@/lib/icons';
-import { Button, SelectItem } from '@heroui/react';
+import { Button, SelectItem } from '@/lib/heroui';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-hot-toast';

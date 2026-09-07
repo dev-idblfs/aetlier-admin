@@ -1,7 +1,7 @@
 'use client';
 
 import { Trash2, X } from '@/lib/icons';
-import { Button } from '@heroui/react';
+import { Button } from '@/lib/heroui';
 import { cn } from '@/utils/cn';
 
 export default function BulkActionBar({

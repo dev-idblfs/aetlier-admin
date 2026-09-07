@@ -11,7 +11,7 @@ import {
   Chip,
   Pagination,
   Spinner,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { RefreshCw, Filter, X } from '@/lib/icons';
 import { useSelector } from 'react-redux';
 import { ListPageLayout, Card, DataTable } from '@/components/ui';

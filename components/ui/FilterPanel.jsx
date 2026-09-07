@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Filter, X } from '@/lib/icons';
-import { Button, Chip } from '@heroui/react';
+import { Button, Chip } from '@/lib/heroui';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function FilterPanel({

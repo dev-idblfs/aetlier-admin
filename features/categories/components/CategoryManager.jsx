@@ -21,7 +21,7 @@ import {
     SelectItem,
     Spinner,
     Checkbox,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import {

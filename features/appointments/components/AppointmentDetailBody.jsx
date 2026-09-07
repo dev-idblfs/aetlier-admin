@@ -1,6 +1,6 @@
 'use client'
 
-import { Divider, Chip } from '@heroui/react'
+import { Divider, Chip } from '@/lib/heroui'
 import { Calendar, Clock, User, Mail, Phone } from '@/lib/icons'
 import { DetailRow } from '@/components/ui'
 import ConsultationJoinCard from '@/components/consultation/ConsultationJoinCard'

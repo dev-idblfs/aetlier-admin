@@ -7,7 +7,7 @@ import {
     Chip,
     Spinner,
     useDisclosure,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
@@ -22,7 +22,7 @@ import {
 import { ConfirmModal, FormModal } from '@/components/ui';
 import { Form } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormSwitchRow } from '@/components/ui/FormFields';
-import { SelectItem } from '@heroui/react';
+import { SelectItem } from '@/lib/heroui';
 import { hasAnyPermission, PERMISSIONS } from '@/utils/permissions';
 import { mobilePromotionSchema } from '@/lib/validation';
 

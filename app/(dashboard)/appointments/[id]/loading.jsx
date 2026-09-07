@@ -1,6 +1,6 @@
 'use client'
 
-import { Spinner } from '@heroui/react'
+import { Spinner } from '@/lib/heroui'
 
 export default function AppointmentDetailLoading() {
   return (

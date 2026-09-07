@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, ChevronUp, ChevronDown } from '@/lib/icons';
-import { Button, Input, Select, SelectItem, Textarea } from '@heroui/react';
+import { Button, Input, Select, SelectItem, Textarea } from '@/lib/heroui';
 import { Controller, useFormContext } from 'react-hook-form';
 import { FormTagInput } from '@/components/ui/FormFields';
 import { cn } from '@/utils/cn';

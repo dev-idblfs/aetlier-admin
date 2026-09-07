@@ -4,7 +4,7 @@
 
 'use client';
 
-import { Chip } from '@heroui/react';
+import { Chip } from '@/lib/heroui';
 import {
     CheckCircle,
     XCircle,

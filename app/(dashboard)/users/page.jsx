@@ -34,7 +34,7 @@ import {
     Input,
     Switch,
     Pagination,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import {
     ListPageLayout,

@@ -22,7 +22,7 @@ import {
   Pagination,
   Skeleton,
   Spinner,
-} from '@heroui/react'
+} from '@/lib/heroui'
 import { ChevronDown, ChevronUp, MoreVertical } from '@/lib/icons'
 import EmptyState from './EmptyState'
 import { cn } from '@/utils/cn'

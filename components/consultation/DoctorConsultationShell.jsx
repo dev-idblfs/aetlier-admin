@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner } from '@/lib/heroui';
 import { Video, Phone } from '@/lib/icons';
 import {
   useGetAppointmentQuery,

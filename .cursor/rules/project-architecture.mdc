@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Project Architecture (aetlier-admin)
 
-Next.js 16 App Router, React 19, **JavaScript `.jsx`**, Redux Toolkit + RTK Query, Tailwind v4 + HeroUI. Yarn. Port 3001. See `AGENTS.md`.
+Next.js 16 App Router, React 19, **JavaScript `.jsx`**, Redux Toolkit + RTK Query, Tailwind v4 + HeroUI v3. Yarn. Port 3001. See `AGENTS.md`.
 
 ```
 app/                      Routes (PRIMARY — ignore legacy src/app/)
@@ -25,3 +25,4 @@ utils/permissions.js      Client permission helpers
 - Portal entry: `canAccessAdminPortal` / `admin.portal.access`; roles may set portal redirect flags.
 - Permission strings must stay aligned with backend `resource.action.scope`.
 - Tailwind config is via `hero.ts` / `@config` in `globals.css` — not classic `tailwind.config.js`.
+- HeroUI v3: import from `@/lib/heroui` (v2-compatible wrappers). Do not import `@heroui/react` in pages.

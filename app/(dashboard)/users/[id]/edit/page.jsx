@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Save } from '@/lib/icons';
-import { Button, SelectItem, Spinner } from '@heroui/react';
+import { Button, SelectItem, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

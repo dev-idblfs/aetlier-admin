@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip } from '@heroui/react';
+import { Chip } from '@/lib/heroui';
 import {
   VERIFICATION_STATUS_COLORS,
   VERIFICATION_STATUS_LABELS,

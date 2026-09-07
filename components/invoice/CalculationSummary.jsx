@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { Card, CardBody, Divider, Input, Select, SelectItem } from '@heroui/react';
+import { Card, CardBody, Divider, Input, Select, SelectItem } from '@/lib/heroui';
 import { calculateInvoiceTotal } from '@/utils/invoice/calculations';
 import { formatCurrency } from '@/utils/dateFormatters';
 import { Percent, Coins, Calculator } from '@/lib/icons';

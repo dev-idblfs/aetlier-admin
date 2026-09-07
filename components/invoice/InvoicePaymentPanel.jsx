@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardBody } from '@heroui/react';
+import { Card, CardBody } from '@/lib/heroui';
 import { formatCurrency, formatDate } from '@/utils/dateFormatters';
 
 /**

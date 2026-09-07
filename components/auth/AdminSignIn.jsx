@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Divider } from '@heroui/react';
+import { Button, Divider } from '@/lib/heroui';
 import { useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { signIn, googleLogin } from '@/redux/slices/authSlice';

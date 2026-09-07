@@ -1,6 +1,6 @@
 'use client';
 
-import { SelectItem } from '@heroui/react';
+import { SelectItem } from '@/lib/heroui';
 import { FormInput, FormSelect } from '@/components/ui/FormFields';
 
 const PAYMENT_TERMS = [

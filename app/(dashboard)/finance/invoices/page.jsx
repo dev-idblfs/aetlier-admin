@@ -32,7 +32,7 @@ import {
     Chip,
     Input,
     Pagination,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, LinkButton, BulkActionBar } from '@/components/ui';

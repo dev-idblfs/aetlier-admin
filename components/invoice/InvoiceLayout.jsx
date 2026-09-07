@@ -5,7 +5,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Button } from '@heroui/react';
+import { Button } from '@/lib/heroui';
 import { Download, Printer, Mail } from '@/lib/icons';
 import PageHeader from '@/components/ui/PageHeader';
 import { cn } from '@/utils/cn';

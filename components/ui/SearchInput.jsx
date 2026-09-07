@@ -6,7 +6,7 @@
 'use client';
 
 import { Search, X } from '@/lib/icons';
-import { Input } from '@heroui/react';
+import { Input } from '@/lib/heroui';
 
 export default function SearchInput({
     value = '',

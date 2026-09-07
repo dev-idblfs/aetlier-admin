@@ -23,7 +23,7 @@ import {
     Checkbox,
     Avatar,
     Pagination,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import {
     Shield,
     Plus,

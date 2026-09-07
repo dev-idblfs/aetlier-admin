@@ -31,7 +31,7 @@ import {
     Spinner,
     Divider,
     Progress,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { ListPageLayout } from '@/components/ui';
 import {
     useGetFinancialDashboardQuery,

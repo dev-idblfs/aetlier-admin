@@ -10,7 +10,7 @@ import {
     Button,
     Input,
     Textarea,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formatCurrency } from '@/utils/dateFormatters';

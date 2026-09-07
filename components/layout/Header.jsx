@@ -16,7 +16,7 @@ import {
     DropdownMenu,
     DropdownItem,
     Input,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { logout } from '@/redux/slices/authSlice';
 import { getDisplayRole } from '@/utils/permissions';
 import { useSidebar } from './AdminLayout';

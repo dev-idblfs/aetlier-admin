@@ -13,7 +13,7 @@ import {
 import {
     Button,
     SelectItem,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';

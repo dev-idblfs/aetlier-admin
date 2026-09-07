@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Save } from '@/lib/icons';
-import { Button, SelectItem } from '@heroui/react';
+import { Button, SelectItem } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

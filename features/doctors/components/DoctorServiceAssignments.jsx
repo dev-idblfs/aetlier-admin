@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Checkbox, Spinner } from '@heroui/react';
+import { Button, Checkbox, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 
 import {

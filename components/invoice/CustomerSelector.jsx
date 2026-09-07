@@ -19,7 +19,7 @@ import {
     SelectItem,
     Textarea,
     Spinner,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { Search, Plus, User, Mail, Phone, MapPin, Building2 } from '@/lib/icons';
 import { useDebounce } from '@/hooks/useDebounce';
 import { toast } from 'react-hot-toast';

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Chip, Switch, Spinner } from '@heroui/react';
+import { Button, Chip, Switch, Spinner } from '@/lib/heroui';
 import { MessageCircle, Save, Zap } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useSelector } from 'react-redux';

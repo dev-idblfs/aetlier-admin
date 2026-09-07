@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from '@/lib/icons';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner } from '@/lib/heroui';
 import { useSelector } from 'react-redux';
 import {
   useGetAdminVerificationRecordQuery,

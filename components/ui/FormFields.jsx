@@ -6,7 +6,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Input, Textarea, Select, SelectItem, Switch, Button, DatePicker } from '@heroui/react';
+import { Input, Textarea, Select, SelectItem, Switch, Button, DatePicker } from '@/lib/heroui';
 import { X } from '@/lib/icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { parseDate } from '@internationalized/date';

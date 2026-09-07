@@ -7,7 +7,7 @@ import {
   ConnectionState,
   Track,
 } from 'livekit-client';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner } from '@/lib/heroui';
 import {
   Mic,
   MicOff,

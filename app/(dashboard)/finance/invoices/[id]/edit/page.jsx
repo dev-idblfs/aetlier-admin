@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Save, AlertCircle } from '@/lib/icons';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner } from '@/lib/heroui';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';

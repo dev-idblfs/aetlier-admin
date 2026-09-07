@@ -17,7 +17,7 @@ import {
     Select,
     SelectItem,
     Tooltip,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { Plus, Trash2, Search } from '@/lib/icons';
 import { calculateLineItemTotal, calculateLineItemTax } from '@/utils/invoice/calculations';
 

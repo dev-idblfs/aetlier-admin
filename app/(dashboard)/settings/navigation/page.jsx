@@ -17,7 +17,7 @@ import {
     Spinner,
     Select,
     SelectItem,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import {
     Menu,
     Plus,

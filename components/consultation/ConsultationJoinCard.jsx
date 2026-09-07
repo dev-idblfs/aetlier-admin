@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Chip, Tooltip } from '@heroui/react';
+import { Button, Chip, Tooltip } from '@/lib/heroui';
 import { Video, Copy, Lock } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';

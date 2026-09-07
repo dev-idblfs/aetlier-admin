@@ -7,7 +7,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Button } from '@heroui/react';
+import { Button } from '@/lib/heroui';
 import { ShieldAlert } from '@/lib/icons';
 
 const getFrontendUrl = () =>

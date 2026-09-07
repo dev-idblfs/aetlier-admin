@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip } from '@heroui/react';
+import { Chip } from '@/lib/heroui';
 import { cn } from '@/utils/cn';
 
 /** Call lifecycle labels — distinct from appointment.status (confirmed / completed / invoiced). */

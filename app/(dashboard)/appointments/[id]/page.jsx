@@ -7,7 +7,7 @@ import {
   Spinner,
   Card as HeroCard,
   CardBody,
-} from '@heroui/react'
+} from '@/lib/heroui'
 import { toast } from 'react-hot-toast'
 import {
   Edit,

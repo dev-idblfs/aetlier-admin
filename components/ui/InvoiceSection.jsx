@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { Card, CardBody } from '@heroui/react';
+import { Card, CardBody } from '@/lib/heroui';
 import { cn } from '@/utils/cn';
 
 export default function InvoiceSection({

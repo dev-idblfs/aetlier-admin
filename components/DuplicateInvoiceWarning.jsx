@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody } from '@heroui/react';
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody } from '@/lib/heroui';
 import { AlertTriangle, FileText, Calendar, DollarSign } from '@/lib/icons';
 
 export default function DuplicateInvoiceWarning({

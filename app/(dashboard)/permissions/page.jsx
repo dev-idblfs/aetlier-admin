@@ -11,7 +11,7 @@ import {
     useDisclosure,
     Spinner,
     Chip,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import {
     Key,
     Plus,

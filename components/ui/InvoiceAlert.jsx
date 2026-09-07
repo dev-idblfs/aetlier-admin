@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { Card, CardBody, Button } from '@heroui/react';
+import { Card, CardBody, Button } from '@/lib/heroui';
 import { X } from '@/lib/icons';
 
 export default function InvoiceAlert({

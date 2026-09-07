@@ -32,7 +32,7 @@ import {
     Skeleton,
     Select,
     SelectItem,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ListPageLayout, StatusBadge, LinkButton } from '@/components/ui';

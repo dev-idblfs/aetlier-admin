@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
-import { Spinner } from '@heroui/react';
+import { Spinner } from '@/lib/heroui';
 import AdminSignIn from '@/components/auth/AdminSignIn';
 import { canAccessAdminPortal } from '@/utils/permissions';
 import { refreshAccessToken, canRefreshSession } from '@/services/sessionApi';

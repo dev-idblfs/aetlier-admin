@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 
 import {

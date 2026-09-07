@@ -25,7 +25,7 @@ import {
     CardBody,
     SelectItem,
     Spinner,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';

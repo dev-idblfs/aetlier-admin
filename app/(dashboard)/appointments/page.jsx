@@ -44,7 +44,7 @@ import {
     Pagination,
     Divider,
     Checkbox,
-} from '@heroui/react';
+} from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
