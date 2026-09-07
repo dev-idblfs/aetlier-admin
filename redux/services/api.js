@@ -155,6 +155,10 @@ export const api = createApi({
         date_from,
         date_to,
         scope,
+        q,
+        doctor_id,
+        service_id,
+        consultation_mode,
       } = {}) => {
         const params = new URLSearchParams({
           page: page.toString(),
@@ -164,6 +168,10 @@ export const api = createApi({
         if (date_from) params.append("date_from", date_from);
         if (date_to) params.append("date_to", date_to);
         if (scope) params.append("scope", scope);
+        if (q) params.append("q", q);
+        if (doctor_id) params.append("doctor_id", doctor_id);
+        if (service_id) params.append("service_id", service_id);
+        if (consultation_mode) params.append("consultation_mode", consultation_mode);
         return `/appointments?${params.toString()}`;
       },
       providesTags: ["Appointment"],

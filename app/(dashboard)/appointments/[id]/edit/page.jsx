@@ -2,13 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useSelector } from 'react-redux';
 import { Save } from '@/lib/icons';
-import { Button, Select, SelectItem, Textarea, Spinner } from '@heroui/react';
+import { Button, Input, Select, SelectItem, Textarea, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';
 import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
 import { FormDivider } from '@/components/ui/FormFields';
 import PrescriptionPanel from '@/components/prescription/PrescriptionPanel';
+import AccessDenied from '@/components/AccessDenied';
+import {
+    hasAnyPermission,
+    PERMISSIONS,
+} from '@/utils/permissions';
+import { withUserPermissions } from '@/utils/navAccess';
 
 const APPOINTMENT_STATUSES = [
     { key: 'pending', label: 'Pending' },
@@ -19,6 +26,22 @@ const APPOINTMENT_STATUSES = [
     { key: 'invoiced', label: 'Invoiced' },
 ];
 
+const toDateInputValue = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.slice(0, 10);
+    try {
+        return new Date(value).toISOString().slice(0, 10);
+    } catch {
+        return '';
+    }
+};
+
+const toTimeInputValue = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.slice(0, 5);
+    return String(value).slice(0, 5);
+};
+
 export default function EditAppointmentPage() {
     const router = useRouter();
     const params = useParams();
@@ -26,12 +49,35 @@ export default function EditAppointmentPage() {
     const appointmentId = params.id;
     const prescribeMode = searchParams.get('prescribe') === '1';
 
-    const { data: appointment, isLoading: isLoadingAppointment } = useGetAppointmentQuery(appointmentId);
+    const { user, permissions } = useSelector((state) => state.auth);
+    const authUser = withUserPermissions(user, permissions);
+
+    const canEdit = hasAnyPermission(authUser, [
+        PERMISSIONS.APPOINTMENT_UPDATE_ANY,
+        PERMISSIONS.APPOINTMENT_UPDATE_OWN,
+    ]);
+    const canChangeStatus = hasAnyPermission(authUser, [
+        PERMISSIONS.APPOINTMENT_APPROVE,
+        PERMISSIONS.APPOINTMENT_UPDATE_ANY,
+        PERMISSIONS.APPOINTMENT_CHANGE_STATUS,
+        PERMISSIONS.APPOINTMENT_CHANGE_STATUS_ASSIGNED,
+    ]);
+    const canPrescribe = hasAnyPermission(authUser, [
+        PERMISSIONS.PRESCRIPTION_CREATE_OWN,
+        PERMISSIONS.PRESCRIPTION_READ_ANY,
+    ]);
+    const canAccessPage = canEdit || canChangeStatus || canPrescribe;
+
+    const { data: appointment, isLoading: isLoadingAppointment } = useGetAppointmentQuery(appointmentId, {
+        skip: !canAccessPage || !appointmentId,
+    });
     const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
 
     const [formData, setFormData] = useState({
         status: 'pending',
         special_notes: '',
+        appointment_date: '',
+        appointment_time: '',
     });
 
     useEffect(() => {
@@ -39,6 +85,12 @@ export default function EditAppointmentPage() {
             setFormData({
                 status: appointment.status || 'pending',
                 special_notes: appointment.special_notes || appointment.doctor_notes || '',
+                appointment_date: toDateInputValue(
+                    appointment.appointment_date || appointment.preferred_date
+                ),
+                appointment_time: toTimeInputValue(
+                    appointment.appointment_time || appointment.preferred_time
+                ),
             });
         }
     }, [appointment]);
@@ -50,25 +102,46 @@ export default function EditAppointmentPage() {
     }, [prescribeMode, appointment]);
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!canEdit && !canChangeStatus) {
+            toast.error('You do not have permission to update this appointment');
+            return;
+        }
 
         try {
-            await updateAppointment({
-                id: appointmentId,
-                status: formData.status,
-                special_notes: formData.special_notes,
-            }).unwrap();
-
+            const payload = { id: appointmentId };
+            if (canChangeStatus) {
+                payload.status = formData.status;
+            }
+            if (canEdit) {
+                payload.special_notes = formData.special_notes;
+                if (formData.appointment_date) {
+                    payload.appointment_date = formData.appointment_date;
+                }
+                if (formData.appointment_time) {
+                    payload.appointment_time = formData.appointment_time;
+                }
+            }
+            await updateAppointment(payload).unwrap();
             toast.success('Appointment updated successfully');
             router.push('/appointments');
         } catch (error) {
             toast.error(error?.data?.detail || 'Failed to update appointment');
         }
     };
+
+    if (!canAccessPage) {
+        return (
+            <AccessDenied
+                title="Access denied"
+                message="You need appointment update, status change, or prescription permission to open this page."
+            />
+        );
+    }
 
     if (isLoadingAppointment) {
         return (
@@ -101,14 +174,13 @@ export default function EditAppointmentPage() {
         appointment.service?.name ||
         appointment.service_name ||
         'N/A';
-    const preferredDate =
-        appointment.preferred_date ||
-        appointment.appointment_date ||
-        'N/A';
-    const preferredTime =
-        appointment.preferred_time ||
-        appointment.appointment_time ||
-        'N/A';
+    const doctorName =
+        appointment.doctor?.name ||
+        appointment.doctor_name ||
+        '—';
+    const consultationMode =
+        appointment.consultation_mode === 'online' ? 'Online' : 'In-clinic';
+    const canSave = canEdit || canChangeStatus;
 
     return (
         <FormPageLayout
@@ -121,7 +193,7 @@ export default function EditAppointmentPage() {
         >
             <form onSubmit={handleSubmit}>
                 <FormCompactCard
-                    footer={(
+                    footer={canSave ? (
                         <FormActions inline>
                             <Button
                                 color="primary"
@@ -133,7 +205,7 @@ export default function EditAppointmentPage() {
                                 Save Changes
                             </Button>
                         </FormActions>
-                    )}
+                    ) : null}
                 >
                     <FormSectionCard embedded title="Appointment Information">
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
@@ -146,12 +218,40 @@ export default function EditAppointmentPage() {
                                 <p className="font-medium">{serviceName}</p>
                             </div>
                             <div>
-                                <p className="text-gray-500 text-xs">Preferred Date</p>
-                                <p className="font-medium">{preferredDate}</p>
+                                <p className="text-gray-500 text-xs">Doctor</p>
+                                <p className="font-medium">{doctorName}</p>
                             </div>
                             <div>
-                                <p className="text-gray-500 text-xs">Preferred Time</p>
-                                <p className="font-medium">{preferredTime}</p>
+                                <p className="text-gray-500 text-xs">Mode</p>
+                                <p className="font-medium">{consultationMode}</p>
+                            </div>
+                            {appointment.invoice_number && (
+                                <div>
+                                    <p className="text-gray-500 text-xs">Invoice</p>
+                                    <p className="font-medium">{appointment.invoice_number}</p>
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-gray-500 text-xs">Created</p>
+                                <p className="font-medium">
+                                    {appointment.created_at
+                                        ? new Date(appointment.created_at).toLocaleString('en-US', {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short',
+                                        })
+                                        : '—'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500 text-xs">Updated</p>
+                                <p className="font-medium">
+                                    {appointment.updated_at
+                                        ? new Date(appointment.updated_at).toLocaleString('en-US', {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short',
+                                        })
+                                        : '—'}
+                                </p>
                             </div>
                         </div>
                     </FormSectionCard>
@@ -171,29 +271,58 @@ export default function EditAppointmentPage() {
 
                     <FormSectionCard embedded title="Update Details">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                            <Select
-                                label="Status"
-                                labelPlacement="outside"
-                                placeholder="Select status"
-                                selectedKeys={[formData.status]}
-                                onSelectionChange={(keys) => handleChange('status', Array.from(keys)[0])}
-                                classNames={{ trigger: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                            >
-                                {APPOINTMENT_STATUSES.map((status) => (
-                                    <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>
-                                ))}
-                            </Select>
+                            {canChangeStatus && (
+                                <Select
+                                    label="Status"
+                                    labelPlacement="outside"
+                                    placeholder="Select status"
+                                    selectedKeys={[formData.status]}
+                                    onSelectionChange={(keys) => handleChange('status', Array.from(keys)[0])}
+                                    classNames={{ trigger: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                >
+                                    {APPOINTMENT_STATUSES.map((status) => (
+                                        <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>
+                                    ))}
+                                </Select>
+                            )}
+                            {canEdit && (
+                                <>
+                                    <Input
+                                        type="date"
+                                        label="Appointment date"
+                                        labelPlacement="outside"
+                                        value={formData.appointment_date}
+                                        onChange={(e) => handleChange('appointment_date', e.target.value)}
+                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                    />
+                                    <Input
+                                        type="time"
+                                        label="Appointment time"
+                                        labelPlacement="outside"
+                                        value={formData.appointment_time}
+                                        onChange={(e) => handleChange('appointment_time', e.target.value)}
+                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                    />
+                                </>
+                            )}
                         </div>
-                        <Textarea
-                            label="Special notes"
-                            labelPlacement="outside"
-                            placeholder="Add any notes or special instructions"
-                            value={formData.special_notes}
-                            onValueChange={(value) => handleChange('special_notes', value)}
-                            minRows={3}
-                            className="mt-3"
-                            classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                        />
+                        {canEdit && (
+                            <Textarea
+                                label="Special notes"
+                                labelPlacement="outside"
+                                placeholder="Add any notes or special instructions"
+                                value={formData.special_notes}
+                                onValueChange={(value) => handleChange('special_notes', value)}
+                                minRows={3}
+                                className="mt-3"
+                                classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                            />
+                        )}
+                        {!canEdit && !canChangeStatus && (
+                            <p className="text-sm text-gray-500">
+                                You can view prescriptions here, but you do not have permission to edit appointment details.
+                            </p>
+                        )}
                     </FormSectionCard>
                 </FormCompactCard>
             </form>

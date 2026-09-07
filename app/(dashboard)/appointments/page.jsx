@@ -54,7 +54,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, DetailModal, DetailRow, DetailGrid, ConfirmModal, BulkActionBar } from '@/components/ui';
+import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, DetailModal, DetailRow, DetailGrid, ConfirmModal, BulkActionBar, SearchInput } from '@/components/ui';
 import {
     useGetAppointmentsQuery,
     useCreateAppointmentMutation,
@@ -106,6 +106,23 @@ const STATUS_COLORS = {
     invoiced: 'secondary',
 };
 
+const MODE_OPTIONS = [
+    { value: '', label: 'All Modes' },
+    { value: 'in_person', label: 'In-clinic' },
+    { value: 'online', label: 'Online' },
+];
+
+const getDoctorName = (appointment) =>
+    appointment?.doctor?.name || appointment?.doctor_name || null;
+
+const escapeCsvValue = (value) => {
+    const text = value == null ? '' : String(value);
+    if (/[",\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+};
+
 export default function AppointmentsPage() {
     const router = useRouter();
     const { user, permissions } = useSelector((state) => state.auth);
@@ -114,7 +131,11 @@ export default function AppointmentsPage() {
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
+        q: '',
         status: '',
+        doctor_id: '',
+        service_id: '',
+        consultation_mode: '',
         date_from: '',
         date_to: '',
     });
@@ -139,6 +160,7 @@ export default function AppointmentsPage() {
             patient_phone: '',
             service_id: '',
             doctor_id: '',
+            consultation_mode: 'in_person',
             preferred_date: '',
             preferred_time: '',
             special_notes: '',
@@ -171,7 +193,11 @@ export default function AppointmentsPage() {
         {
             page,
             page_size: 10,
+            q: filters.q || undefined,
             status: filters.status || undefined,
+            doctor_id: filters.doctor_id || undefined,
+            service_id: filters.service_id || undefined,
+            consultation_mode: filters.consultation_mode || undefined,
             date_from: filters.date_from || undefined,
             date_to: filters.date_to || undefined,
             ...(appointmentListScope ? { scope: appointmentListScope } : {}),
@@ -250,6 +276,7 @@ export default function AppointmentsPage() {
     const canChangeStatus = hasAnyPermission(authUser, [
         PERMISSIONS.APPOINTMENT_APPROVE,
         PERMISSIONS.APPOINTMENT_UPDATE_ANY,
+        PERMISSIONS.APPOINTMENT_CHANGE_STATUS,
         PERMISSIONS.APPOINTMENT_CHANGE_STATUS_ASSIGNED,
     ]);
     const canGenerateInvoice = hasAnyPermission(authUser, [PERMISSIONS.INVOICE_CREATE, PERMISSIONS.INVOICE_READ_ANY]);
@@ -335,6 +362,14 @@ export default function AppointmentsPage() {
             ),
         },
         {
+            key: 'doctor',
+            label: 'Doctor',
+            priority: 'secondary',
+            render: (row) => (
+                <span className="text-gray-900">{getDoctorName(row) || '—'}</span>
+            ),
+        },
+        {
             key: 'consultation_mode',
             label: 'Mode',
             priority: 'secondary',
@@ -353,7 +388,7 @@ export default function AppointmentsPage() {
             },
         },
         {
-            key: 'date',
+            key: 'appointment_date',
             label: 'Date & Time',
             sortable: true,
             priority: 'secondary',
@@ -518,6 +553,7 @@ export default function AppointmentsPage() {
             patient_phone: '',
             service_id: '',
             doctor_id: '',
+            consultation_mode: 'in_person',
             preferred_date: '',
             preferred_time: '',
             special_notes: '',
@@ -537,6 +573,7 @@ export default function AppointmentsPage() {
             preferred_date: data.preferred_date,
             preferred_time: data.preferred_time,
             special_notes: data.special_notes || '',
+            consultation_mode: data.consultation_mode || 'in_person',
             ...(data.doctor_id ? { doctor_id: data.doctor_id } : {}),
         };
     };
@@ -637,13 +674,65 @@ export default function AppointmentsPage() {
     };
 
     const clearFilters = () => {
-        setFilters({ status: '', date_from: '', date_to: '' });
+        setFilters({
+            q: '',
+            status: '',
+            doctor_id: '',
+            service_id: '',
+            consultation_mode: '',
+            date_from: '',
+            date_to: '',
+        });
         setOnlineTodayOnly(false);
         setPage(1);
     };
 
     const activeFiltersCount =
-        Object.values(filters).filter(Boolean).length + (onlineTodayOnly ? 1 : 0);
+        Object.entries(filters).filter(([key, value]) => key !== 'q' && Boolean(value)).length
+        + (filters.q ? 1 : 0)
+        + (onlineTodayOnly ? 1 : 0);
+
+    const handleExportCsv = () => {
+        if (!appointments.length) {
+            toast.error('No appointments to export');
+            return;
+        }
+        const headers = [
+            'Patient',
+            'Email',
+            'Phone',
+            'Service',
+            'Doctor',
+            'Mode',
+            'Date',
+            'Time',
+            'Status',
+            'Invoice',
+        ];
+        const rows = appointments.map((apt) => [
+            apt.patient_info?.full_name || apt.user?.name || '',
+            apt.patient_info?.email || apt.user?.email || '',
+            apt.patient_info?.phone || '',
+            apt.service_name || apt.service?.name || '',
+            getDoctorName(apt) || '',
+            apt.consultation_mode === 'online' ? 'Online' : 'In-clinic',
+            apt.appointment_date || apt.preferred_date || '',
+            apt.appointment_time || apt.preferred_time || '',
+            apt.status || '',
+            apt.invoice_number || '',
+        ]);
+        const csv = [headers, ...rows]
+            .map((row) => row.map(escapeCsvValue).join(','))
+            .join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `appointments-page-${page}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success('Exported current page');
+    };
 
     return (
         <ListPageLayout
@@ -675,6 +764,8 @@ export default function AppointmentsPage() {
                         variant="flat"
                         size="sm"
                         startContent={<Download className="w-4 h-4" />}
+                        onPress={handleExportCsv}
+                        isDisabled={!appointments.length}
                     >
                         <span className="hidden sm:inline">Export</span>
                     </Button>
@@ -734,17 +825,87 @@ export default function AppointmentsPage() {
 
             {/* Filters */}
             <Card padding="md" className={`${showFilters ? 'block' : 'hidden'} sm:block`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <SearchInput
+                        value={filters.q}
+                        onChange={(value) => handleFilterChange('q', value)}
+                        placeholder="Search patient name, email, phone..."
+                        className="sm:col-span-2 xl:col-span-2 w-full sm:w-full"
+                        fullWidth
+                    />
                     <Select
                         label="Status"
                         labelPlacement="outside"
                         placeholder="All Statuses"
                         selectedKeys={filters.status ? [filters.status] : []}
-                        onSelectionChange={(keys) => handleFilterChange('status', Array.from(keys)[0] || '')}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || '';
+                            handleFilterChange('status', value === 'all' ? '' : value);
+                        }}
                         size="sm"
                     >
                         {STATUS_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
+                            <SelectItem key={option.value || 'all'} value={option.value || 'all'}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </Select>
+                    <Select
+                        label="Doctor"
+                        labelPlacement="outside"
+                        placeholder="All Doctors"
+                        selectedKeys={filters.doctor_id ? [filters.doctor_id] : []}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || '';
+                            handleFilterChange('doctor_id', value === 'all-doctors' ? '' : value);
+                        }}
+                        size="sm"
+                    >
+                        <SelectItem key="all-doctors" value="all-doctors">
+                            All Doctors
+                        </SelectItem>
+                        {doctors.map((doctor) => {
+                            const doctorId = doctor.user_id || doctor.id;
+                            return (
+                                <SelectItem key={doctorId} value={doctorId}>
+                                    {doctor.name}
+                                </SelectItem>
+                            );
+                        })}
+                    </Select>
+                    <Select
+                        label="Service"
+                        labelPlacement="outside"
+                        placeholder="All Services"
+                        selectedKeys={filters.service_id ? [filters.service_id] : []}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || '';
+                            handleFilterChange('service_id', value === 'all-services' ? '' : value);
+                        }}
+                        size="sm"
+                    >
+                        <SelectItem key="all-services" value="all-services">
+                            All Services
+                        </SelectItem>
+                        {services.map((service) => (
+                            <SelectItem key={service.id} value={service.id}>
+                                {service.name}
+                            </SelectItem>
+                        ))}
+                    </Select>
+                    <Select
+                        label="Mode"
+                        labelPlacement="outside"
+                        placeholder="All Modes"
+                        selectedKeys={filters.consultation_mode ? [filters.consultation_mode] : []}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || '';
+                            handleFilterChange('consultation_mode', value === 'all-modes' ? '' : value);
+                        }}
+                        size="sm"
+                    >
+                        {MODE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value || 'all-modes'} value={option.value || 'all-modes'}>
                                 {option.label}
                             </SelectItem>
                         ))}
@@ -785,7 +946,7 @@ export default function AppointmentsPage() {
                             size="sm"
                             startContent={<X className="w-4 h-4" />}
                             onPress={clearFilters}
-                            isDisabled={activeFiltersCount === 0 && !onlineTodayOnly}
+                            isDisabled={activeFiltersCount === 0}
                             className="w-full sm:w-auto"
                         >
                             Clear Filters
@@ -916,17 +1077,33 @@ export default function AppointmentsPage() {
                             </FormSelect>
                             <FormSelect
                                 name="doctor_id"
-                                label="Doctor"
+                                label="Doctor (optional)"
                                 labelPlacement="outside"
                                 placeholder="Select doctor"
                             >
-                                {doctors.map((doctor) => (
-                                    <SelectItem key={doctor.id} value={doctor.id}>
-                                        {doctor.name}
-                                    </SelectItem>
-                                ))}
+                                {doctors.map((doctor) => {
+                                    const doctorId = doctor.user_id || doctor.id;
+                                    return (
+                                        <SelectItem key={doctorId} value={doctorId}>
+                                            {doctor.name}
+                                        </SelectItem>
+                                    );
+                                })}
                             </FormSelect>
                         </div>
+                        <FormSelect
+                            name="consultation_mode"
+                            label="Consultation Mode"
+                            labelPlacement="outside"
+                            placeholder="Select mode"
+                        >
+                            <SelectItem key="in_person" value="in_person">
+                                In-clinic
+                            </SelectItem>
+                            <SelectItem key="online" value="online">
+                                Online
+                            </SelectItem>
+                        </FormSelect>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormInput
                                 name="preferred_date"
@@ -1023,9 +1200,10 @@ export default function AppointmentsPage() {
                                     label="Service"
                                     value={selectedAppointment.service_name || selectedAppointment.service?.name}
                                 />
-                                {selectedAppointment.doctor?.name && (
-                                    <DetailRow label="Doctor" value={selectedAppointment.doctor.name} />
-                                )}
+                                <DetailRow
+                                    label="Doctor"
+                                    value={getDoctorName(selectedAppointment) || '—'}
+                                />
                                 <DetailRow
                                     label="Consultation mode"
                                     value={
@@ -1034,6 +1212,12 @@ export default function AppointmentsPage() {
                                             : 'In-clinic'
                                     }
                                 />
+                                {selectedAppointment.invoice_number && (
+                                    <DetailRow
+                                        label="Invoice"
+                                        value={selectedAppointment.invoice_number}
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -1312,15 +1496,21 @@ function AppointmentCard({
                         </p>
                     </div>
                     <div>
+                        <p className="text-gray-500">Doctor</p>
+                        <p className="font-medium text-gray-900 truncate">
+                            {getDoctorName(apt) || '—'}
+                        </p>
+                    </div>
+                    <div>
                         <p className="text-gray-500">Date</p>
                         <p className="font-medium text-gray-900">
-                            {formatDate(apt.preferred_date || apt.appointment_date)}
+                            {formatDate(apt.appointment_date || apt.preferred_date)}
                         </p>
                     </div>
                     <div>
                         <p className="text-gray-500">Time</p>
                         <p className="font-medium text-gray-900">
-                            {formatTime(apt.preferred_time || apt.appointment_time)}
+                            {formatTime(apt.appointment_time || apt.preferred_time)}
                         </p>
                     </div>
                     {apt.patient_info?.phone && (
