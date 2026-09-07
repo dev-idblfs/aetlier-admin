@@ -31,7 +31,7 @@ import {
     useDeleteCategoryMutation,
     useBulkDeleteCategoriesMutation,
 } from '@/redux/services/api';
-import { ConfirmModal, FormModal, BulkActionBar, StatusBadge } from '@/components/ui';
+import { ConfirmModal, FormModal, BulkActionBar, StatusBadge, EntityLink } from '@/components/ui';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
@@ -234,10 +234,18 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
                     <div className="flex flex-wrap items-center gap-2">
                         <h4 className="font-medium text-gray-900 truncate">{category.name}</h4>
                         <StatusBadge status={category.is_active ? 'active' : 'inactive'} />
+                        {typeof category.service_count === 'number' ? (
+                            <span className="text-xs text-gray-400">
+                                {category.service_count} service{category.service_count !== 1 ? 's' : ''}
+                            </span>
+                        ) : null}
                     </div>
                     {category.description && (
                         <p className="text-sm text-gray-500 line-clamp-2">{category.description}</p>
                     )}
+                    <p className="text-xs text-gray-400 mt-0.5">
+                        <EntityLink href="/services">View services</EntityLink>
+                    </p>
                 </div>
             </div>
 
@@ -264,14 +272,15 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
     );
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
+        <div className="space-y-3">
+            <div className="flex justify-between items-center gap-2">
                 <h2 className="text-lg font-semibold">{title}</h2>
                 <Button
                     color="primary"
                     startContent={<Plus className="w-4 h-4" />}
                     onPress={handleAddClick}
                     size="sm"
+                    className="shrink-0"
                 >
                     New Category
                 </Button>

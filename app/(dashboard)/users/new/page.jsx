@@ -84,7 +84,7 @@ export default function NewUserPage() {
                     )}
                 >
                     <FormSectionCard embedded title="Basic Information">
-                        <FormRow columns={3}>
+                        <FormRow columns={2}>
                             <FormInput name="first_name" label="First Name" placeholder="Enter first name" isRequired />
                             <FormInput name="last_name" label="Last Name" placeholder="Enter last name" isRequired />
                             <FormInput name="email" label="Email" type="email" placeholder="user@example.com" isRequired />
@@ -94,8 +94,8 @@ export default function NewUserPage() {
 
                     <FormDivider />
 
-                    <FormSectionCard embedded title="Account Settings">
-                        <FormRow columns={3}>
+                    <FormSectionCard embedded title="Account & status">
+                        <FormRow columns={2}>
                             <FormInput
                                 name="password"
                                 label="Password"
@@ -115,12 +115,7 @@ export default function NewUserPage() {
                                 ))}
                             </FormSelect>
                         </FormRow>
-                    </FormSectionCard>
-
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Status">
-                        <div className="space-y-2">
+                        <div className="mt-3 space-y-2">
                             <FormSwitchRow
                                 name="is_active"
                                 label="Active Status"

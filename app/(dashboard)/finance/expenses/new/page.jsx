@@ -21,7 +21,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { expenseSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
 import { FormInput, FormTextarea, FormSelect, FormSwitchRow, FormRow, FormDivider } from '@/components/ui/FormFields';
-import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard, RelatedLinks } from '@/components/ui';
 import {
     useCreateExpenseMutation,
     useGetExpenseCategoriesQuery,
@@ -175,8 +175,18 @@ export default function NewExpensePage() {
                         </FormActions>
                     )}
                 >
+                    <RelatedLinks
+                        title="Related"
+                        items={[
+                            { label: 'Expense categories', href: '/finance/expenses/categories', meta: 'Setup' },
+                            { label: 'All expenses', href: '/finance/expenses', meta: 'List' },
+                        ]}
+                    />
+
+                    <FormDivider />
+
                     <FormSectionCard embedded title="Expense Details">
-                        <FormRow columns={3}>
+                        <FormRow columns={2}>
                             <FormSelect name="category_id" label="Category" placeholder="Select category" isRequired>
                                 {(categories || []).map((cat) => (
                                     <SelectItem key={cat.id} value={cat.id} startContent={cat.icon}>
@@ -185,7 +195,7 @@ export default function NewExpensePage() {
                                 ))}
                             </FormSelect>
                             <FormInput name="vendor" label="Vendor/Payee" placeholder="Who was paid?" />
-                            <div className="lg:col-span-3">
+                            <div className="sm:col-span-2">
                                 <FormTextarea name="description" label="Description" placeholder="What was the expense for?" isRequired minRows={2} />
                             </div>
                             <FormInput name="amount" label="Amount" placeholder="0.00" type="number" startContent="₹" isRequired />
@@ -201,10 +211,10 @@ export default function NewExpensePage() {
                                 <SelectItem key="PENDING" value="PENDING">Pending</SelectItem>
                             </FormSelect>
                             <FormInput name="reference_number" label="Reference Number" placeholder="Transaction ID, Invoice #, etc." />
-                            <div className="lg:col-span-3">
+                            <div className="sm:col-span-2">
                                 <FormTextarea name="notes" label="Notes" placeholder="Additional notes..." minRows={2} />
                             </div>
-                            <div className="lg:col-span-3">
+                            <div className="sm:col-span-2">
                                 <FormSwitchRow name="is_recurring" label="Recurring Expense" description="Mark if this is a regular monthly expense" />
                             </div>
                         </FormRow>

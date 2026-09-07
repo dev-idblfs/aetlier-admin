@@ -9,7 +9,7 @@ import { useSelector } from 'react-redux';
 import {
   useGetAdminVerificationRecordQuery,
 } from '@/redux/services/api';
-import { StatusBadge, EntityLink, Alert } from '@/components/ui';
+import { StatusBadge, RelatedLinks, Alert } from '@/components/ui';
 import DocumentReviewCard from '@/components/verification/DocumentReviewCard';
 import VerificationActions from '@/components/verification/VerificationActions';
 import VerificationReviewSteps from '@/components/verification/VerificationReviewSteps';
@@ -64,7 +64,7 @@ export default function VerificationReviewPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-3 max-w-3xl">
       <div className="flex items-center gap-3">
         <Button isIconOnly variant="light" onPress={() => router.push('/verification')}>
           <ArrowLeft className="w-5 h-5" />
@@ -77,6 +77,22 @@ export default function VerificationReviewPage() {
         </div>
         <StatusBadge status={record.status} />
       </div>
+
+      <RelatedLinks
+        title="Related"
+        items={[
+          ...(record.doctor_user_id
+            ? [
+                {
+                  label: record.doctor_name || 'Doctor profile',
+                  href: `/doctors/${record.doctor_user_id}/edit`,
+                  meta: 'Doctor',
+                },
+              ]
+            : []),
+          { label: 'Verification queue', href: '/verification', meta: 'List' },
+        ]}
+      />
 
       <VerificationReviewSteps
         verification={record}
@@ -92,8 +108,8 @@ export default function VerificationReviewPage() {
         />
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Documents</h2>
+      <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 sm:px-4 sm:py-3 space-y-3">
+        <h2 className="text-sm font-semibold text-gray-900">Documents</h2>
         {(record.documents?.length ?? 0) === 0 ? (
           <p className="text-sm text-gray-500">No documents uploaded yet.</p>
         ) : (
@@ -103,24 +119,16 @@ export default function VerificationReviewPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 sm:px-4 sm:py-3">
         <VerificationActions verification={record} onUpdated={refetch} />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 sm:px-4 sm:py-3">
         <AuditTimeline
           entityType="doctor_verifications"
           entityId={record.id}
         />
       </div>
-
-      {record.doctor_user_id && (
-        <EntityLink
-          href={`/doctors/${record.doctor_user_id}/edit`}
-          label="Open doctor profile →"
-          className="text-base"
-        />
-      )}
     </div>
   );
 }

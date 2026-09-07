@@ -107,7 +107,7 @@ export default function NewCustomerPage() {
                     )}
                 >
                     <FormSectionCard embedded title="Basic Information">
-                        <FormRow columns={3}>
+                        <FormRow columns={2}>
                             <FormInput name="first_name" label="First Name" placeholder="Enter first name" isRequired />
                             <FormInput name="last_name" label="Last Name" placeholder="Enter last name" />
                             <FormInput name="email" label="Email" type="email" placeholder="customer@example.com" isRequired />
@@ -117,11 +117,16 @@ export default function NewCustomerPage() {
 
                     <FormDivider />
 
-                    <FormSectionCard embedded title="Business Information">
-                        <FormRow columns={3}>
+                    <FormSectionCard embedded title="Business & payment">
+                        <FormRow columns={2}>
                             <FormSelect name="customer_type" label="Customer Type" placeholder="Select type">
                                 {CUSTOMER_TYPES.map((type) => (
                                     <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>
+                                ))}
+                            </FormSelect>
+                            <FormSelect name="payment_terms" label="Payment Terms" placeholder="Select payment terms">
+                                {PAYMENT_TERMS.map((term) => (
+                                    <SelectItem key={term.key} value={term.key}>{term.label}</SelectItem>
                                 ))}
                             </FormSelect>
                             <FormInput name="company_name" label="Company Name" placeholder="Enter company name" />
@@ -149,16 +154,6 @@ export default function NewCustomerPage() {
                                 description="Enter as JSON format"
                             />
                         </FormRow>
-                    </FormSectionCard>
-
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Payment Terms">
-                        <FormSelect name="payment_terms" label="Payment Terms" placeholder="Select payment terms" className="max-w-sm">
-                            {PAYMENT_TERMS.map((term) => (
-                                <SelectItem key={term.key} value={term.key}>{term.label}</SelectItem>
-                            ))}
-                        </FormSelect>
                     </FormSectionCard>
                 </FormCompactCard>
             </Form>

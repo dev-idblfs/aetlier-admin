@@ -509,17 +509,25 @@ export function Switch({
   className,
   ...rest
 }) {
+  // HeroUI v3: only Switch.Content (SwitchButton) is interactive; Control/Thumb are visual.
+  const handleChange = (selected) => {
+    const next = typeof selected === 'boolean' ? selected : Boolean(selected);
+    if (onChange) onChange(next);
+    else onValueChange?.(next);
+  };
   return (
     <HeroSwitch
       isSelected={isSelected}
-      onChange={onChange || onValueChange}
+      onChange={handleChange}
       className={className}
       {...rest}
     >
-      <HeroSwitch.Control>
-        <HeroSwitch.Thumb />
-      </HeroSwitch.Control>
-      {children ? <HeroSwitch.Content>{children}</HeroSwitch.Content> : null}
+      <HeroSwitch.Content>
+        <HeroSwitch.Control>
+          <HeroSwitch.Thumb />
+        </HeroSwitch.Control>
+        {children ? <span>{children}</span> : null}
+      </HeroSwitch.Content>
     </HeroSwitch>
   );
 }

@@ -150,11 +150,11 @@ export default function EditRolePage() {
                                     <CheckboxGroup
                                         value={field.value}
                                         onValueChange={field.onChange}
-                                        className="gap-2"
+                                        className="gap-1.5"
                                     >
                                         {permissions.map((permission) => (
-                                            <Checkbox key={permission.id} value={permission.id.toString()}>
-                                                {permission.name}
+                                            <Checkbox key={permission.id} value={permission.id.toString()} className="min-h-0">
+                                                <span className="text-sm">{permission.name}</span>
                                             </Checkbox>
                                         ))}
                                     </CheckboxGroup>

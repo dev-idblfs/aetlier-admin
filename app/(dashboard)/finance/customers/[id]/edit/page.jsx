@@ -17,7 +17,7 @@ import {
     FormDivider,
     DEFAULT_FORM_OPTIONS,
 } from '@/components/ui';
-import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard, RelatedLinks } from '@/components/ui';
 import { useGetCustomerQuery, useUpdateCustomerMutation } from '@/redux/services/api';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
 
@@ -145,6 +145,18 @@ export default function EditCustomerPage() {
         `${customer.first_name || ''} ${customer.last_name || ''}`.trim() ||
         customer.email ||
         'Edit';
+    const relatedItems = [
+        {
+            label: 'Invoices',
+            href: `/finance/invoices?customer_id=${customerId}`,
+            meta: 'List',
+        },
+        {
+            label: 'New invoice',
+            href: '/finance/invoices/new',
+            meta: 'Create',
+        },
+    ];
 
     return (
         <FormPageLayout
@@ -173,8 +185,12 @@ export default function EditCustomerPage() {
                 >
                     <FormErrorSummary error={methods.formState.errors.root?.message} />
 
+                    <RelatedLinks title="Related" items={relatedItems} className="mt-1" />
+
+                    <FormDivider />
+
                     <FormSectionCard embedded title="Basic Information">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <FormInput name="first_name" label="First Name" placeholder="Enter first name" isRequired />
                             <FormInput name="last_name" label="Last Name" placeholder="Enter last name" />
                             <FormInput name="email" label="Email" type="email" isDisabled description="Email cannot be changed" />
@@ -184,11 +200,16 @@ export default function EditCustomerPage() {
 
                     <FormDivider />
 
-                    <FormSectionCard embedded title="Business Information">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <FormSectionCard embedded title="Business & payment">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <FormSelect name="customer_type" label="Customer Type" placeholder="Select type">
                                 {CUSTOMER_TYPES.map((type) => (
                                     <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>
+                                ))}
+                            </FormSelect>
+                            <FormSelect name="payment_terms" label="Payment Terms" placeholder="Select payment terms">
+                                {PAYMENT_TERMS.map((term) => (
+                                    <SelectItem key={term.key} value={term.key}>{term.label}</SelectItem>
                                 ))}
                             </FormSelect>
                             <FormInput name="company_name" label="Company Name" placeholder="Enter company name" />
@@ -204,16 +225,6 @@ export default function EditCustomerPage() {
                             <FormTextarea name="billing_address" label="Billing Address" placeholder='{"street": "123 Main St"}' minRows={2} description="Enter as JSON format" />
                             <FormTextarea name="shipping_address" label="Shipping Address" placeholder='{"street": "123 Main St"}' minRows={2} description="Enter as JSON format" />
                         </div>
-                    </FormSectionCard>
-
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Payment Terms">
-                        <FormSelect name="payment_terms" label="Payment Terms" placeholder="Select payment terms" className="max-w-sm">
-                            {PAYMENT_TERMS.map((term) => (
-                                <SelectItem key={term.key} value={term.key}>{term.label}</SelectItem>
-                            ))}
-                        </FormSelect>
                     </FormSectionCard>
                 </FormCompactCard>
             </Form>

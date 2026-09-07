@@ -30,6 +30,7 @@ import {
     FormCompactCard,
     FormFileUpload,
     FormRepeater,
+    RelatedLinks,
 } from '@/components/ui';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 import { normalizeApiList } from '@/utils/normalizeApiList';
@@ -210,6 +211,32 @@ export default function ServiceForm({
         await onSubmit(formattedData, methods, { pendingImageFile });
     };
 
+    const categoryId = watch('category_id') || initialData?.category_id;
+    const categoryName =
+        (categories || []).find((c) => String(c.id) === String(categoryId))?.name ||
+        initialData?.category?.name ||
+        'Category';
+    const relatedItems = serviceId
+        ? [
+              {
+                  label: categoryName,
+                  href: '/services/categories',
+                  meta: 'Category',
+              },
+              {
+                  label: 'All services',
+                  href: '/services',
+                  meta: 'List',
+              },
+          ]
+        : [
+              {
+                  label: 'Manage categories',
+                  href: '/services/categories',
+                  meta: 'Categories',
+              },
+          ];
+
     return (
         <FormPageLayout
             title={title}
@@ -236,8 +263,12 @@ export default function ServiceForm({
                         </FormActions>
                     )}
                 >
+                    <RelatedLinks title="Related" items={relatedItems} />
+
+                    <FormDivider />
+
                     <FormSectionCard embedded title="Service Details">
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <Controller
                                 name="image_url"
                                 control={control}

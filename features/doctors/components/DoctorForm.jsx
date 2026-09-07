@@ -117,7 +117,7 @@ export default function DoctorForm({
                 )}
             >
                 <FormSectionCard embedded title="Basic Information">
-                    <FormRow columns={3}>
+                    <FormRow columns={2}>
                         <FormInput
                             name="first_name"
                             label="First Name"
@@ -151,7 +151,7 @@ export default function DoctorForm({
                 <FormDivider />
 
                 <FormSectionCard embedded title="Professional Details">
-                    <FormRow columns={3}>
+                    <FormRow columns={2}>
                         <FormSelect
                             name="specializations"
                             label="Specializations"
@@ -224,7 +224,7 @@ export default function DoctorForm({
                         name="bio"
                         label="Biography"
                         placeholder="Enter doctor's bio and professional background"
-                        minRows={3}
+                        minRows={2}
                     />
                 </FormSectionCard>
 
@@ -242,7 +242,7 @@ export default function DoctorForm({
                         minRows={2}
                         isRequired={wantsPrescribe}
                     />
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         <div className="space-y-2">
                             <p className="text-sm font-medium text-gray-700">Stamp image</p>
                             {stampPreview ? (

@@ -12,7 +12,7 @@ import { useGetUserQuery, useUpdateUserMutation } from '@/redux/services/api';
 import { userUpdateSchema } from '@/lib/validation';
 import { Form } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormSwitchRow, FormRow, FormDivider } from '@/components/ui/FormFields';
-import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard, RelatedLinks } from '@/components/ui';
 
 const USER_TYPES = [
     { key: 'PATIENT', label: 'Patient' },
@@ -108,6 +108,22 @@ export default function EditUserPage() {
     const displayName = user.first_name
         ? `${user.first_name} ${user.last_name || ''}`.trim()
         : user.name || 'Edit';
+    const relatedItems = [
+        ...(user.user_type === 'DOCTOR'
+            ? [
+                  {
+                      label: 'Doctor profile',
+                      href: `/doctors/${userId}/edit`,
+                      meta: 'Doctor',
+                  },
+              ]
+            : []),
+        {
+            label: 'Appointments',
+            href: `/appointments?patient_id=${userId}`,
+            meta: 'List',
+        },
+    ];
 
     return (
         <FormPageLayout
@@ -134,8 +150,12 @@ export default function EditUserPage() {
                         </FormActions>
                     )}
                 >
+                    <RelatedLinks title="Related" items={relatedItems} />
+
+                    <FormDivider />
+
                     <FormSectionCard embedded title="Basic Information">
-                        <FormRow columns={3}>
+                        <FormRow columns={2}>
                             <FormInput name="first_name" label="First Name" placeholder="Enter first name" isRequired />
                             <FormInput name="last_name" label="Last Name" placeholder="Enter last name" isRequired />
                             <FormInput
@@ -153,8 +173,8 @@ export default function EditUserPage() {
 
                     <FormDivider />
 
-                    <FormSectionCard embedded title="Account Settings">
-                        <FormRow columns={3}>
+                    <FormSectionCard embedded title="Account & status">
+                        <FormRow columns={2}>
                             <FormSelect
                                 name="user_type"
                                 label="User Type"
@@ -173,12 +193,7 @@ export default function EditUserPage() {
                                 description="Minimum 8 characters"
                             />
                         </FormRow>
-                    </FormSectionCard>
-
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Status">
-                        <div className="space-y-2">
+                        <div className="mt-3 space-y-2">
                             <FormSwitchRow
                                 name="is_active"
                                 label="Active Status"

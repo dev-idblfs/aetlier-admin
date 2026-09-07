@@ -25,7 +25,7 @@ import {
     CustomerSelector,
     InvoiceCustomerBillingFields,
 } from '@/components/invoice';
-import { InvoiceSection, InvoiceAlert, InvoiceEmptyState } from '@/components/ui';
+import { InvoiceSection, InvoiceAlert, InvoiceEmptyState, RelatedLinks } from '@/components/ui';
 import { calculateInvoiceTotal } from '@/utils/invoice/calculations';
 import { formatCurrency } from '@/utils/dateFormatters';
 import { getDefaultDueDate } from '@/utils/invoice/paymentTerms';
@@ -365,6 +365,39 @@ export default function EditInvoicePage({ params }) {
         >
             <Form methods={methods} onSubmit={(data) => onSubmit(data, false)} className="contents">
                 <FormErrorSummary error={methods.formState.errors.root?.message} className="mb-3" />
+
+                <RelatedLinks
+                    title="Related"
+                    className="mb-3"
+                    items={[
+                        {
+                            label: 'View invoice',
+                            href: `/finance/invoices/${invoice.id}`,
+                            meta: 'Detail',
+                        },
+                        ...(invoice.customer_id || invoice.user_id
+                            ? [
+                                  {
+                                      label:
+                                          invoice.customer_name ||
+                                          selectedCustomer?.name ||
+                                          'Customer',
+                                      href: `/finance/customers/${invoice.customer_id || invoice.user_id}/edit`,
+                                      meta: 'Customer',
+                                  },
+                              ]
+                            : []),
+                        ...(invoice.appointment_id
+                            ? [
+                                  {
+                                      label: 'Appointment',
+                                      href: `/appointments/${invoice.appointment_id}`,
+                                      meta: 'Visit',
+                                  },
+                              ]
+                            : []),
+                    ]}
+                />
 
                 {/* Warning for invoices with payments */}
                 {invoice.amount_paid > 0 && (

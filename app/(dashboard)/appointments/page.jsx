@@ -880,19 +880,17 @@ export default function AppointmentsPage() {
                 isLoading={isCreating}
             >
                 <FormProvider {...createMethods}>
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <FormInput
                                 name="patient_name"
                                 label="Patient Name"
-                                labelPlacement="outside"
                                 placeholder="Enter patient name"
                                 isRequired
                             />
                             <FormInput
                                 name="patient_email"
                                 label="Patient Email"
-                                labelPlacement="outside"
                                 type="email"
                                 placeholder="Enter email"
                                 isRequired
@@ -901,18 +899,16 @@ export default function AppointmentsPage() {
                         <FormInput
                             name="patient_phone"
                             label="Phone Number"
-                            labelPlacement="outside"
                             placeholder="Enter phone number"
                         />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <FormSelect
                                 name="service_id"
                                 label="Service"
-                                labelPlacement="outside"
                                 placeholder="Select service"
                             >
                                 {services.map((service) => (
-                                    <SelectItem key={service.id} value={service.id}>
+                                    <SelectItem key={service.id} value={service.id} textValue={service.name}>
                                         {service.name}
                                     </SelectItem>
                                 ))}
@@ -920,7 +916,6 @@ export default function AppointmentsPage() {
                             <FormSelect
                                 name="doctor_id"
                                 label="Doctor (optional)"
-                                labelPlacement="outside"
                                 placeholder="Select doctor"
                             >
                                 {doctors.map((doctor) => {
@@ -941,36 +936,32 @@ export default function AppointmentsPage() {
                         <FormSelect
                             name="consultation_mode"
                             label="Consultation Mode"
-                            labelPlacement="outside"
                             placeholder="Select mode"
                         >
-                            <SelectItem key="in_person" value="in_person">
+                            <SelectItem key="in_person" value="in_person" textValue="In-clinic">
                                 In-clinic
                             </SelectItem>
-                            <SelectItem key="online" value="online">
+                            <SelectItem key="online" value="online" textValue="Online">
                                 Online
                             </SelectItem>
                         </FormSelect>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <FormInput
                                 name="preferred_date"
                                 type="date"
                                 label="Preferred Date"
-                                labelPlacement="outside"
                                 isRequired
                             />
                             <FormInput
                                 name="preferred_time"
                                 type="time"
                                 label="Preferred Time"
-                                labelPlacement="outside"
                                 isRequired
                             />
                         </div>
                         <FormTextarea
                             name="special_notes"
                             label="Special Notes"
-                            labelPlacement="outside"
                             placeholder="Any special instructions..."
                         />
                     </div>
@@ -978,7 +969,7 @@ export default function AppointmentsPage() {
             </FormModal>
 
             {/* Cancel Modal */}
-            < FormModal
+            <FormModal
                 isOpen={isCancelOpen}
                 onOpenChange={onCancelOpenChange}
                 onSubmit={handleCancelConfirm}
@@ -988,20 +979,19 @@ export default function AppointmentsPage() {
                 isLoading={isDeleting}
                 size="md"
             >
-                <div className="space-y-4">
-                    <p className="text-gray-600">
+                <div className="space-y-3">
+                    <p className="text-gray-600 text-sm">
                         Are you sure you want to cancel this appointment for{' '}
                         <strong>{selectedAppointment?.patient_info?.full_name || selectedAppointment?.user?.name}</strong>?
                     </p>
                     <Textarea
                         label="Cancellation Reason"
-                        labelPlacement="outside"
                         placeholder="Enter reason for cancellation..."
                         value={cancelReason}
                         onChange={(e) => setCancelReason(e.target.value)}
                     />
                 </div>
-            </FormModal >
+            </FormModal>
 
             <ConfirmModal
                 isOpen={isBulkOpen}
@@ -1018,7 +1008,7 @@ export default function AppointmentsPage() {
             />
 
             {/* Status Change Modal */}
-            < FormModal
+            <FormModal
                 isOpen={isStatusOpen}
                 onOpenChange={onStatusOpenChange}
                 onSubmit={handleStatusChange}
@@ -1029,7 +1019,6 @@ export default function AppointmentsPage() {
             >
                 <Select
                     label="New Status"
-                    labelPlacement="outside"
                     selectedKeys={newStatus ? [newStatus] : []}
                     onSelectionChange={(keys) => setNewStatus(Array.from(keys)[0])}
                 >

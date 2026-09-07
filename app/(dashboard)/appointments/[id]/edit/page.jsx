@@ -7,7 +7,7 @@ import { Save, AlertCircle } from '@/lib/icons';
 import { Button, Input, Select, SelectItem, Textarea, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';
-import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard, Alert, EntityLink } from '@/components/ui';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard, Alert, RelatedLinks } from '@/components/ui';
 import { FormDivider } from '@/components/ui/FormFields';
 import PrescriptionPanel from '@/components/prescription/PrescriptionPanel';
 import AccessDenied from '@/components/AccessDenied';
@@ -171,6 +171,39 @@ export default function EditAppointmentPage() {
     const consultationMode = getModeLabel(appointment.consultation_mode);
     const feeLabel = getFeeLabel(appointment);
     const canSave = canEdit || canChangeStatus;
+    const patientUserId = appointment.user_id || appointment.user?.id;
+    const serviceId = appointment.service_id || appointment.service?.id;
+    const relatedItems = [
+        {
+            label: patientName,
+            href: patientUserId ? `/users/${patientUserId}/edit` : null,
+            meta: 'Patient',
+        },
+        {
+            label: doctorName,
+            href: doctorUserId ? `/doctors/${doctorUserId}/edit` : null,
+            meta: 'Doctor',
+        },
+        {
+            label: serviceName,
+            href: serviceId ? `/services/${serviceId}/edit` : null,
+            meta: 'Service',
+        },
+        ...(appointment.invoice_id
+            ? [
+                  {
+                      label: appointment.invoice_number || 'Invoice',
+                      href: `/finance/invoices/${appointment.invoice_id}`,
+                      meta: 'Invoice',
+                  },
+              ]
+            : []),
+        {
+            label: 'View appointment',
+            href: `/appointments/${appointmentId}`,
+            meta: 'Detail',
+        },
+    ];
 
     return (
         <FormPageLayout
@@ -217,36 +250,67 @@ export default function EditAppointmentPage() {
                             icon={<AlertCircle className="w-5 h-5" />}
                         />
                     )}
-                    <FormSectionCard embedded title="Operational summary">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                            <div>
-                                <p className="text-gray-500 text-xs">Patient</p>
-                                <EntityLink
-                                    href={
-                                        appointment.user_id || appointment.user?.id
-                                            ? `/users/${appointment.user_id || appointment.user?.id}/edit`
-                                            : null
-                                    }
+
+                    <RelatedLinks title="Related" items={relatedItems} className="mb-1" />
+
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Update Details">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {canChangeStatus && (
+                                <Select
+                                    label="Status"
+                                    placeholder="Select status"
+                                    selectedKeys={[formData.status]}
+                                    onSelectionChange={(keys) => handleChange('status', Array.from(keys)[0])}
+                                    classNames={{ trigger: 'bg-white border border-gray-200 hover:border-gray-300' }}
                                 >
-                                    {patientName}
-                                </EntityLink>
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-xs">Service</p>
-                                <p className="font-medium">{serviceName}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-xs">Doctor</p>
-                                <EntityLink
-                                    href={
-                                        doctorUserId
-                                            ? `/doctors/${doctorUserId}/edit`
-                                            : null
-                                    }
-                                >
-                                    {doctorName}
-                                </EntityLink>
-                            </div>
+                                    {APPOINTMENT_STATUSES.map((status) => (
+                                        <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>
+                                    ))}
+                                </Select>
+                            )}
+                            {canEdit && (
+                                <>
+                                    <Input
+                                        type="date"
+                                        label="Appointment date"
+                                        value={formData.appointment_date}
+                                        onChange={(e) => handleChange('appointment_date', e.target.value)}
+                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                    />
+                                    <Input
+                                        type="time"
+                                        label="Appointment time"
+                                        value={formData.appointment_time}
+                                        onChange={(e) => handleChange('appointment_time', e.target.value)}
+                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                                    />
+                                </>
+                            )}
+                        </div>
+                        {canEdit && (
+                            <Textarea
+                                label="Special notes"
+                                placeholder="Add any notes or special instructions"
+                                value={formData.special_notes}
+                                onValueChange={(value) => handleChange('special_notes', value)}
+                                minRows={2}
+                                className="mt-3"
+                                classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
+                            />
+                        )}
+                        {!canEdit && !canChangeStatus && (
+                            <p className="text-sm text-gray-500">
+                                You can view prescriptions here, but you do not have permission to edit appointment details.
+                            </p>
+                        )}
+                    </FormSectionCard>
+
+                    <FormDivider />
+
+                    <FormSectionCard embedded title="Summary">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-sm">
                             <div>
                                 <p className="text-gray-500 text-xs">Mode</p>
                                 <p className="font-medium">{consultationMode}</p>
@@ -293,28 +357,6 @@ export default function EditAppointmentPage() {
                                     </p>
                                 </div>
                             ) : null}
-                            <div>
-                                <p className="text-gray-500 text-xs">Created</p>
-                                <p className="font-medium">
-                                    {appointment.created_at
-                                        ? new Date(appointment.created_at).toLocaleString('en-US', {
-                                            dateStyle: 'medium',
-                                            timeStyle: 'short',
-                                        })
-                                        : '—'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-xs">Updated</p>
-                                <p className="font-medium">
-                                    {appointment.updated_at
-                                        ? new Date(appointment.updated_at).toLocaleString('en-US', {
-                                            dateStyle: 'medium',
-                                            timeStyle: 'short',
-                                        })
-                                        : '—'}
-                                </p>
-                            </div>
                         </div>
                     </FormSectionCard>
 
@@ -327,64 +369,6 @@ export default function EditAppointmentPage() {
                             doctorUserId={doctorUserId}
                             autoFocus={prescribeMode}
                         />
-                    </FormSectionCard>
-
-                    <FormDivider />
-
-                    <FormSectionCard embedded title="Update Details">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                            {canChangeStatus && (
-                                <Select
-                                    label="Status"
-                                    labelPlacement="outside"
-                                    placeholder="Select status"
-                                    selectedKeys={[formData.status]}
-                                    onSelectionChange={(keys) => handleChange('status', Array.from(keys)[0])}
-                                    classNames={{ trigger: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                                >
-                                    {APPOINTMENT_STATUSES.map((status) => (
-                                        <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>
-                                    ))}
-                                </Select>
-                            )}
-                            {canEdit && (
-                                <>
-                                    <Input
-                                        type="date"
-                                        label="Appointment date"
-                                        labelPlacement="outside"
-                                        value={formData.appointment_date}
-                                        onChange={(e) => handleChange('appointment_date', e.target.value)}
-                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                                    />
-                                    <Input
-                                        type="time"
-                                        label="Appointment time"
-                                        labelPlacement="outside"
-                                        value={formData.appointment_time}
-                                        onChange={(e) => handleChange('appointment_time', e.target.value)}
-                                        classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                                    />
-                                </>
-                            )}
-                        </div>
-                        {canEdit && (
-                            <Textarea
-                                label="Special notes"
-                                labelPlacement="outside"
-                                placeholder="Add any notes or special instructions"
-                                value={formData.special_notes}
-                                onValueChange={(value) => handleChange('special_notes', value)}
-                                minRows={3}
-                                className="mt-3"
-                                classNames={{ inputWrapper: 'bg-white border border-gray-200 hover:border-gray-300' }}
-                            />
-                        )}
-                        {!canEdit && !canChangeStatus && (
-                            <p className="text-sm text-gray-500">
-                                You can view prescriptions here, but you do not have permission to edit appointment details.
-                            </p>
-                        )}
                     </FormSectionCard>
                 </FormCompactCard>
             </form>

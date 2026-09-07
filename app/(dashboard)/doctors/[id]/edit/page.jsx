@@ -11,7 +11,7 @@ import {
     useGetDoctorVerificationQuery,
     useGetAppointmentsQuery,
 } from '@/redux/services/api';
-import { FormPageLayout, FormCompactCard, FormSectionCard, EntityLink, StatusBadge, Alert } from '@/components/ui';
+import { FormPageLayout, FormCompactCard, FormSectionCard, EntityLink, StatusBadge, Alert, RelatedLinks } from '@/components/ui';
 import DoctorForm from '@/features/doctors/components/DoctorForm';
 import DoctorServiceAssignments from '@/features/doctors/components/DoctorServiceAssignments';
 import DocumentReviewCard from '@/components/verification/DocumentReviewCard';
@@ -183,15 +183,41 @@ export default function EditDoctorPage() {
         );
     }
 
+    const doctorUserId = doctor.user_id || doctor.id;
+    const displayName = doctor.first_name
+        ? `${doctor.first_name} ${doctor.last_name || ''}`.trim()
+        : 'Edit';
+    const relatedItems = [
+        {
+            label: displayName !== 'Edit' ? displayName : 'User account',
+            href: doctorUserId ? `/users/${doctorUserId}/edit` : null,
+            meta: 'User',
+        },
+        {
+            label: 'Appointments',
+            href: doctorUserId ? `/appointments?doctor_id=${doctorUserId}` : null,
+            meta: 'List',
+        },
+        {
+            label: 'Verification queue',
+            href: `/verification?q=${encodeURIComponent(doctor.email || displayName)}`,
+            meta: 'Verify',
+        },
+    ];
+
     return (
         <FormPageLayout
             title="Edit Doctor"
             breadcrumbs={[
                 { label: 'Doctors', href: '/doctors' },
-                { label: doctor.first_name ? `${doctor.first_name} ${doctor.last_name || ''}`.trim() : 'Edit' },
+                { label: displayName },
             ]}
             cancelHref="/doctors"
         >
+            <div className="mb-3">
+                <RelatedLinks title="Related" items={relatedItems} />
+            </div>
+
             <DoctorForm
                 key={doctor.id}
                 defaultValues={{
@@ -218,14 +244,14 @@ export default function EditDoctorPage() {
                 isLoading={isUpdating}
                 submitLabel="Save Changes"
                 emailReadOnly
-                doctorId={doctor.user_id || doctor.id}
+                doctorId={doctorUserId}
             />
 
-            {(doctor?.user_id || doctor?.id) && (
+            {doctorUserId && (
                 <div className="mt-3 space-y-3">
-                    <AppointmentsContext doctorUserId={doctor.user_id || doctor.id} />
-                    <DoctorServiceAssignments doctorId={doctor.user_id || doctor.id} />
-                    <VerificationSection doctorUserId={doctor.user_id || doctor.id} />
+                    <AppointmentsContext doctorUserId={doctorUserId} />
+                    <DoctorServiceAssignments doctorId={doctorUserId} />
+                    <VerificationSection doctorUserId={doctorUserId} />
                 </div>
             )}
         </FormPageLayout>

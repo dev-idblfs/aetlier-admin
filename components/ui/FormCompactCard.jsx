@@ -10,7 +10,7 @@ import { cn } from '@/utils/cn';
 export default function FormCompactCard({ children, footer, className = '' }) {
     return (
         <Card padding="none" className={cn('overflow-hidden min-w-0', className)}>
-            <div className="px-3 sm:px-4 py-3 space-y-4">{children}</div>
+            <div className="px-3 sm:px-4 py-2.5 sm:py-3 space-y-3 sm:space-y-4">{children}</div>
             {footer && (
                 <div
                     className={cn(

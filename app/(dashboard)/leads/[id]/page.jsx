@@ -28,7 +28,9 @@ import {
     DEFAULT_FORM_OPTIONS,
     StatusBadge,
     EntityLink,
+    RelatedLinks,
     Alert,
+    FormCompactCard,
 } from '@/components/ui';
 import { leadUpdateSchema } from '@/lib/validation';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
@@ -100,7 +102,12 @@ export default function LeadDetailPage() {
 
     const fullName = lead.user?.full_name || lead.user?.name || '—';
     const userEmail = lead.user?.email;
-    const userSearchHref = userEmail ? `/users?search=${encodeURIComponent(userEmail)}` : null;
+    const userId = lead.user_id || lead.user?.id;
+    const userHref = userId
+        ? `/users/${userId}/edit`
+        : userEmail
+          ? `/users?search=${encodeURIComponent(userEmail)}`
+          : null;
 
     return (
         <ListPageLayout
@@ -111,18 +118,29 @@ export default function LeadDetailPage() {
             ]}
             className="max-w-2xl"
         >
+            <div className="space-y-3">
+            <RelatedLinks
+                title="Related"
+                items={[
+                    ...(userHref
+                        ? [{ label: fullName, href: userHref, meta: 'User' }]
+                        : []),
+                    { label: 'All leads', href: '/leads', meta: 'List' },
+                ]}
+            />
+
             {/* Contact Info (read-only) */}
-            <section className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            <section className="bg-white rounded-xl border border-gray-100 px-3 py-2.5 sm:px-4 sm:py-3 space-y-3">
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Contact Info
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center gap-3">
                         <User className="w-4 h-4 text-gray-400 shrink-0" />
                         <div>
                             <p className="text-xs text-gray-400">Name</p>
-                            {userSearchHref ? (
-                                <EntityLink href={userSearchHref} className="text-sm font-medium">{fullName}</EntityLink>
+                            {userHref ? (
+                                <EntityLink href={userHref} className="text-sm font-medium">{fullName}</EntityLink>
                             ) : (
                                 <p className="text-sm font-medium text-gray-900">{fullName}</p>
                             )}
@@ -178,6 +196,7 @@ export default function LeadDetailPage() {
 
             {/* key prop re-mounts LeadForm if lead.id ever changes */}
             <LeadForm key={lead.id} lead={lead} canWrite={canWrite} />
+            </div>
         </ListPageLayout>
     );
 }
@@ -214,15 +233,15 @@ function LeadForm({ lead, canWrite }) {
     });
 
     return (
-        <section className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+        <FormCompactCard>
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                 Lead Details
             </h2>
 
             <Form methods={methods} onSubmit={handleSubmit}>
                 <FormErrorSummary error={methods.formState.errors.root?.message} />
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                     <FormSelect
                         name="status"
                         label="Status"
@@ -254,7 +273,7 @@ function LeadForm({ lead, canWrite }) {
                         label="Message / Notes"
                         placeholder="User message and internal notes about this lead..."
                         isDisabled={!canWrite}
-                        minRows={3}
+                        minRows={2}
                     />
                 </div>
 
@@ -264,12 +283,12 @@ function LeadForm({ lead, canWrite }) {
                         color="primary"
                         startContent={<Save className="w-4 h-4" />}
                         isLoading={isSubmitting || isSaving}
-                        className="mt-4"
+                        className="mt-3 w-full sm:w-auto"
                     >
                         Save Changes
                     </Button>
                 )}
             </Form>
-        </section>
+        </FormCompactCard>
     );
 }

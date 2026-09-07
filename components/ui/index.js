@@ -15,6 +15,7 @@ export {
 export { default as DataTable } from "./DataTable";
 export { default as StatusBadge } from "./StatusBadge";
 export { default as EntityLink } from "./EntityLink";
+export { default as RelatedLinks } from "./RelatedLinks";
 export { default as FilterBar } from "./FilterBar";
 export { default as Alert } from "./Alert";
 export { default as SectionCard } from "./SectionCard";
