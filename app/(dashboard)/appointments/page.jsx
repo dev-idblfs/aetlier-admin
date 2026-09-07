@@ -1048,22 +1048,7 @@ export default function AppointmentsPage() {
 // Mobile Appointment Card Component
 function AppointmentCard({
     appointment,
-    onView,
-    onEdit,
-    onCancel,
-    onStatusChange,
-    onQuickConfirm,
-    onGenerateInvoice,
-    onComplete,
-    onViewInvoice,
-    onPrescribe,
-    canView,
-    canEdit,
-    canDelete,
-    canChangeStatus,
-    canGenerateInvoice,
-    canComplete,
-    canPrescribe,
+    actions = [],
     selectable = false,
     isSelected = false,
     onSelect,
@@ -1102,60 +1087,28 @@ function AppointmentCard({
                             {apt.patient_info?.email || apt.user?.email}
                         </p>
                     </div>
-                    <Dropdown>
-                        <DropdownTrigger>
-                            <Button variant="light" isIconOnly size="sm" aria-label="More actions">
-                                <MoreVertical className="w-4 h-4" />
-                            </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu aria-label="Actions">
-                            {canView && (
-                                <DropdownItem key="view" startContent={<Eye className="w-4 h-4" />} onPress={onView}>
-                                    View Details
-                                </DropdownItem>
-                            )}
-                            {canEdit && (
-                                <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onPress={onEdit}>
-                                    Edit
-                                </DropdownItem>
-                            )}
-                            {apt.status === 'invoiced' && apt.invoice_id && (
-                                <DropdownItem key="view-invoice" startContent={<FileText className="w-4 h-4" />} color="primary" onPress={onViewInvoice}>
-                                    View Invoice
-                                </DropdownItem>
-                            )}
-                            {canComplete && apt.status === 'confirmed' && (
-                                <DropdownItem key="complete" startContent={<CheckCircle className="w-4 h-4" />} color="success" onPress={onComplete}>
-                                    Complete and invoice
-                                </DropdownItem>
-                            )}
-                            {canGenerateInvoice && apt.status === 'completed' && !apt.invoice_id && (
-                                <DropdownItem key="invoice" startContent={<FileText className="w-4 h-4" />} color="primary" onPress={onGenerateInvoice}>
-                                    Generate Invoice
-                                </DropdownItem>
-                            )}
-                            {canPrescribe && apt.status === 'completed' && (
-                                <DropdownItem key="prescribe" startContent={<FileCheck className="w-4 h-4" />} color="secondary" onPress={onPrescribe}>
-                                    Write prescription
-                                </DropdownItem>
-                            )}
-                            {canChangeStatus && (
-                                <DropdownItem key="status" startContent={<RefreshCw className="w-4 h-4" />} onPress={onStatusChange}>
-                                    Change Status
-                                </DropdownItem>
-                            )}
-                            {canChangeStatus && apt.status === 'pending' && (
-                                <DropdownItem key="confirm" startContent={<BadgeCheck className="w-4 h-4" />} color="success" onPress={onQuickConfirm}>
-                                    Confirm
-                                </DropdownItem>
-                            )}
-                            {canDelete && apt.status !== 'cancelled' && (
-                                <DropdownItem key="cancel" startContent={<XCircle className="w-4 h-4" />} color="danger" onPress={onCancel}>
-                                    Cancel Appointment
-                                </DropdownItem>
-                            )}
-                        </DropdownMenu>
-                    </Dropdown>
+                    {actions.length > 0 ? (
+                        <Dropdown>
+                            <DropdownTrigger>
+                                <Button variant="light" isIconOnly size="sm" aria-label="More actions">
+                                    <MoreVertical className="w-4 h-4" />
+                                </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu aria-label="Actions">
+                                {actions.map((action, index) => (
+                                    <DropdownItem
+                                        key={action.key || index}
+                                        color={action.color || (action.danger ? 'danger' : 'default')}
+                                        className={action.danger || action.color === 'danger' ? 'text-danger' : undefined}
+                                        startContent={action.icon}
+                                        onPress={() => action.onClick?.()}
+                                    >
+                                        {action.label}
+                                    </DropdownItem>
+                                ))}
+                            </DropdownMenu>
+                        </Dropdown>
+                    ) : null}
                 </div>
 
                 <Divider className="my-3" />

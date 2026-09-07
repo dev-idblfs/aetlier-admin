@@ -12,7 +12,6 @@ import { useState } from 'react';
 import {
     Contact,
     Search,
-    MoreVertical,
     Eye,
     Edit,
     Trash2,
@@ -26,10 +25,6 @@ import {
     Button,
     Select,
     SelectItem,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
     useDisclosure,
     Chip,
     Input,

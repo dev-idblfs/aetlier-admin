@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation';
 import {
     Users as UsersIcon,
     Search,
-    MoreVertical,
     Shield,
     Eye,
     X,
@@ -24,10 +23,6 @@ import {
     Button,
     Select,
     SelectItem,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
     useDisclosure,
     Avatar,
     Chip,

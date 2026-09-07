@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye } from '@/lib/icons';
-import { Button, Select, SelectItem, Pagination } from '@/lib/heroui';
+import { Select, SelectItem, Pagination } from '@/lib/heroui';
 import { ListPageLayout, ResponsiveTable, StatusBadge, EntityLink, FilterBar, Alert } from '@/components/ui';
 import { useGetPendingVerificationsQuery } from '@/redux/services/api';
 import { useSelector } from 'react-redux';

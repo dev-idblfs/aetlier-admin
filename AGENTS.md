@@ -50,7 +50,7 @@ constants/ config/ hooks/ contexts/
 - The **`(dashboard)` route group** does NOT appear in URLs: `app/(dashboard)/verification/page.jsx` → `/verification`.
 - Add route-level `loading.jsx` for sections with data fetching, matching existing sections.
 - Import shared UI from the barrel: `import { PageHeader, DataTable, Button } from '@/components/ui'`.
-- Forms: define Zod schemas in `lib/validation/index.js`, use `react-hook-form` + shared `components/ui/FormFields`.
+- Table row actions: use DataTable/ResponsiveTable `actions` (array or `(row) => array`) for the shared **three-dot** menu. Do not add inline/split icon button columns for Edit/View/Delete.
 - Prefer Tailwind utility classes for layout/spacing (e.g. `min-h-11` for 44px touch targets, `px-3 py-3 md:px-4` for page padding). Avoid inventing custom CSS variables or inline `style={{}}` for theme chrome.
 - Set page title/breadcrumbs via `SidebarContext` (from `AdminLayout`).
 

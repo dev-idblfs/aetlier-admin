@@ -241,13 +241,24 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0 opacity-100">
-                <Button isIconOnly size="md" variant="flat" className="min-w-10 min-h-10" onPress={() => handleEditClick(category)} aria-label={`Edit ${category.name}`}>
-                    <Edit className="w-4 h-4 text-gray-600" />
-                </Button>
-                <Button isIconOnly size="md" variant="flat" color="danger" className="min-w-10 min-h-10" onPress={() => handleDeleteClick(category)} aria-label={`Delete ${category.name}`}>
-                    <Trash2 className="w-4 h-4" />
-                </Button>
+            <div className="flex items-center gap-1 shrink-0">
+                <Dropdown placement="bottom-end">
+                    <DropdownTrigger>
+                        <Button isIconOnly size="md" variant="light" className="min-w-10 min-h-10" aria-label={`Actions for ${category.name}`}>
+                            <MoreVertical className="w-4 h-4 text-gray-500" />
+                        </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="Category actions">
+                        <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onPress={() => handleEditClick(category)}>
+                            Edit
+                        </DropdownItem>
+                        {canDelete ? (
+                            <DropdownItem key="delete" startContent={<Trash2 className="w-4 h-4" />} className="text-danger" color="danger" onPress={() => handleDeleteClick(category)}>
+                                Delete
+                            </DropdownItem>
+                        ) : null}
+                    </DropdownMenu>
+                </Dropdown>
             </div>
         </div>
     );
