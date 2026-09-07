@@ -62,7 +62,10 @@ export default function ServiceList() {
 
     const categoryOptions = [
         { value: '', label: 'All Categories' },
-        ...(categories || []).map(cat => ({ value: cat.name, label: cat.name }))
+        ...(categories || []).map((cat) => ({
+            value: cat.slug || cat.name,
+            label: cat.name,
+        })),
     ];
 
     // Reset page when filters change
@@ -77,7 +80,10 @@ export default function ServiceList() {
             const matchesSearch = !search
                 || service.name?.toLowerCase().includes(search.toLowerCase())
                 || service.description?.toLowerCase().includes(search.toLowerCase());
-            const matchesCategory = !categoryFilter || service.category === categoryFilter;
+            const matchesCategory =
+                !categoryFilter ||
+                service.category === categoryFilter ||
+                service.category_name === categoryFilter;
             return matchesSearch && matchesCategory;
         }),
         [allServices, search, categoryFilter],

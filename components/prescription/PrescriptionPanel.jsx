@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
-import { Button, Input, Textarea, Spinner } from '@heroui/react'
+import { Button, Input, Textarea, Spinner, Select, SelectItem } from '@heroui/react'
 import { toast } from 'react-hot-toast'
 import { FileText, Plus, Save, Send, Trash2 } from '@/lib/icons'
 import {
@@ -14,12 +14,27 @@ import {
 } from '@/redux/services/api'
 import { hasAnyPermission, hasPermission, PERMISSIONS } from '@/utils/permissions'
 
+const MEAL_OPTIONS = [
+  { key: '', label: 'Any / not specified' },
+  { key: 'before_food', label: 'Before food' },
+  { key: 'after_food', label: 'After food' },
+  { key: 'with_food', label: 'With food' },
+]
+
+const FREQ_CHIPS = [
+  'Morning - 1 Tab',
+  'Afternoon - 1 Tab',
+  'Evening - 1 Tab',
+  'Night - 1 Tab',
+]
+
 const emptyItem = () => ({
   medicine_name: '',
   dosage: '',
   frequency: '',
   duration: '',
   instructions: '',
+  meal_timing: '',
 })
 
 function pickActivePrescription(list) {
@@ -28,6 +43,18 @@ function pickActivePrescription(list) {
   if (draft) return draft
   const sent = list.find((rx) => rx.status === 'sent')
   return sent || list[0]
+}
+
+function linesToText(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join('\n')
+  return value || ''
+}
+
+function textToLines(value) {
+  return String(value || '')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
 export default function PrescriptionPanel({
@@ -44,9 +71,6 @@ export default function PrescriptionPanel({
     PERMISSIONS.APPOINTMENT_CHANGE_STATUS,
     PERMISSIONS.APPOINTMENT_CHANGE_STATUS_ASSIGNED,
   ])
-  const isAssignedDoctor =
-    doctorUserId && user?.id && String(doctorUserId) === String(user.id)
-  // Show form if user can create (backend enforces assigned-doctor) or can read any (admin).
   const canPrescribeHere = canCreate || canReadAny
 
   const { data: prescriptions, isLoading } = useGetAppointmentPrescriptionsQuery(
@@ -58,6 +82,11 @@ export default function PrescriptionPanel({
   const [sendPrescription, { isLoading: isSending }] = useSendPrescriptionMutation()
   const [updateAppointment, { isLoading: isCompleting }] = useUpdateAppointmentMutation()
   const [diagnosis, setDiagnosis] = useState('')
+  const [symptoms, setSymptoms] = useState('')
+  const [medicalHistory, setMedicalHistory] = useState('')
+  const [investigations, setInvestigations] = useState('')
+  const [advice, setAdvice] = useState('')
+  const [followUp, setFollowUp] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState([emptyItem()])
   const [locallyCompleted, setLocallyCompleted] = useState(false)
@@ -70,11 +99,21 @@ export default function PrescriptionPanel({
   useEffect(() => {
     if (!activeRx) {
       setDiagnosis('')
+      setSymptoms('')
+      setMedicalHistory('')
+      setInvestigations('')
+      setAdvice('')
+      setFollowUp('')
       setNotes('')
       setItems([emptyItem()])
       return
     }
     setDiagnosis(activeRx.diagnosis || '')
+    setSymptoms(activeRx.symptoms || '')
+    setMedicalHistory(activeRx.medical_history || '')
+    setInvestigations(linesToText(activeRx.investigations))
+    setAdvice(linesToText(activeRx.advice))
+    setFollowUp(activeRx.follow_up || '')
     setNotes(activeRx.notes || '')
     setItems(
       activeRx.items?.length
@@ -84,6 +123,7 @@ export default function PrescriptionPanel({
             frequency: item.frequency || '',
             duration: item.duration || '',
             instructions: item.instructions || '',
+            meal_timing: item.meal_timing || '',
           }))
         : [emptyItem()]
     )
@@ -123,10 +163,16 @@ export default function PrescriptionPanel({
         frequency: item.frequency.trim() || null,
         duration: item.duration.trim() || null,
         instructions: item.instructions.trim() || null,
+        meal_timing: item.meal_timing || null,
       }))
       .filter((item) => item.medicine_name)
     return {
       diagnosis: diagnosis.trim(),
+      symptoms: symptoms.trim() || null,
+      medical_history: medicalHistory.trim() || null,
+      investigations: textToLines(investigations),
+      advice: textToLines(advice),
+      follow_up: followUp.trim() || null,
       notes: notes.trim() || null,
       items: cleaned,
     }
@@ -139,6 +185,12 @@ export default function PrescriptionPanel({
     }
     if (!payload.items.length) {
       toast.error('Add at least one medicine')
+      return false
+    }
+    if (activeRx && !activeRx.patient_age_snapshot && !activeRx.patient_gender_snapshot) {
+      toast.error(
+        'Patient age/gender missing on this visit — update patient demographics before sending'
+      )
       return false
     }
     return true
@@ -196,6 +248,20 @@ export default function PrescriptionPanel({
     )
   }
 
+  const appendFrequencyChip = (index, chip) => {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item
+        const existing = (item.frequency || '').trim()
+        if (existing.includes(chip)) return item
+        return {
+          ...item,
+          frequency: existing ? `${existing} | ${chip}` : chip,
+        }
+      })
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -229,6 +295,24 @@ export default function PrescriptionPanel({
     )
   }
 
+  const demographicsStrip = activeRx ? (
+    <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+      <span className="font-medium text-gray-800">
+        {activeRx.patient_name_snapshot || 'Patient'}
+      </span>
+      {[
+        activeRx.patient_age_snapshot ? `Age ${activeRx.patient_age_snapshot}` : null,
+        activeRx.patient_gender_snapshot,
+        activeRx.patient_city_snapshot,
+        activeRx.patient_phone_snapshot,
+      ]
+        .filter(Boolean)
+        .map((part) => (
+          <span key={part}> · {part}</span>
+        ))}
+    </div>
+  ) : null
+
   if (isSent) {
     return (
       <div
@@ -241,6 +325,19 @@ export default function PrescriptionPanel({
             Sent
           </span>
         </div>
+        {demographicsStrip}
+        {activeRx.symptoms && (
+          <div>
+            <p className="text-xs text-gray-500">Symptoms</p>
+            <p className="text-sm text-gray-900 whitespace-pre-wrap">{activeRx.symptoms}</p>
+          </div>
+        )}
+        {activeRx.medical_history && (
+          <div>
+            <p className="text-xs text-gray-500">History</p>
+            <p className="text-sm text-gray-900 whitespace-pre-wrap">{activeRx.medical_history}</p>
+          </div>
+        )}
         {activeRx.diagnosis && (
           <div>
             <p className="text-xs text-gray-500">Diagnosis</p>
@@ -262,7 +359,9 @@ export default function PrescriptionPanel({
             >
               <p className="font-medium text-gray-900">{item.medicine_name}</p>
               <p className="text-gray-600">
-                {[item.dosage, item.frequency, item.duration].filter(Boolean).join(' · ')}
+                {[item.dosage, item.frequency, item.duration, item.meal_timing]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
               {item.instructions && (
                 <p className="text-xs text-gray-500 mt-0.5">{item.instructions}</p>
@@ -270,6 +369,32 @@ export default function PrescriptionPanel({
             </div>
           ))}
         </div>
+        {(activeRx.investigations || []).length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500">Investigations</p>
+            <ul className="mt-1 list-disc pl-4 text-sm text-gray-800">
+              {activeRx.investigations.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {(activeRx.advice || []).length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500">Advice</p>
+            <ul className="mt-1 list-disc pl-4 text-sm text-gray-800">
+              {activeRx.advice.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {activeRx.follow_up && (
+          <div>
+            <p className="text-xs text-gray-500">Follow-up</p>
+            <p className="text-sm text-gray-900">{activeRx.follow_up}</p>
+          </div>
+        )}
         {activeRx.pdf_url && (
           <Button
             as="a"
@@ -298,6 +423,26 @@ export default function PrescriptionPanel({
         </span>
       </div>
 
+      {demographicsStrip}
+
+      <Textarea
+        label="Symptoms"
+        labelPlacement="outside"
+        placeholder="Chief complaints / symptoms"
+        value={symptoms}
+        onValueChange={setSymptoms}
+        minRows={2}
+        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
+      />
+      <Textarea
+        label="History"
+        labelPlacement="outside"
+        placeholder="Relevant medical / treatment history"
+        value={medicalHistory}
+        onValueChange={setMedicalHistory}
+        minRows={2}
+        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
+      />
       <Textarea
         label="Diagnosis"
         labelPlacement="outside"
@@ -311,7 +456,7 @@ export default function PrescriptionPanel({
       <Textarea
         label="Clinical notes"
         labelPlacement="outside"
-        placeholder="Additional notes for the patient"
+        placeholder="Additional notes (optional)"
         value={notes}
         onValueChange={setNotes}
         minRows={2}
@@ -340,14 +485,29 @@ export default function PrescriptionPanel({
               onValueChange={(v) => updateItem(index, 'dosage', v)}
               classNames={{ inputWrapper: 'bg-white' }}
             />
-            <Input
-              label="Frequency"
-              size="sm"
-              placeholder="e.g. Twice daily"
-              value={item.frequency}
-              onValueChange={(v) => updateItem(index, 'frequency', v)}
-              classNames={{ inputWrapper: 'bg-white' }}
-            />
+            <div className="sm:col-span-2 space-y-2">
+              <Input
+                label="Frequency / schedule"
+                size="sm"
+                placeholder="e.g. Morning - 1 Tab | Evening - 1 Tab"
+                value={item.frequency}
+                onValueChange={(v) => updateItem(index, 'frequency', v)}
+                classNames={{ inputWrapper: 'bg-white' }}
+              />
+              <div className="flex flex-wrap gap-1">
+                {FREQ_CHIPS.map((chip) => (
+                  <Button
+                    key={chip}
+                    size="sm"
+                    variant="flat"
+                    className="h-7 min-w-0 px-2 text-xs"
+                    onPress={() => appendFrequencyChip(index, chip)}
+                  >
+                    {chip}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <Input
               label="Duration"
               size="sm"
@@ -356,6 +516,22 @@ export default function PrescriptionPanel({
               onValueChange={(v) => updateItem(index, 'duration', v)}
               classNames={{ inputWrapper: 'bg-white' }}
             />
+            <Select
+              label="Meal timing"
+              size="sm"
+              selectedKeys={item.meal_timing ? [item.meal_timing] : ['none']}
+              onSelectionChange={(keys) => {
+                const val = Array.from(keys)[0]
+                updateItem(index, 'meal_timing', !val || val === 'none' ? '' : val)
+              }}
+              classNames={{ trigger: 'bg-white' }}
+            >
+              {MEAL_OPTIONS.map((opt) => (
+                <SelectItem key={opt.key || 'none'} textValue={opt.label}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </Select>
             <div className="sm:col-span-2 flex gap-2">
               <Input
                 label="Instructions"
@@ -390,6 +566,33 @@ export default function PrescriptionPanel({
           Add medicine
         </Button>
       </div>
+
+      <Textarea
+        label="Investigations"
+        labelPlacement="outside"
+        placeholder="One investigation per line"
+        value={investigations}
+        onValueChange={setInvestigations}
+        minRows={2}
+        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
+      />
+      <Textarea
+        label="Advice"
+        labelPlacement="outside"
+        placeholder="One advice line per line"
+        value={advice}
+        onValueChange={setAdvice}
+        minRows={2}
+        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
+      />
+      <Input
+        label="Follow-up"
+        labelPlacement="outside"
+        placeholder="e.g. Review after 7 days"
+        value={followUp}
+        onValueChange={setFollowUp}
+        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
+      />
 
       <div className="flex flex-wrap gap-2 pt-1">
         <Button

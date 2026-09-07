@@ -610,6 +610,19 @@ export const api = createApi({
       ],
     }),
 
+    // POST /doctors/:id/rx-asset - Upload stamp or signature
+    uploadDoctorRxAsset: builder.mutation({
+      query: ({ doctorId, formData }) => ({
+        url: `/doctors/${doctorId}/rx-asset`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { doctorId }) => [
+        { type: "Doctor", id: doctorId },
+        "Doctor",
+      ],
+    }),
+
     // DELETE /doctors/:id - Delete doctor (soft-delete)
     deleteDoctor: builder.mutation({
       query: (id) => ({
@@ -1584,6 +1597,7 @@ export const {
   useGetDoctorQuery,
   useCreateDoctorMutation,
   useUpdateDoctorMutation,
+  useUploadDoctorRxAssetMutation,
   useDeleteDoctorMutation,
   // Services
   useGetServicesQuery,
