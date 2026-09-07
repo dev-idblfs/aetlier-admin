@@ -34,6 +34,53 @@ const isActionsColumn = (column) =>
   column?.key === 'actions' ||
   column?.key === 'action'
 
+/** Resolve row actions: `actions` may be an array or `(row) => array`; supports `hidden`. */
+const resolveRowActions = (actions, row) => {
+  const list = typeof actions === 'function' ? actions(row) : actions
+  if (!Array.isArray(list)) return []
+  return list.filter((action) => {
+    if (!action) return false
+    if (typeof action.hidden === 'function') return !action.hidden(row)
+    return action.hidden !== true
+  })
+}
+
+const hasConfiguredActions = (actions) =>
+  typeof actions === 'function' || (Array.isArray(actions) && actions.length > 0)
+
+function RowActionsMenu({ actions, row, size = 'sm', className }) {
+  const rowActions = resolveRowActions(actions, row)
+  if (rowActions.length === 0) return null
+  return (
+    <Dropdown placement="bottom-end">
+      <DropdownTrigger>
+        <Button
+          isIconOnly
+          size={size}
+          variant="light"
+          aria-label="Row actions"
+          className={cn('min-w-9 min-h-9', className)}
+        >
+          <MoreVertical className="w-4 h-4 text-gray-500" />
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Row actions">
+        {rowActions.map((action, actionIndex) => (
+          <DropdownItem
+            key={action.key || actionIndex}
+            color={action.color || (action.danger ? 'danger' : 'default')}
+            className={action.danger || action.color === 'danger' ? 'text-danger' : undefined}
+            startContent={action.icon}
+            onPress={() => action.onClick?.(row)}
+          >
+            {action.label}
+          </DropdownItem>
+        ))}
+      </DropdownMenu>
+    </Dropdown>
+  )
+}
+
 const inferPriority = (column, index, columns) => {
   if (column.priority) return column.priority
   if (column.key === 'actions' || column.key === 'action') return 'actions'
@@ -58,15 +105,12 @@ const hideBelowClass = (hideBelow) => {
   return ''
 }
 
+/** Mobile card: do not invent tertiary hide that leaves sparse desktop tables empty-looking. */
 function resolveColumns(columns) {
   return columns.map((col, index) => {
     const priority = inferPriority(col, index, columns)
-    const hideBelow =
-      col.hideBelow !== undefined
-        ? col.hideBelow
-        : priority === 'tertiary'
-          ? 'xl'
-          : false
+    // Only hide when the column explicitly opts in — avoids empty-looking table gaps
+    const hideBelow = col.hideBelow !== undefined ? col.hideBelow : false
     return { ...col, priority, hideBelow }
   })
 }
@@ -204,41 +248,15 @@ function DefaultMobileCard({
           ) : null}
         </div>
 
-        {(actionCols.length > 0 || actions.length > 0) && (
+        {(actionCols.length > 0 || hasConfiguredActions(actions)) && (
           <div className="shrink-0 flex flex-col items-end gap-2" onClick={stopRowEvent}>
             {actionCols.map((column) => (
               <div key={column.key} className="min-w-0">
                 {renderCell(column)}
               </div>
             ))}
-            {actions.length > 0 && actionCols.length === 0 ? (
-              <Dropdown placement="bottom-end">
-                <DropdownTrigger>
-                  <Button
-                    isIconOnly
-                    size="md"
-                    variant="flat"
-                    className="min-w-10 min-h-10"
-                    aria-label="Row actions"
-                  >
-                    <MoreVertical className="w-5 h-5 text-gray-600" />
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu aria-label="Row actions">
-                  {actions.map((action, index) => (
-                    <DropdownItem
-                      key={action.key || index}
-                      color={
-                        action.color || (action.danger ? 'danger' : 'default')
-                      }
-                      startContent={action.icon}
-                      onPress={() => action.onClick?.(row)}
-                    >
-                      {action.label}
-                    </DropdownItem>
-                  ))}
-                </DropdownMenu>
-              </Dropdown>
+            {hasConfiguredActions(actions) && actionCols.length === 0 ? (
+              <RowActionsMenu actions={actions} row={row} size="md" className="min-w-10 min-h-10" />
             ) : null}
           </div>
         )}
@@ -277,7 +295,7 @@ export default function DataTable({
   )
   const tableColumns = resolvedColumns
   const hasActionsColumn = tableColumns.some(isActionsColumn)
-  const showSharedActionsColumn = actions.length > 0 && !hasActionsColumn
+  const showSharedActionsColumn = hasConfiguredActions(actions) && !hasActionsColumn
 
   const selectedIdSet = useMemo(
     () => new Set((selectedIds || []).map(toIdString)),
@@ -308,17 +326,17 @@ export default function DataTable({
     })
   }, [data, sortConfig])
 
-  const handleSelectAll = () => {
+  const handleSelectAll = (selected) => {
     if (!onSelectionChange) return
     const pageIds = selectableRows.map((item) => item.id)
-    if (
+    const allSelected =
       pageIds.length > 0 &&
       pageIds.every((id) => selectedIdSet.has(toIdString(id)))
-    ) {
+    if (selected === false || (selected !== true && allSelected)) {
       onSelectionChange([])
-    } else {
-      onSelectionChange(pageIds)
+      return
     }
+    onSelectionChange(pageIds)
   }
 
   const handleSelectRow = (id) => {
@@ -326,7 +344,7 @@ export default function DataTable({
     const sid = toIdString(id)
     if (selectedIdSet.has(sid)) {
       onSelectionChange(
-        selectedIds.filter((itemId) => toIdString(itemId) !== sid)
+        selectedIds.filter((selectedId) => toIdString(selectedId) !== sid)
       )
     } else {
       onSelectionChange([...selectedIds, id])
@@ -434,33 +452,38 @@ export default function DataTable({
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 {selectable ? (
-                  <th className="px-3 py-3 w-12 sticky left-0 bg-gray-50 z-[1]">
-                    <Checkbox
-                      isSelected={
-                        selectableRows.length > 0 &&
-                        selectableRows.every((row) =>
-                          selectedIdSet.has(toIdString(row.id))
-                        )
-                      }
-                      isIndeterminate={
-                        selectableRows.some((row) =>
-                          selectedIdSet.has(toIdString(row.id))
-                        ) &&
-                        !selectableRows.every((row) =>
-                          selectedIdSet.has(toIdString(row.id))
-                        )
-                      }
-                      onValueChange={handleSelectAll}
-                      aria-label="Select all rows"
-                      size="sm"
-                    />
+                  <th className="px-2 py-2.5 w-10 sticky left-0 bg-gray-50 z-[1] pointer-events-none">
+                    <div
+                      className="pointer-events-auto relative z-10 flex items-center justify-center"
+                      onClick={stopRowEvent}
+                      onPointerDown={stopRowEvent}
+                    >
+                      <Checkbox
+                        isSelected={
+                          selectableRows.length > 0 &&
+                          selectableRows.every((row) =>
+                            selectedIdSet.has(toIdString(row.id))
+                          )
+                        }
+                        isIndeterminate={
+                          selectableRows.some((row) =>
+                            selectedIdSet.has(toIdString(row.id))
+                          ) &&
+                          !selectableRows.every((row) =>
+                            selectedIdSet.has(toIdString(row.id))
+                          )
+                        }
+                        onValueChange={handleSelectAll}
+                        aria-label="Select all rows"
+                      />
+                    </div>
                   </th>
                 ) : null}
                 {tableColumns.map((column) => (
                   <th
                     key={column.key}
                     className={cn(
-                      'px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap',
+                      'px-3 py-2.5 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap',
                       cellAlign(column.align),
                       column.sortable &&
                         'cursor-pointer hover:bg-gray-100 select-none',
@@ -512,16 +535,20 @@ export default function DataTable({
                   >
                     {selectable ? (
                       <td
-                        className="px-3 py-3.5 sticky left-0 bg-inherit z-[1]"
+                        className="px-2 py-2.5 sticky left-0 bg-inherit z-[1] align-middle pointer-events-none"
                         onClick={stopRowEvent}
                       >
                         {canSelectRow(row) ? (
-                          <Checkbox
-                            isSelected={selectedIdSet.has(toIdString(row.id))}
-                            onValueChange={() => handleSelectRow(row.id)}
-                            aria-label={`Select row ${row.id}`}
-                            size="sm"
-                          />
+                          <div
+                            className="pointer-events-auto relative z-10 flex items-center justify-center"
+                            onPointerDown={stopRowEvent}
+                          >
+                            <Checkbox
+                              isSelected={selectedIdSet.has(toIdString(row.id))}
+                              onValueChange={() => handleSelectRow(row.id)}
+                              aria-label={`Select row ${row.id}`}
+                            />
+                          </div>
                         ) : null}
                       </td>
                     ) : null}
@@ -531,7 +558,7 @@ export default function DataTable({
                         <td
                           key={column.key}
                           className={cn(
-                            'px-3 py-3.5 text-sm text-gray-900 align-middle max-w-[18rem]',
+                            'px-3 py-2.5 text-sm text-gray-900 align-middle max-w-[18rem]',
                             cellAlign(column.align),
                             hideBelowClass(column.hideBelow),
                             column.priority === 'primary' && 'font-medium',
@@ -555,37 +582,10 @@ export default function DataTable({
                     })}
                     {showSharedActionsColumn ? (
                       <td
-                        className="px-3 py-3.5 text-right"
+                        className="px-3 py-2.5 text-right"
                         onClick={stopRowEvent}
                       >
-                        <Dropdown placement="bottom-end">
-                          <DropdownTrigger>
-                            <Button
-                              isIconOnly
-                              size="sm"
-                              variant="light"
-                              aria-label="Row actions"
-                              className="min-w-9 min-h-9"
-                            >
-                              <MoreVertical className="w-4 h-4 text-gray-500" />
-                            </Button>
-                          </DropdownTrigger>
-                          <DropdownMenu aria-label="Row actions">
-                            {actions.map((action, actionIndex) => (
-                              <DropdownItem
-                                key={action.key || actionIndex}
-                                color={
-                                  action.color ||
-                                  (action.danger ? 'danger' : 'default')
-                                }
-                                startContent={action.icon}
-                                onPress={() => action.onClick?.(row)}
-                              >
-                                {action.label}
-                              </DropdownItem>
-                            ))}
-                          </DropdownMenu>
-                        </Dropdown>
+                        <RowActionsMenu actions={actions} row={row} />
                       </td>
                     ) : null}
                   </tr>
@@ -599,11 +599,12 @@ export default function DataTable({
 
       <div className={cn(cardsVisibleClass, 'space-y-3')}>
         {sortedData.map((row, index) => {
+          const rowActions = resolveRowActions(actions, row)
           const cardProps = {
             isSelected: selectedIdSet.has(toIdString(row.id)),
             onSelect: () => handleSelectRow(row.id),
             onClick: onRowClick ? () => onRowClick(row) : undefined,
-            actions: actions.map((a) => ({
+            actions: rowActions.map((a) => ({
               ...a,
               onClick: () => a.onClick?.(row),
             })),

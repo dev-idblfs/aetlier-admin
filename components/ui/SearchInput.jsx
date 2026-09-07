@@ -32,6 +32,7 @@ export default function SearchInput({
                         onClick={handleClear}
                         className="p-1 hover:bg-gray-100 rounded-full transition-colors"
                         type="button"
+                        aria-label="Clear search"
                     >
                         <X className="w-3 h-3 text-gray-400" />
                     </button>

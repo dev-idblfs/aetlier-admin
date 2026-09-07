@@ -328,10 +328,22 @@ function firstKey(keys) {
 }
 
 function itemId(child, index) {
-  if (child?.key != null && String(child.key).length) {
-    return String(child.key).replace(/^(\.\$)+/, '').replace(/^\.+/,'');
+  const candidates = [
+    child?.props?.value,
+    child?.props?.id,
+    child?.key,
+  ];
+  for (const candidate of candidates) {
+    if (candidate == null) continue;
+    let id = String(candidate)
+      .replace(/^(\.\$)+/, '')
+      .replace(/^\.+/, '')
+      .replace(/^\d+:\$/, '');
+    // Empty string keys break ListBox selection — map to sentinel
+    if (!id.length) id = 'all';
+    return id;
   }
-  return child?.props?.id ?? child?.props?.value ?? String(index);
+  return String(index);
 }
 
 export function Select({
@@ -368,43 +380,47 @@ export function Select({
     }
   };
   const items = Children.toArray(children).filter(isValidElement);
-  const selectAriaLabel = rest['aria-label'] || (!label && placeholder) || undefined;
+  const selectAriaLabel = rest['aria-label'] || label || (!label && placeholder) || undefined;
   return (
-    <HeroSelect
-      value={current ?? null}
-      onChange={handleChange}
-      placeholder={placeholder}
-      isRequired={isRequired}
-      isDisabled={isDisabled}
-      isInvalid={isInvalid}
-      className={cn(classNames?.base, className)}
-      {...rest}
-      aria-label={selectAriaLabel}
-    >
-      {label ? <Label>{label}</Label> : null}
-      <HeroSelect.Trigger className={classNames?.trigger}>
-        <HeroSelect.Value />
-        <HeroSelect.Indicator />
-      </HeroSelect.Trigger>
-      {description ? <Description>{description}</Description> : null}
-      <HeroSelect.Popover>
-        <ListBox>
-          {items.map((child, index) => {
-            const id = itemId(child, index);
-            const text =
-              child.props.textValue ||
-              (typeof child.props.children === 'string' ? child.props.children : String(id));
-            return (
-              <ListBox.Item key={id} id={id} textValue={text}>
-                {child.props.children}
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-            );
-          })}
-        </ListBox>
-      </HeroSelect.Popover>
-      {errorMessage ? <FieldError>{errorMessage}</FieldError> : null}
-    </HeroSelect>
+    <div className={cn('w-full min-w-0 flex flex-col gap-1', classNames?.base, className)}>
+      {label ? (
+        <span className="text-xs font-medium text-gray-600 leading-none">{label}</span>
+      ) : null}
+      <HeroSelect
+        value={current ?? null}
+        onChange={handleChange}
+        placeholder={placeholder}
+        isRequired={isRequired}
+        isDisabled={isDisabled}
+        isInvalid={isInvalid}
+        className="w-full min-w-0"
+        {...rest}
+        aria-label={selectAriaLabel}
+      >
+        <HeroSelect.Trigger className={cn('min-h-10', classNames?.trigger)}>
+          <HeroSelect.Value />
+          <HeroSelect.Indicator />
+        </HeroSelect.Trigger>
+        {description ? <Description>{description}</Description> : null}
+        <HeroSelect.Popover>
+          <ListBox>
+            {items.map((child, index) => {
+              const id = itemId(child, index);
+              const text =
+                child.props.textValue ||
+                (typeof child.props.children === 'string' ? child.props.children : String(id));
+              return (
+                <ListBox.Item key={id} id={id} textValue={text}>
+                  {child.props.children}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              );
+            })}
+          </ListBox>
+        </HeroSelect.Popover>
+        {errorMessage ? <FieldError>{errorMessage}</FieldError> : null}
+      </HeroSelect>
+    </div>
   );
 }
 
@@ -514,19 +530,29 @@ export function Checkbox({
   onValueChange,
   onChange,
   className,
+  isIndeterminate,
+  size: _size,
   ...rest
 }) {
+  const handleChange = (selected) => {
+    const next = typeof selected === 'boolean' ? selected : Boolean(selected);
+    if (onChange) onChange(next);
+    else onValueChange?.(next);
+  };
   return (
     <HeroCheckbox
       isSelected={isSelected}
-      onChange={onChange || onValueChange}
+      isIndeterminate={isIndeterminate}
+      onChange={handleChange}
       className={className}
       {...rest}
     >
-      <HeroCheckbox.Control>
-        <HeroCheckbox.Indicator />
-      </HeroCheckbox.Control>
-      {children ? <HeroCheckbox.Content>{children}</HeroCheckbox.Content> : null}
+      <HeroCheckbox.Content>
+        <HeroCheckbox.Control>
+          <HeroCheckbox.Indicator />
+        </HeroCheckbox.Control>
+        {children ? <span>{children}</span> : null}
+      </HeroCheckbox.Content>
     </HeroCheckbox>
   );
 }
@@ -545,10 +571,10 @@ export function Avatar({ src, name, size, className, classNames, showFallback = 
 
 export function Tooltip({ content, children, placement, className, color: _color, ...rest }) {
   if (!content) return children;
-  const { content: triggerContent, triggerProps } = flattenButtonTrigger(children);
+  // Keep the full child tree (e.g. Button) as the trigger — flattening breaks press handlers.
   return (
     <HeroTooltip {...rest}>
-      <HeroTooltip.Trigger {...triggerProps}>{triggerContent}</HeroTooltip.Trigger>
+      <HeroTooltip.Trigger>{children}</HeroTooltip.Trigger>
       <HeroTooltip.Content placement={placement} className={className}>
         {content}
       </HeroTooltip.Content>

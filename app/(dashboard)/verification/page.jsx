@@ -6,8 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye } from '@/lib/icons';
 import { Button, Select, SelectItem, Pagination } from '@/lib/heroui';
-import { ListPageLayout, ResponsiveTable } from '@/components/ui';
-import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';
+import { ListPageLayout, ResponsiveTable, StatusBadge, EntityLink, FilterBar, Alert } from '@/components/ui';
 import { useGetPendingVerificationsQuery } from '@/redux/services/api';
 import { useSelector } from 'react-redux';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
@@ -25,6 +24,7 @@ export default function VerificationQueuePage() {
   const canView = hasPermission(user, PERMISSIONS.VERIFICATION_VERIFY_ANY);
 
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -41,11 +41,26 @@ export default function VerificationQueuePage() {
   const total = data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  // Client-side search filter (API does not support q/search param yet)
+  const filteredVerifications = search.trim()
+    ? verifications.filter((v) =>
+        v.doctor_name?.toLowerCase().includes(search.toLowerCase()) ||
+        v.doctor_email?.toLowerCase().includes(search.toLowerCase())
+      )
+    : verifications;
+
   if (!canView) {
     return (
-      <div className="p-6">
-        <p className="text-gray-600">You do not have permission to view the verification queue.</p>
-      </div>
+      <ListPageLayout
+        title="Doctor verification"
+        breadcrumbs={[{ label: 'Verification' }]}
+      >
+        <Alert
+          variant="warning"
+          title="Permission required"
+          message="You do not have permission to view the verification queue."
+        />
+      </ListPageLayout>
     );
   }
 
@@ -55,7 +70,10 @@ export default function VerificationQueuePage() {
       label: 'Doctor',
       render: (row) => (
         <div>
-          <p className="font-medium text-gray-900">{row.doctor_name || '—'}</p>
+          <EntityLink
+            href={row.doctor_user_id ? `/doctors/${row.doctor_user_id}/edit` : undefined}
+            label={row.doctor_name || '—'}
+          />
           <p className="text-xs text-gray-500">{row.specializations?.join(', ')}</p>
         </div>
       ),
@@ -73,27 +91,13 @@ export default function VerificationQueuePage() {
     {
       key: 'status',
       label: 'Status',
-      render: (row) => <VerificationStatusBadge status={row.status} />,
+      render: (row) => <StatusBadge status={row.status} />,
     },
     {
       key: 'submitted',
       label: 'Submitted',
       render: (row) =>
         row.created_at ? new Date(row.created_at).toLocaleDateString() : '—',
-    },
-    {
-      key: 'actions',
-      label: '',
-      render: (row) => (
-        <Button
-          size="sm"
-          variant="flat"
-          startContent={<Eye className="w-4 h-4" />}
-          onPress={() => router.push(`/verification/${row.id}`)}
-        >
-          Review
-        </Button>
-      ),
     },
   ];
 
@@ -102,26 +106,42 @@ export default function VerificationQueuePage() {
       title="Doctor verification"
       breadcrumbs={[{ label: 'Verification' }]}
     >
-      <div className="bg-primary-50 border border-primary-100 rounded-lg p-4 text-sm text-gray-700 space-y-1">
-        <p className="font-medium text-gray-900">Approval workflow</p>
-        <ol className="list-decimal list-inside space-y-0.5 text-gray-600">
+      <Alert
+        variant="info"
+        title="Approval workflow"
+        compact
+      >
+        <ol className="list-decimal list-inside space-y-0.5 text-sm">
           <li>Open a submission and preview each document</li>
           <li>Approve or reject individual documents (permission: verification.verify.any)</li>
           <li>Approve or reject the overall application (permission: verification.approve.any)</li>
           <li>On approval, the doctor profile is published automatically</li>
         </ol>
-      </div>
+      </Alert>
 
-      <div className="flex flex-wrap gap-3 items-center">
+      <FilterBar
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search by doctor name or email..."
+        activeFiltersCount={statusFilter ? 1 : 0}
+        onClearAll={() => {
+          setStatusFilter('');
+          setPage(1);
+        }}
+      >
         <Select
-          label="Status"
-          className="max-w-xs"
+          aria-label="Status"
+          placeholder="Status"
           selectedKeys={statusFilter ? [statusFilter] : ['']}
           onSelectionChange={(keys) => {
             const val = Array.from(keys)[0];
             setStatusFilter(val === '' ? '' : String(val));
             setPage(1);
           }}
+          size="sm"
         >
           {STATUS_FILTERS.map((f) => (
             <SelectItem key={f.key} value={f.key}>
@@ -129,16 +149,26 @@ export default function VerificationQueuePage() {
             </SelectItem>
           ))}
         </Select>
-      </div>
+      </FilterBar>
 
       <ResponsiveTable
         columns={columns}
-        data={verifications}
+        data={filteredVerifications}
         isLoading={isLoading}
         emptyState={{
           title: 'No verification submissions found',
-          description: 'New doctor signups will appear here when they upload documents.',
+          description: search
+            ? 'Try adjusting your search or filters.'
+            : 'New doctor signups will appear here when they upload documents.',
         }}
+        actions={[
+          {
+            key: 'review',
+            label: 'Review',
+            icon: <Eye className="w-4 h-4" />,
+            onClick: (row) => router.push(`/verification/${row.id}`),
+          },
+        ]}
       />
 
       {totalPages > 1 && (

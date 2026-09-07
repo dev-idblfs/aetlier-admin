@@ -57,7 +57,7 @@ import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 const customerTypeOptions = [
-    { value: '', label: 'All Types' },
+    { value: 'all', label: 'All Types' },
     { value: 'business', label: 'Business' },
     { value: 'individual', label: 'Individual' },
 ];
@@ -93,20 +93,23 @@ export default function CustomersPage() {
         notes: '',
     });
 
+    const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.CUSTOMER_VIEW_ANY);
+    const canCreate = hasPermission(authUser, PERMISSIONS.CUSTOMER_CREATE);
+    const canUpdate = hasPermission(authUser, PERMISSIONS.CUSTOMER_UPDATE);
+    const canDelete = hasPermission(authUser, PERMISSIONS.CUSTOMER_DELETE);
+
     const { data, isLoading, refetch } = useGetCustomersQuery({
         page,
         page_size: 20,
         search: search || undefined,
         customer_type: typeFilter || undefined,
-    });
+    }, { skip: !canView });
 
     const [createCustomer, { isLoading: isCreating }] = useCreateCustomerMutation();
     const [updateCustomer, { isLoading: isUpdating }] = useUpdateCustomerMutation();
     const [deleteCustomer, { isLoading: isDeleting }] = useDeleteCustomerMutation();
     const [formErrors, setFormErrors] = useState({});
-
-    const authUser = useSelector((s) => s.auth.user);
-    const canDelete = hasPermission(authUser, PERMISSIONS.CUSTOMER_DELETE);
 
     const customers = data?.items || [];
     const totalPages = data?.total_pages || 1;
@@ -229,10 +232,8 @@ export default function CustomersPage() {
                 // Fix Enum Case (Frontend uppercase -> Backend lowercase)
                 payment_terms: (formData.payment_terms || 'DUE_ON_RECEIPT').toLowerCase(),
                 currency: formData.currency || 'INR',
-                notes: sanitize(formData.notes),
+                        notes: sanitize(formData.notes),
             };
-
-            console.log('Submitting payload:', payload);
 
             if (formMode === 'create') {
                 await createCustomer(payload).unwrap();
@@ -244,7 +245,6 @@ export default function CustomersPage() {
             onFormClose();
             refetch();
         } catch (error) {
-            console.error('Customer submit error:', error);
             toast.error(error.data?.detail || `Failed to ${formMode} customer`);
         }
     };
@@ -302,30 +302,6 @@ export default function CustomersPage() {
                 </Chip>
             ),
         },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (row) => (
-                <Dropdown>
-                    <DropdownTrigger>
-                        <Button variant="light" isIconOnly size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                        </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Customer actions">
-                        <DropdownItem key="view" startContent={<Eye className="w-4 h-4" />} onPress={() => handleViewCustomer(row)}>
-                            View Details
-                        </DropdownItem>
-                        <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onPress={() => handleEditCustomer(row)}>
-                            Edit Customer
-                        </DropdownItem>
-                        <DropdownItem key="delete" startContent={<Trash2 className="w-4 h-4" />} className="text-danger" color="danger" onPress={() => handleDeleteClick(row)}>
-                            Delete Customer
-                        </DropdownItem>
-                    </DropdownMenu>
-                </Dropdown>
-            ),
-        },
     ];
 
     return (
@@ -336,9 +312,11 @@ export default function CustomersPage() {
                 { label: 'Customers' },
             ]}
             actions={
-                <Button color="primary" size="sm" startContent={<Plus className="w-4 h-4" />} onPress={handleAddCustomer}>
-                    New Customer
-                </Button>
+                canCreate && (
+                    <Button color="primary" size="sm" startContent={<Plus className="w-4 h-4" />} onPress={handleAddCustomer}>
+                        New Customer
+                    </Button>
+                )
             }
             toolbar={(
                 <>
@@ -351,14 +329,17 @@ export default function CustomersPage() {
                     <div className="flex gap-2">
                         <Select
                             placeholder="Type"
-                            selectedKeys={typeFilter ? [typeFilter] : []}
-                            onSelectionChange={(keys) => setTypeFilter(Array.from(keys)[0] || '')}
+                            selectedKeys={typeFilter ? [typeFilter] : ['all']}
+                            onSelectionChange={(keys) => {
+                                const value = Array.from(keys)[0] || 'all';
+                                setTypeFilter(value === 'all' ? '' : value);
+                            }}
                             className="w-full sm:w-36"
                             size="sm"
                             classNames={{ trigger: 'bg-white' }}
                         >
                             {customerTypeOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem key={option.value} value={option.value} textValue={option.label}>
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -396,17 +377,17 @@ export default function CustomersPage() {
                     icon: 'users',
                     title: 'No customers found',
                     description: search || typeFilter ? 'Try adjusting your filters' : 'Add your first customer',
-                    action: (
+                    action: canCreate ? (
                         <Button color="primary" startContent={<Plus className="w-4 h-4" />} onPress={handleAddCustomer}>
                             New Customer
                         </Button>
-                    ),
+                    ) : null,
                 }}
                 actions={[
                     { label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: handleViewCustomer },
-                    { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: handleEditCustomer },
-                    { label: 'Delete', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true },
-                ]}
+                    canUpdate && { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: handleEditCustomer },
+                    canDelete && { label: 'Delete', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true },
+                ].filter(Boolean)}
                 renderMobileCard={(customer, { actions }) => (
                     <CustomerMobileCard customer={customer} actions={actions} onClick={() => handleViewCustomer(customer)} />
                 )}
@@ -575,14 +556,16 @@ export default function CustomersPage() {
                 onOpenChange={onDetailOpenChange}
                 title="Customer Details"
                 actions={
-                    <Button
-                        color="primary"
-                        startContent={<Edit className="w-4 h-4" />}
-                        onPress={() => { onDetailOpenChange(false); handleEditCustomer(selectedCustomer); }}
-                        className="w-full sm:w-auto"
-                    >
-                        Edit Customer
-                    </Button>
+                    canUpdate ? (
+                        <Button
+                            color="primary"
+                            startContent={<Edit className="w-4 h-4" />}
+                            onPress={() => { onDetailOpenChange(false); handleEditCustomer(selectedCustomer); }}
+                            className="w-full sm:w-auto"
+                        >
+                            Edit Customer
+                        </Button>
+                    ) : null
                 }
             >
                 {selectedCustomer && (

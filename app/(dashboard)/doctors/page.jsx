@@ -23,7 +23,6 @@ import {
 } from '@/lib/icons';
 import { useSelector } from 'react-redux';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
-import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';
 import { getDoctorDisplayStatus } from '@/utils/doctorStatus';
 import {
     Button,
@@ -37,12 +36,14 @@ import { toast } from 'react-hot-toast';
 import {
     ListPageLayout,
     StatusBadge,
+    EntityLink,
+    FilterBar,
+    Alert,
     ResponsiveTable,
     MobileCard,
     ConfirmModal,
     DetailModal,
     DetailRow,
-    SearchInput,
     BulkActionBar,
 } from '@/components/ui';
 import {
@@ -57,6 +58,7 @@ import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 export default function DoctorsPage() {
     const router = useRouter();
     const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.DOCTOR_READ_ANY);
     const canCreate = hasPermission(authUser, PERMISSIONS.DOCTOR_CREATE);
     const canUpdate = hasPermission(authUser, PERMISSIONS.DOCTOR_UPDATE);
     const canDelete = hasPermission(authUser, PERMISSIONS.DOCTOR_DELETE);
@@ -92,12 +94,15 @@ export default function DoctorsPage() {
         return args;
     }, [verificationFilter, activeFilter, publishedFilter, search]);
 
-    const { data, isLoading, isError, error, refetch } = useGetDoctorsQuery(queryArgs);
+    const { data, isLoading, isError, error, refetch } = useGetDoctorsQuery(queryArgs, {
+        skip: !canView,
+    });
     const [deleteDoctor, { isLoading: isDeleting }] = useDeleteDoctorMutation();
 
     const filteredDoctors = useMemo(() => normalizeApiList(data), [data]);
 
-    // Pagination
+    // Client-side pagination — backend GET /doctors does not currently support page/page_size params
+    // TODO: Add server-side pagination when backend supports it
     const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
 
@@ -149,7 +154,7 @@ export default function DoctorsPage() {
             label: 'Verification',
             render: (row) =>
                 row?.verification_status ? (
-                    <VerificationStatusBadge status={row.verification_status} />
+                    <StatusBadge status={row.verification_status} />
                 ) : (
                     <span className="text-xs text-gray-400">—</span>
                 ),
@@ -225,60 +230,83 @@ export default function DoctorsPage() {
                 ) : null
             }
             toolbar={(
-                <div className="flex flex-col sm:flex-row gap-3 w-full">
-                    <SearchInput
-                        value={search}
-                        onChange={handleSearchChange}
-                        placeholder="Search doctors..."
-                        className="flex-1 max-w-md"
-                    />
+                <FilterBar
+                    searchValue={search}
+                    onSearchChange={handleSearchChange}
+                    searchPlaceholder="Search doctors..."
+                    activeFiltersCount={
+                        (verificationFilter ? 1 : 0) +
+                        (activeFilter ? 1 : 0) +
+                        (publishedFilter ? 1 : 0)
+                    }
+                    onClearAll={() => {
+                        setVerificationFilter('');
+                        setActiveFilter('');
+                        setPublishedFilter('');
+                    }}
+                >
                     <Select
                         aria-label="Verification status"
                         placeholder="Verification"
-                        selectedKeys={verificationFilter ? [verificationFilter] : []}
-                        onSelectionChange={(keys) => setVerificationFilter(Array.from(keys)[0] || '')}
-                        className="w-full sm:w-44"
+                        selectedKeys={verificationFilter ? [verificationFilter] : ['all']}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || 'all';
+                            setVerificationFilter(value === 'all' ? '' : value);
+                        }}
                         size="sm"
                     >
-                        <SelectItem key="">All verification</SelectItem>
-                        <SelectItem key="pending">Pending</SelectItem>
-                        <SelectItem key="verified">Verified</SelectItem>
-                        <SelectItem key="rejected">Rejected</SelectItem>
-                        <SelectItem key="expired">Expired</SelectItem>
-                        <SelectItem key="none">No record</SelectItem>
+                        <SelectItem key="all" value="all" textValue="All verification">All verification</SelectItem>
+                        <SelectItem key="pending" value="pending" textValue="Pending">Pending</SelectItem>
+                        <SelectItem key="verified" value="verified" textValue="Verified">Verified</SelectItem>
+                        <SelectItem key="rejected" value="rejected" textValue="Rejected">Rejected</SelectItem>
+                        <SelectItem key="expired" value="expired" textValue="Expired">Expired</SelectItem>
+                        <SelectItem key="none" value="none" textValue="No record">No record</SelectItem>
                     </Select>
                     <Select
                         aria-label="Active filter"
                         placeholder="Active"
-                        selectedKeys={activeFilter ? [activeFilter] : []}
-                        onSelectionChange={(keys) => setActiveFilter(Array.from(keys)[0] || '')}
-                        className="w-full sm:w-36"
+                        selectedKeys={activeFilter ? [activeFilter] : ['all']}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || 'all';
+                            setActiveFilter(value === 'all' ? '' : value);
+                        }}
                         size="sm"
                     >
-                        <SelectItem key="">All active</SelectItem>
-                        <SelectItem key="true">Active</SelectItem>
-                        <SelectItem key="false">Inactive</SelectItem>
+                        <SelectItem key="all" value="all" textValue="All active">All active</SelectItem>
+                        <SelectItem key="true" value="true" textValue="Active">Active</SelectItem>
+                        <SelectItem key="false" value="false" textValue="Inactive">Inactive</SelectItem>
                     </Select>
                     <Select
                         aria-label="Published filter"
                         placeholder="Published"
-                        selectedKeys={publishedFilter ? [publishedFilter] : []}
-                        onSelectionChange={(keys) => setPublishedFilter(Array.from(keys)[0] || '')}
-                        className="w-full sm:w-40"
+                        selectedKeys={publishedFilter ? [publishedFilter] : ['all']}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || 'all';
+                            setPublishedFilter(value === 'all' ? '' : value);
+                        }}
                         size="sm"
                     >
-                        <SelectItem key="">All published</SelectItem>
-                        <SelectItem key="true">Published</SelectItem>
-                        <SelectItem key="false">Unpublished</SelectItem>
+                        <SelectItem key="all" value="all" textValue="All published">All published</SelectItem>
+                        <SelectItem key="true" value="true" textValue="Published">Published</SelectItem>
+                        <SelectItem key="false" value="false" textValue="Unpublished">Unpublished</SelectItem>
                     </Select>
-                </div>
+                </FilterBar>
             )}
         >
+            {!canView && (
+                <Alert
+                    variant="warning"
+                    title="Permission required"
+                    message="You do not have permission to view doctors."
+                />
+            )}
+
             {isError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    Failed to load doctors
-                    {error?.data?.detail ? `: ${error.data.detail}` : '. Check that the API is running and NEXT_PUBLIC_API_URL is correct.'}
-                </div>
+                <Alert
+                    variant="danger"
+                    title="Failed to load doctors"
+                    message={error?.data?.detail || 'Check that the API is running and NEXT_PUBLIC_API_URL is correct.'}
+                />
             )}
 
             {/* Results count */}
@@ -395,7 +423,7 @@ export default function DoctorsPage() {
                                 <p className="text-sm md:text-base text-primary-600">{selectedDoctor.specializations?.join(', ')}</p>
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {selectedDoctor.verification_status && (
-                                        <VerificationStatusBadge status={selectedDoctor.verification_status} />
+                                        <StatusBadge status={selectedDoctor.verification_status} />
                                     )}
                                     <StatusBadge status={getDoctorDisplayStatus(selectedDoctor)} />
                                 </div>
@@ -456,6 +484,17 @@ export default function DoctorsPage() {
                             <DetailRow
                                 label="Consultation fee"
                                 value={`₹${selectedDoctor.consultation_fee}`}
+                            />
+                        )}
+                        {selectedDoctor.verification_id && (
+                            <DetailRow
+                                label="Verification"
+                                value={
+                                    <EntityLink
+                                        href={`/verification/${selectedDoctor.verification_id}`}
+                                        label="View verification record"
+                                    />
+                                }
                             />
                         )}
                         {selectedDoctor.bio && (

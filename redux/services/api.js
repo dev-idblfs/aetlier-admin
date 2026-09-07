@@ -1669,10 +1669,6 @@ export const {
   useUpdateMobilePromotionMutation,
   useDeleteMobilePromotionMutation,
   useReorderMobilePromotionsMutation,
-  useGetAppSettingsQuery,
-  useGetAppSettingQuery,
-  useUpdateAppSettingMutation,
-  useSeedAppSettingsMutation,
   // Categories
   useGetCategoriesQuery,
   useGetCategoryQuery,

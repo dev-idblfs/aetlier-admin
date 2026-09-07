@@ -37,7 +37,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, LinkButton, BulkActionBar } from '@/components/ui';
+import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, LinkButton, BulkActionBar, StatusBadge } from '@/components/ui';
 import {
     useGetExpensesQuery,
     useGetExpenseCategoriesQuery,
@@ -51,7 +51,7 @@ import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 const paymentStatusOptions = [
-    { value: '', label: 'All Status' },
+    { value: 'all', label: 'All Status' },
     { value: 'PAID', label: 'Paid' },
     { value: 'PENDING', label: 'Pending' },
 ];
@@ -66,6 +66,11 @@ export default function ExpensesPage() {
 
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange, onClose: onDeleteClose } = useDisclosure();
 
+    const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.EXPENSE_VIEW_ANY);
+    const canCreate = hasPermission(authUser, PERMISSIONS.EXPENSE_CREATE);
+    const canUpdate = hasPermission(authUser, PERMISSIONS.EXPENSE_UPDATE);
+    const canDelete = hasPermission(authUser, PERMISSIONS.EXPENSE_DELETE);
 
     const { data, isLoading, refetch } = useGetExpensesQuery({
         page,
@@ -73,13 +78,10 @@ export default function ExpensesPage() {
         category_id: categoryFilter || undefined,
         payment_status: statusFilter || undefined,
         search: search || undefined,
-    });
+    }, { skip: !canView });
 
     const { data: categories } = useGetExpenseCategoriesQuery();
     const [deleteExpense, { isLoading: isDeleting }] = useDeleteExpenseMutation();
-
-    const authUser = useSelector((s) => s.auth.user);
-    const canDelete = hasPermission(authUser, PERMISSIONS.EXPENSE_DELETE);
 
     const expenses = data?.expenses || [];
     const totalPages = data?.total_pages || 1;
@@ -102,7 +104,7 @@ export default function ExpensesPage() {
 
     const categoryOptions = useMemo(() => {
         return [
-            { value: '', label: 'All Categories' },
+            { value: 'all', label: 'All Categories' },
             ...(categories || []).map(cat => ({ value: cat.id, label: cat.name }))
         ];
     }, [categories]);
@@ -163,39 +165,7 @@ export default function ExpensesPage() {
         {
             key: 'status',
             label: 'Status',
-            render: (row) => (
-                <Chip
-                    size="sm"
-                    color={row.payment_status === 'PAID' ? 'success' : 'warning'}
-                    variant="flat"
-                >
-                    {row.payment_status === 'PAID' ? 'Paid' : 'Pending'}
-                </Chip>
-            ),
-        },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (row) => (
-                <Dropdown>
-                    <DropdownTrigger>
-                        <Button variant="light" isIconOnly size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                        </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Expense actions">
-                        <DropdownItem key="view" startContent={<Eye className="w-4 h-4" />} onPress={() => router.push(`/finance/expenses/${row.id}`)}>
-                            View Details
-                        </DropdownItem>
-                        <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onPress={() => router.push(`/finance/expenses/${row.id}/edit`)}>
-                            Edit Expense
-                        </DropdownItem>
-                        <DropdownItem key="delete" startContent={<Trash2 className="w-4 h-4" />} className="text-danger" color="danger" onPress={() => handleDeleteClick(row)}>
-                            Delete Expense
-                        </DropdownItem>
-                    </DropdownMenu>
-                </Dropdown>
-            ),
+            render: (row) => <StatusBadge status={row.payment_status} type="payment" />,
         },
     ];
 
@@ -216,14 +186,16 @@ export default function ExpensesPage() {
                     >
                         Categories
                     </LinkButton>
-                    <LinkButton
-                        href="/finance/expenses/new"
-                        color="primary"
-                        size="sm"
-                        startContent={<Plus className="w-4 h-4" />}
-                    >
-                        New Expense
-                    </LinkButton>
+                    {canCreate && (
+                        <LinkButton
+                            href="/finance/expenses/new"
+                            color="primary"
+                            size="sm"
+                            startContent={<Plus className="w-4 h-4" />}
+                        >
+                            New Expense
+                        </LinkButton>
+                    )}
                 </div>
             }
             toolbar={(
@@ -237,28 +209,34 @@ export default function ExpensesPage() {
                     <div className="flex gap-2 flex-wrap">
                         <Select
                             placeholder="Category"
-                            selectedKeys={categoryFilter ? [categoryFilter] : []}
-                            onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0] || '')}
+                            selectedKeys={categoryFilter ? [categoryFilter] : ['all']}
+                            onSelectionChange={(keys) => {
+                                const value = Array.from(keys)[0] || 'all';
+                                setCategoryFilter(value === 'all' ? '' : value);
+                            }}
                             className="w-full sm:w-40"
                             size="sm"
                             classNames={{ trigger: 'bg-white' }}
                         >
                             {categoryOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem key={option.value} value={option.value} textValue={option.label}>
                                     {option.label}
                                 </SelectItem>
                             ))}
                         </Select>
                         <Select
                             placeholder="Status"
-                            selectedKeys={statusFilter ? [statusFilter] : []}
-                            onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] || '')}
+                            selectedKeys={statusFilter ? [statusFilter] : ['all']}
+                            onSelectionChange={(keys) => {
+                                const value = Array.from(keys)[0] || 'all';
+                                setStatusFilter(value === 'all' ? '' : value);
+                            }}
                             className="w-full sm:w-32"
                             size="sm"
                             classNames={{ trigger: 'bg-white' }}
                         >
                             {paymentStatusOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem key={option.value} value={option.value} textValue={option.label}>
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -308,9 +286,9 @@ export default function ExpensesPage() {
                 }}
                 actions={[
                     { label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: (row) => router.push(`/finance/expenses/${row.id}`) },
-                    { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: (row) => router.push(`/finance/expenses/${row.id}/edit`) },
-                    { label: 'Delete', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true },
-                ]}
+                    canUpdate && { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: (row) => router.push(`/finance/expenses/${row.id}/edit`) },
+                    canDelete && { label: 'Delete', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true },
+                ].filter(Boolean)}
                 renderMobileCard={(expense, { actions }) => (
                     <ExpenseMobileCard expense={expense} actions={actions} onClick={() => router.push(`/finance/expenses/${expense.id}`)} />
                 )}
@@ -366,13 +344,7 @@ function ExpenseMobileCard({ expense, actions, onClick }) {
                 </div>
                 <div className="text-right">
                     <p className="font-semibold text-red-600">-{formatCurrency(expense.amount)}</p>
-                    <Chip
-                        size="sm"
-                        color={expense.payment_status === 'PAID' ? 'success' : 'warning'}
-                        variant="flat"
-                    >
-                        {expense.payment_status === 'PAID' ? 'Paid' : 'Pending'}
-                    </Chip>
+                    <StatusBadge status={expense.payment_status} type="payment" />
                 </div>
             </MobileCard.Header>
             <MobileCard.Meta>

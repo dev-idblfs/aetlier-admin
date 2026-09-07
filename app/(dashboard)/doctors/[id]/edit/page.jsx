@@ -3,23 +3,73 @@
 import { useRouter, useParams } from 'next/navigation';
 import { Button, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
+import { Calendar } from '@/lib/icons';
 
 import {
     useGetDoctorQuery,
     useUpdateDoctorMutation,
     useGetDoctorVerificationQuery,
+    useGetAppointmentsQuery,
 } from '@/redux/services/api';
-import { FormPageLayout, FormCompactCard, FormSectionCard } from '@/components/ui';
+import { FormPageLayout, FormCompactCard, FormSectionCard, EntityLink, StatusBadge, Alert } from '@/components/ui';
 import DoctorForm from '@/features/doctors/components/DoctorForm';
 import DoctorServiceAssignments from '@/features/doctors/components/DoctorServiceAssignments';
-import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';
 import DocumentReviewCard from '@/components/verification/DocumentReviewCard';
 import VerificationActions from '@/components/verification/VerificationActions';
-import AuditTimeline from '@/components/verification/AuditTimeline';
+import AuditTimeline from '@/components/audit/AuditTimeline';
 import VerificationReviewSteps from '@/components/verification/VerificationReviewSteps';
 import { VERIFICATION_STATUS } from '@/constants/verification';
 import { useSelector } from 'react-redux';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+
+function AppointmentsContext({ doctorUserId }) {
+    const user = useSelector((s) => s.auth.user);
+    const canViewAppointments = hasPermission(user, PERMISSIONS.APPOINTMENT_READ_ANY);
+
+    const { data: appointmentsData, isLoading } = useGetAppointmentsQuery(
+        { doctor_id: doctorUserId, page: 1, page_size: 5 },
+        { skip: !doctorUserId || !canViewAppointments }
+    );
+
+    if (!canViewAppointments) return null;
+
+    const appointments = appointmentsData?.items || appointmentsData || [];
+    const hasAppointments = appointments.length > 0;
+
+    if (isLoading) {
+        return (
+            <Alert
+                variant="info"
+                icon={<Calendar className="w-4 h-4" />}
+                compact
+                message="Loading upcoming appointments..."
+            />
+        );
+    }
+
+    if (!hasAppointments) return null;
+
+    return (
+        <Alert
+            variant="info"
+            icon={<Calendar className="w-4 h-4" />}
+            compact
+        >
+            <div className="text-sm space-y-1">
+                <p className="font-medium">
+                    <EntityLink href={`/appointments?doctor_id=${doctorUserId}`}>
+                        {appointments.length} upcoming appointment{appointments.length !== 1 ? 's' : ''}
+                    </EntityLink>
+                </p>
+                {appointments.slice(0, 2).map((apt) => (
+                    <p key={apt.id} className="text-xs text-gray-600">
+                        {apt.appointment_date} · <StatusBadge status={apt.status} size="sm" />
+                    </p>
+                ))}
+            </div>
+        </Alert>
+    );
+}
 
 function VerificationSection({ doctorUserId }) {
     const user = useSelector((s) => s.auth.user);
@@ -54,7 +104,7 @@ function VerificationSection({ doctorUserId }) {
             <FormSectionCard embedded title="Verification">
                 <div className="flex items-center justify-between gap-2 mb-2">
                     <p className="text-xs text-gray-500">Review submitted credentials and documents</p>
-                    <VerificationStatusBadge status={verification.status} />
+                    <StatusBadge status={verification.status} />
                 </div>
 
                 <div className="space-y-3">
@@ -65,10 +115,12 @@ function VerificationSection({ doctorUserId }) {
                     />
 
                     {verification.status === VERIFICATION_STATUS.REJECTED && verification.rejection_reason && (
-                        <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
-                            <p className="text-sm font-medium text-red-700">Rejection reason</p>
-                            <p className="text-sm text-red-600 mt-1">{verification.rejection_reason}</p>
-                        </div>
+                        <Alert
+                            variant="danger"
+                            title="Rejection reason"
+                            message={verification.rejection_reason}
+                            compact
+                        />
                     )}
 
                     {verification.documents?.length > 0 && (
@@ -81,7 +133,11 @@ function VerificationSection({ doctorUserId }) {
                     )}
 
                     <VerificationActions verification={verification} onUpdated={refetch} />
-                    <AuditTimeline verificationId={verification.id} />
+                    <AuditTimeline
+                        entityType="doctor_verifications"
+                        entityId={verification.id}
+                        compact
+                    />
                 </div>
             </FormSectionCard>
         </FormCompactCard>
@@ -167,6 +223,7 @@ export default function EditDoctorPage() {
 
             {(doctor?.user_id || doctor?.id) && (
                 <div className="mt-3 space-y-3">
+                    <AppointmentsContext doctorUserId={doctor.user_id || doctor.id} />
                     <DoctorServiceAssignments doctorId={doctor.user_id || doctor.id} />
                     <VerificationSection doctorUserId={doctor.user_id || doctor.id} />
                 </div>

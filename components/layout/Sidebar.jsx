@@ -193,7 +193,7 @@ export default function Sidebar() {
     const renderSidebarContent = () => (
         <>
             {/* Logo */}
-            <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
+            <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
                 <AnimatePresence mode="wait">
                     {showLabels && (
                         <motion.div
@@ -214,7 +214,7 @@ export default function Sidebar() {
                 <button
                     type="button"
                     onClick={() => setIsMobileOpen(false)}
-                    className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    className="md:hidden flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors min-w-11 min-h-11"
                     aria-label="Close navigation menu"
                 >
                     <X className="w-5 h-5 text-gray-500" />
@@ -224,7 +224,7 @@ export default function Sidebar() {
                 <button
                     type="button"
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    className="hidden md:flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors min-w-11 min-h-11"
                     aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                     {isCollapsed ? (
@@ -360,7 +360,7 @@ export default function Sidebar() {
             </nav>
 
             {/* User & Logout */}
-            <div className="p-3 border-t border-gray-100">
+            <div className="p-3 border-t border-gray-200">
                 <AnimatePresence mode="wait">
                     {showLabels && user && (
                         <motion.div
@@ -406,7 +406,7 @@ export default function Sidebar() {
             <motion.aside
                 initial={false}
                 animate={{ width: isCollapsed ? 80 : 280 }}
-                className="hidden md:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-40 flex-col"
+                className="hidden md:flex fixed left-0 top-0 h-screen z-40 flex-col bg-white border-r border-gray-200"
             >
                 {renderSidebarContent()}
             </motion.aside>
@@ -432,7 +432,7 @@ export default function Sidebar() {
                             animate={{ x: 0 }}
                             exit={{ x: -280 }}
                             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-                            className="md:hidden fixed left-0 top-0 h-screen w-[min(280px,85vw)] bg-white border-r border-gray-100 z-50 flex flex-col shadow-xl"
+                            className="md:hidden fixed left-0 top-0 h-screen w-[min(280px,85vw)] z-50 flex flex-col shadow-xl bg-white border-r border-gray-200"
                         >
                             {renderSidebarContent()}
                         </motion.aside>

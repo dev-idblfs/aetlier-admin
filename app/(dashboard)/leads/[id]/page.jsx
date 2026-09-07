@@ -26,6 +26,9 @@ import {
     FormTextarea,
     FormSelect,
     DEFAULT_FORM_OPTIONS,
+    StatusBadge,
+    EntityLink,
+    Alert,
 } from '@/components/ui';
 import { leadUpdateSchema } from '@/lib/validation';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
@@ -51,9 +54,10 @@ export default function LeadDetailPage() {
     const { id } = useParams();
     const router = useRouter();
     const user = useSelector((s) => s.auth.user);
+    const canView = hasPermission(user, PERMISSIONS.LEAD_READ_ANY);
     const canWrite = hasPermission(user, PERMISSIONS.LEAD_WRITE);
 
-    const { data: lead, isLoading } = useGetLeadQuery(id, { skip: !id });
+    const { data: lead, isLoading, error } = useGetLeadQuery(id, { skip: !id || !canView });
 
     if (isLoading) {
         return (
@@ -63,17 +67,25 @@ export default function LeadDetailPage() {
         );
     }
 
-    if (!lead) {
+    if (error || (!isLoading && !lead)) {
         return (
             <ListPageLayout
                 title="Lead Details"
                 breadcrumbs={[
                     { label: 'Leads', href: '/leads' },
-                    { label: 'Not found' },
+                    { label: error ? 'Error' : 'Not found' },
                 ]}
             >
+                {error && (
+                    <Alert
+                        variant="danger"
+                        title="Failed to load lead"
+                        message={error?.data?.detail || error?.message || 'An error occurred while loading the lead.'}
+                        className="mb-6"
+                    />
+                )}
                 <div className="text-center py-20">
-                    <p className="text-gray-500">Lead not found.</p>
+                    <p className="text-gray-500">{error ? 'Could not load lead details.' : 'Lead not found.'}</p>
                     <Button
                         variant="light"
                         onPress={() => router.push('/leads')}
@@ -87,6 +99,8 @@ export default function LeadDetailPage() {
     }
 
     const fullName = lead.user?.full_name || lead.user?.name || '—';
+    const userEmail = lead.user?.email;
+    const userSearchHref = userEmail ? `/users?search=${encodeURIComponent(userEmail)}` : null;
 
     return (
         <ListPageLayout
@@ -107,7 +121,11 @@ export default function LeadDetailPage() {
                         <User className="w-4 h-4 text-gray-400 shrink-0" />
                         <div>
                             <p className="text-xs text-gray-400">Name</p>
-                            <p className="text-sm font-medium text-gray-900">{fullName}</p>
+                            {userSearchHref ? (
+                                <EntityLink href={userSearchHref} className="text-sm font-medium">{fullName}</EntityLink>
+                            ) : (
+                                <p className="text-sm font-medium text-gray-900">{fullName}</p>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -116,13 +134,7 @@ export default function LeadDetailPage() {
                             <p className="text-xs text-gray-400">Email</p>
                             <div className="flex flex-wrap items-center gap-2">
                                 <p className="text-sm text-gray-900">{lead.user?.email || '—'}</p>
-                                <Chip
-                                    size="sm"
-                                    variant="flat"
-                                    color={lead.user?.is_verified ? 'success' : 'default'}
-                                >
-                                    {lead.user?.is_verified ? 'Verified' : 'Unverified'}
-                                </Chip>
+                                <StatusBadge status={lead.user?.is_verified ? 'verified' : 'unverified'} />
                             </div>
                         </div>
                     </div>
@@ -133,11 +145,19 @@ export default function LeadDetailPage() {
                             <p className="text-sm text-gray-900">{lead.user?.phone || '—'}</p>
                         </div>
                     </div>
-                    <div>
-                        <p className="text-xs text-gray-400">Source</p>
-                        <Chip size="sm" variant="flat" className="mt-0.5">
-                            {SOURCE_LABELS[lead.source] || lead.source}
-                        </Chip>
+                    <div className="flex items-start gap-3">
+                        <div>
+                            <p className="text-xs text-gray-400">Source</p>
+                            <Chip size="sm" variant="flat" className="mt-0.5">
+                                {SOURCE_LABELS[lead.source] || lead.source}
+                            </Chip>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <div>
+                            <p className="text-xs text-gray-400">Status</p>
+                            <StatusBadge status={lead.status.toLowerCase()} className="mt-0.5" />
+                        </div>
                     </div>
                     <div>
                         <p className="text-xs text-gray-400">Created</p>

@@ -7,6 +7,7 @@ import {
   Spinner,
   Card as HeroCard,
   CardBody,
+  useDisclosure,
 } from '@/lib/heroui'
 import { toast } from 'react-hot-toast'
 import {
@@ -17,7 +18,7 @@ import {
   XCircle,
   BadgeCheck,
 } from '@/lib/icons'
-import { FormPageLayout } from '@/components/ui'
+import { FormPageLayout, ConfirmModal } from '@/components/ui'
 import AccessDenied from '@/components/AccessDenied'
 import AppointmentDetailBody from '@/features/appointments/components/AppointmentDetailBody'
 import {
@@ -84,6 +85,9 @@ export default function AppointmentDetailPage() {
   const [completeAppointment, { isLoading: isCompleting }] =
     useCompleteAppointmentMutation()
 
+  const { isOpen: isCancelOpen, onOpen: onCancelOpen, onOpenChange: onCancelOpenChange } = useDisclosure()
+  const { isOpen: isCompleteOpen, onOpen: onCompleteOpen, onOpenChange: onCompleteOpenChange } = useDisclosure()
+
   if (!canView) {
     return (
       <AccessDenied
@@ -128,9 +132,14 @@ export default function AppointmentDetailPage() {
       router.push(`/finance/invoices/${appointment.invoice_id}`)
       return
     }
+    onCompleteOpen()
+  }
+
+  const handleCompleteConfirm = async () => {
     try {
       const result = await completeAppointment({ id: appointmentId }).unwrap()
       toast.success('Completed — draft invoice created')
+      onCompleteOpenChange(false)
       if (result?.invoice?.id) {
         router.push(`/finance/invoices/${result.invoice.id}`)
       } else {
@@ -141,14 +150,14 @@ export default function AppointmentDetailPage() {
     }
   }
 
-  const handleCancel = async () => {
-    if (!window.confirm('Cancel this appointment?')) return
+  const handleCancelConfirm = async () => {
     try {
       await deleteAppointment({
         id: appointmentId,
         reason: 'Cancelled from admin detail',
       }).unwrap()
       toast.success('Appointment cancelled')
+      onCancelOpenChange(false)
       router.push('/appointments')
     } catch (error) {
       toast.error(error?.data?.detail || 'Failed to cancel')
@@ -286,8 +295,7 @@ export default function AppointmentDetailPage() {
                 color="danger"
                 variant="flat"
                 startContent={<XCircle className="h-4 w-4" />}
-                isLoading={isDeleting}
-                onPress={handleCancel}
+                onPress={onCancelOpen}
               >
                 Cancel appointment
               </Button>
@@ -295,6 +303,28 @@ export default function AppointmentDetailPage() {
           </CardBody>
         </HeroCard>
       </div>
+
+      <ConfirmModal
+        isOpen={isCancelOpen}
+        onOpenChange={onCancelOpenChange}
+        onConfirm={handleCancelConfirm}
+        title="Cancel Appointment"
+        message={`Cancel this appointment for ${patientName}?`}
+        confirmLabel="Cancel Appointment"
+        type="danger"
+        isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={isCompleteOpen}
+        onOpenChange={onCompleteOpenChange}
+        onConfirm={handleCompleteConfirm}
+        title="Complete Appointment"
+        message="Complete this appointment and create a draft invoice?"
+        confirmLabel="Complete & Invoice"
+        type="success"
+        isLoading={isCompleting}
+      />
     </FormPageLayout>
   )
 }

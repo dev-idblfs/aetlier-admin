@@ -30,6 +30,10 @@ import {
     ConfirmModal,
     SearchInput,
     BulkActionBar,
+    FilterBar,
+    Alert,
+    StatusBadge,
+    EntityLink,
 } from '@/components/ui';
 import {
     useGetLeadsQuery,
@@ -65,6 +69,7 @@ export default function LeadsPage() {
     const router = useRouter();
     const user = useSelector((s) => s.auth.user);
 
+    const canView = hasPermission(user, PERMISSIONS.LEAD_READ_ANY);
     const canWrite = hasPermission(user, PERMISSIONS.LEAD_WRITE);
     const canDelete = hasPermission(user, PERMISSIONS.LEAD_DELETE);
 
@@ -76,12 +81,12 @@ export default function LeadsPage() {
 
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
 
-    const { data, isLoading, refetch } = useGetLeadsQuery({
+    const { data, isLoading, error, refetch } = useGetLeadsQuery({
         page: currentPage,
         page_size: pageSize,
         status: statusFilter || undefined,
         search: search || undefined,
-    });
+    }, { skip: !canView });
 
     const [updateLead] = useUpdateLeadMutation();
     const [deleteLead, { isLoading: isDeleting }] = useDeleteLeadMutation();
@@ -146,9 +151,15 @@ export default function LeadsPage() {
             label: 'Contact',
             render: (row) => {
                 const name = row.user?.full_name || row.user?.name || '—';
+                const userEmail = row.user?.email;
+                const userSearchHref = userEmail ? `/users?search=${encodeURIComponent(userEmail)}` : null;
                 return (
                     <div>
-                        <p className="font-medium text-gray-900">{name}</p>
+                        {userSearchHref ? (
+                            <EntityLink href={userSearchHref} className="font-medium">{name}</EntityLink>
+                        ) : (
+                            <p className="font-medium text-gray-900">{name}</p>
+                        )}
                         {row.user?.email && (
                             <p className="text-xs text-gray-500 flex items-center gap-1">
                                 <Mail className="w-3 h-3" />
@@ -169,13 +180,9 @@ export default function LeadsPage() {
             key: 'verified',
             label: 'Verified',
             render: (row) => (
-                <Chip
-                    size="sm"
-                    variant="flat"
-                    color={row.user?.is_verified ? 'success' : 'default'}
-                >
-                    {row.user?.is_verified ? 'Verified' : 'Unverified'}
-                </Chip>
+                <StatusBadge
+                    status={row.user?.is_verified ? 'verified' : 'unverified'}
+                />
             ),
         },
         {
@@ -216,9 +223,7 @@ export default function LeadsPage() {
                         ))}
                     </Select>
                 ) : (
-                    <Chip size="sm" color={STATUS_COLORS[row.status] || 'default'} variant="flat">
-                        {row.status}
-                    </Chip>
+                    <StatusBadge status={row.status.toLowerCase()} />
                 ),
         },
         {
@@ -240,38 +245,49 @@ export default function LeadsPage() {
             title="Leads"
             breadcrumbs={[{ label: 'Leads' }]}
             toolbar={(
-                <SearchInput
-                    value={search}
-                    onChange={handleSearchChange}
-                    placeholder="Search by name, email or phone..."
-                    fullWidth
-                    className="flex-1"
-                />
+                <FilterBar
+                    searchValue={search}
+                    onSearchChange={handleSearchChange}
+                    searchPlaceholder="Search by name, email or phone..."
+                    activeFiltersCount={statusFilter ? 1 : 0}
+                    onClearAll={() => {
+                        setSearch('');
+                        setStatusFilter('');
+                        setCurrentPage(1);
+                    }}
+                >
+                    <div className="flex flex-wrap gap-2 col-span-full">
+                        <Chip
+                            key="all"
+                            variant={!statusFilter ? 'solid' : 'bordered'}
+                            color={!statusFilter ? 'primary' : 'default'}
+                            className="cursor-pointer"
+                            onClick={() => { setStatusFilter(''); setCurrentPage(1); }}
+                        >
+                            All
+                        </Chip>
+                        {LEAD_STATUSES.map((s) => (
+                            <Chip
+                                key={s}
+                                variant={statusFilter === s ? 'solid' : 'bordered'}
+                                color={statusFilter === s ? STATUS_COLORS[s] : 'default'}
+                                className="cursor-pointer"
+                                onClick={() => handleStatusFilterChange(s)}
+                            >
+                                {s}
+                            </Chip>
+                        ))}
+                    </div>
+                </FilterBar>
             )}
         >
-            {/* Status Filter Chips */}
-            <div className="flex flex-wrap gap-2">
-                <Chip
-                    key="all"
-                    variant={!statusFilter ? 'solid' : 'bordered'}
-                    color={!statusFilter ? 'primary' : 'default'}
-                    className="cursor-pointer"
-                    onClick={() => { setStatusFilter(''); setCurrentPage(1); }}
-                >
-                    All
-                </Chip>
-                {LEAD_STATUSES.map((s) => (
-                    <Chip
-                        key={s}
-                        variant={statusFilter === s ? 'solid' : 'bordered'}
-                        color={statusFilter === s ? STATUS_COLORS[s] : 'default'}
-                        className="cursor-pointer"
-                        onClick={() => handleStatusFilterChange(s)}
-                    >
-                        {s}
-                    </Chip>
-                ))}
-            </div>
+            {error && (
+                <Alert
+                    variant="danger"
+                    title="Failed to load leads"
+                    message={error?.data?.detail || error?.message || 'An error occurred while loading leads.'}
+                />
+            )}
 
             {/* Count */}
             <div className="text-sm text-gray-500">

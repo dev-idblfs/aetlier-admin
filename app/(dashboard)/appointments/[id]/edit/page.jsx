@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { Save } from '@/lib/icons';
+import { Save, AlertCircle } from '@/lib/icons';
 import { Button, Input, Select, SelectItem, Textarea, Spinner } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
 import { useGetAppointmentQuery, useUpdateAppointmentMutation } from '@/redux/services/api';
-import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard } from '@/components/ui';
+import { FormPageLayout, FormSectionCard, FormActions, FormCompactCard, Alert, EntityLink } from '@/components/ui';
 import { FormDivider } from '@/components/ui/FormFields';
 import PrescriptionPanel from '@/components/prescription/PrescriptionPanel';
 import AccessDenied from '@/components/AccessDenied';
@@ -68,10 +68,10 @@ export default function EditAppointmentPage() {
     ]);
     const canAccessPage = canEdit || canChangeStatus || canPrescribe;
 
-    const { data: appointment, isLoading: isLoadingAppointment } = useGetAppointmentQuery(appointmentId, {
+    const { data: appointment, isLoading: isLoadingAppointment, isError, error } = useGetAppointmentQuery(appointmentId, {
         skip: !canAccessPage || !appointmentId,
     });
-    const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
+    const [updateAppointment, { isLoading: isUpdating, isError: isUpdateError, error: updateError }] = useUpdateAppointmentMutation();
 
     const [formData, setFormData] = useState({
         status: 'pending',
@@ -201,11 +201,35 @@ export default function EditAppointmentPage() {
                         </FormActions>
                     ) : null}
                 >
+                    {isError && (
+                        <Alert
+                            variant="danger"
+                            title="Failed to load appointment"
+                            message={error?.data?.detail || error?.message || 'Unable to load appointment details.'}
+                            icon={<AlertCircle className="w-5 h-5" />}
+                        />
+                    )}
+                    {isUpdateError && (
+                        <Alert
+                            variant="danger"
+                            title="Failed to update appointment"
+                            message={updateError?.data?.detail || updateError?.message || 'Unable to save changes.'}
+                            icon={<AlertCircle className="w-5 h-5" />}
+                        />
+                    )}
                     <FormSectionCard embedded title="Operational summary">
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                             <div>
                                 <p className="text-gray-500 text-xs">Patient</p>
-                                <p className="font-medium">{patientName}</p>
+                                <EntityLink
+                                    href={
+                                        appointment.user_id || appointment.user?.id
+                                            ? `/users/${appointment.user_id || appointment.user?.id}/edit`
+                                            : null
+                                    }
+                                >
+                                    {patientName}
+                                </EntityLink>
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Service</p>
@@ -213,7 +237,15 @@ export default function EditAppointmentPage() {
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Doctor</p>
-                                <p className="font-medium">{doctorName}</p>
+                                <EntityLink
+                                    href={
+                                        doctorUserId
+                                            ? `/doctors/${doctorUserId}/edit`
+                                            : null
+                                    }
+                                >
+                                    {doctorName}
+                                </EntityLink>
                             </div>
                             <div>
                                 <p className="text-gray-500 text-xs">Mode</p>

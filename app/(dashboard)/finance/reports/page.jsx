@@ -41,6 +41,9 @@ import {
     useGetTaxSummaryReportQuery,
 } from '@/redux/services/api';
 import { formatCurrency, formatDate } from '@/utils/dateFormatters';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
+import { toast } from 'react-hot-toast';
 
 const dateRanges = [
     { value: 'this_month', label: 'This Month' },
@@ -54,6 +57,9 @@ const dateRanges = [
 export default function ReportsPage() {
     const [dateRange, setDateRange] = useState('this_month');
     const [activeTab, setActiveTab] = useState('overview');
+
+    const authUser = useSelector((s) => s.auth.user);
+    const canViewReports = hasPermission(authUser, PERMISSIONS.FINANCE_REPORTS_VIEW);
 
     // Calculate date range
     const dateParams = useMemo(() => {
@@ -98,17 +104,38 @@ export default function ReportsPage() {
         };
     }, [dateRange]);
 
-    const { data: dashboard, isLoading: dashboardLoading } = useGetFinancialDashboardQuery(dateParams);
-    const { data: revenue, isLoading: revenueLoading } = useGetRevenueReportQuery(dateParams);
-    const { data: expenses, isLoading: expensesLoading } = useGetExpenseReportQuery(dateParams);
-    const { data: profitLoss, isLoading: plLoading } = useGetProfitLossReportQuery(dateParams);
-    const { data: taxSummary, isLoading: taxLoading } = useGetTaxSummaryReportQuery(dateParams);
+    // Lazy-load only the active tab's data
+    const { data: dashboard, isLoading: dashboardLoading } = useGetFinancialDashboardQuery(
+        dateParams,
+        { skip: !canViewReports || activeTab !== 'overview' }
+    );
+    const { data: revenue, isLoading: revenueLoading } = useGetRevenueReportQuery(
+        dateParams,
+        { skip: !canViewReports || activeTab !== 'revenue' }
+    );
+    const { data: expenses, isLoading: expensesLoading } = useGetExpenseReportQuery(
+        dateParams,
+        { skip: !canViewReports || activeTab !== 'expenses' }
+    );
+    const { data: profitLoss, isLoading: plLoading } = useGetProfitLossReportQuery(
+        dateParams,
+        { skip: !canViewReports || activeTab !== 'profit-loss' }
+    );
+    const { data: taxSummary, isLoading: taxLoading } = useGetTaxSummaryReportQuery(
+        dateParams,
+        { skip: !canViewReports || activeTab !== 'tax' }
+    );
 
-    const isLoading = dashboardLoading || revenueLoading || expensesLoading || plLoading || taxLoading;
+    const isLoading = 
+        (activeTab === 'overview' && dashboardLoading) ||
+        (activeTab === 'revenue' && revenueLoading) ||
+        (activeTab === 'expenses' && expensesLoading) ||
+        (activeTab === 'profit-loss' && plLoading) ||
+        (activeTab === 'tax' && taxLoading);
 
     const handleExport = (type) => {
-        // This would be implemented with actual export logic
-        console.log(`Exporting ${activeTab} as ${type}`);
+        // Export functionality to be implemented
+        toast.success(`Export as ${type} will be available soon`);
     };
 
     return (

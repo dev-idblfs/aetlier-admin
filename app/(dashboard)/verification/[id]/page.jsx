@@ -9,11 +9,11 @@ import { useSelector } from 'react-redux';
 import {
   useGetAdminVerificationRecordQuery,
 } from '@/redux/services/api';
-import VerificationStatusBadge from '@/components/verification/VerificationStatusBadge';
+import { StatusBadge, EntityLink, Alert } from '@/components/ui';
 import DocumentReviewCard from '@/components/verification/DocumentReviewCard';
 import VerificationActions from '@/components/verification/VerificationActions';
 import VerificationReviewSteps from '@/components/verification/VerificationReviewSteps';
-import AuditTimeline from '@/components/verification/AuditTimeline';
+import AuditTimeline from '@/components/audit/AuditTimeline';
 import { VERIFICATION_STATUS } from '@/constants/verification';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 
@@ -35,7 +35,11 @@ export default function VerificationReviewPage() {
   if (!canView) {
     return (
       <div className="p-6">
-        <p className="text-gray-600">You do not have permission to review verifications.</p>
+        <Alert
+          variant="warning"
+          title="Permission required"
+          message="You do not have permission to review verifications."
+        />
       </div>
     );
   }
@@ -71,7 +75,7 @@ export default function VerificationReviewPage() {
           </h1>
           <p className="text-sm text-gray-500">{record.doctor_email}</p>
         </div>
-        <VerificationStatusBadge status={record.status} />
+        <StatusBadge status={record.status} />
       </div>
 
       <VerificationReviewSteps
@@ -81,10 +85,11 @@ export default function VerificationReviewPage() {
       />
 
       {record.status === VERIFICATION_STATUS.REJECTED && record.rejection_reason && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-lg">
-          <p className="text-sm font-medium text-red-700">Rejection reason</p>
-          <p className="text-sm text-red-600 mt-1">{record.rejection_reason}</p>
-        </div>
+        <Alert
+          variant="danger"
+          title="Rejection reason"
+          message={record.rejection_reason}
+        />
       )}
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
@@ -102,15 +107,19 @@ export default function VerificationReviewPage() {
         <VerificationActions verification={record} onUpdated={refetch} />
       </div>
 
-      <AuditTimeline verificationId={record.id} />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <AuditTimeline
+          entityType="doctor_verifications"
+          entityId={record.id}
+        />
+      </div>
 
       {record.doctor_user_id && (
-        <Button
-          variant="flat"
-          onPress={() => router.push(`/doctors/${record.doctor_user_id}/edit`)}
-        >
-          Open doctor profile
-        </Button>
+        <EntityLink
+          href={`/doctors/${record.doctor_user_id}/edit`}
+          label="Open doctor profile →"
+          className="text-base"
+        />
       )}
     </div>
   );

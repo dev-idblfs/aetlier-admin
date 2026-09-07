@@ -14,6 +14,9 @@ import {
     Briefcase,
     Clock,
     ChevronRight,
+    Wallet,
+    Shield,
+    Target,
 } from '@/lib/icons';
 import { ListPageLayout, StatsCard, Card, CardTitle, CardContent } from '@/components/ui';
 import { useGetAppointmentsQuery, useGetUsersQuery, useGetDoctorsQuery } from '@/redux/services/api';
@@ -21,13 +24,52 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { canAccessNavHref, withUserPermissions } from '@/utils/navAccess';
-import { getAppointmentListScope } from '@/utils/permissions';
+import { getAppointmentListScope, hasAnyPermission, PERMISSIONS } from '@/utils/permissions';
 
 const QUICK_ACTIONS = [
-    { href: '/appointments', icon: Calendar, label: 'Appointments', showPending: true },
-    { href: '/users', icon: Users, label: 'Users' },
-    { href: '/doctors', icon: UserCog, label: 'Doctors' },
-    { href: '/services', icon: Briefcase, label: 'Services' },
+    { 
+        href: '/appointments', 
+        icon: Calendar, 
+        label: 'Appointments', 
+        showPending: true,
+        permissions: [PERMISSIONS.APPOINTMENT_READ_ANY, PERMISSIONS.APPOINTMENT_READ_OWN, PERMISSIONS.APPOINTMENT_READ_ASSIGNED]
+    },
+    { 
+        href: '/users', 
+        icon: Users, 
+        label: 'Users',
+        permissions: [PERMISSIONS.USER_READ_ANY]
+    },
+    { 
+        href: '/doctors', 
+        icon: UserCog, 
+        label: 'Doctors',
+        permissions: [PERMISSIONS.DOCTOR_READ_ANY]
+    },
+    { 
+        href: '/services', 
+        icon: Briefcase, 
+        label: 'Services',
+        permissions: [PERMISSIONS.SERVICE_READ_ANY]
+    },
+    { 
+        href: '/finance', 
+        icon: Wallet, 
+        label: 'Finance',
+        permissions: [PERMISSIONS.INVOICE_VIEW_ANY, PERMISSIONS.EXPENSE_VIEW_ANY, PERMISSIONS.FINANCE_DASHBOARD_VIEW]
+    },
+    { 
+        href: '/verification', 
+        icon: Shield, 
+        label: 'Verification',
+        permissions: [PERMISSIONS.VERIFICATION_VERIFY_ANY, PERMISSIONS.VERIFICATION_APPROVE_ANY]
+    },
+    { 
+        href: '/leads', 
+        icon: Target, 
+        label: 'Leads',
+        permissions: [PERMISSIONS.LEAD_READ_ANY]
+    },
 ];
 
 const containerVariants = {
@@ -53,23 +95,33 @@ export default function DashboardPage() {
 
     const appointmentListScope = getAppointmentListScope(authUser);
 
+    // Get appointments for recent list
     const { data: appointmentsData } = useGetAppointmentsQuery(
         {
-            page_size: 100,
+            page_size: 10,
             ...(appointmentListScope ? { scope: appointmentListScope } : {}),
         },
         { skip: !canViewAppointments },
     );
+
+    // Get pending count separately for accurate stats
+    const { data: pendingData } = useGetAppointmentsQuery(
+        {
+            page_size: 1,
+            status: 'pending',
+            ...(appointmentListScope ? { scope: appointmentListScope } : {}),
+        },
+        { skip: !canViewAppointments },
+    );
+
     const { data: usersData } = useGetUsersQuery({ size: 1 }, { skip: !canViewUsers });
     const { data: doctorsData } = useGetDoctorsQuery({ size: 1 }, { skip: !canViewDoctors });
 
     const appointments = appointmentsData?.appointments || [];
 
     const stats = {
-        totalAppointments: appointmentsData?.total || appointments.length,
-        pendingAppointments: appointments.filter(
-            (a) => a.status?.toLowerCase() === 'pending',
-        ).length,
+        totalAppointments: appointmentsData?.total || 0,
+        pendingAppointments: pendingData?.total || 0,
         totalUsers: usersData?.total || 0,
         totalDoctors: doctorsData?.total || 0,
     };
@@ -77,7 +129,7 @@ export default function DashboardPage() {
     const recentAppointments = appointments.slice(0, 5);
 
     const visibleQuickActions = QUICK_ACTIONS.filter((action) =>
-        canAccessNavHref(action.href, authUser),
+        hasAnyPermission(authUser, action.permissions)
     );
 
     const hasStats =
@@ -99,7 +151,7 @@ export default function DashboardPage() {
             {hasStats && (
                 <motion.div
                     variants={itemVariants}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
                 >
                     {canViewAppointments && (
                         <>

@@ -25,6 +25,7 @@ import {
     FileCheck,
     Plus,
     Video,
+    AlertCircle,
 } from '@/lib/icons';
 import {
     Button,
@@ -48,7 +49,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { ListPageLayout, DataTable, StatusBadge, Card, FormModal, ConfirmModal, BulkActionBar, SearchInput } from '@/components/ui';
+import { ListPageLayout, DataTable, StatusBadge, FilterBar, FormModal, ConfirmModal, BulkActionBar, Alert, EntityLink } from '@/components/ui';
 import {
     useGetAppointmentsQuery,
     useCreateAppointmentMutation,
@@ -95,7 +96,6 @@ export default function AppointmentsPage() {
     const authUser = withUserPermissions(user, permissions);
     const appointmentListScope = getAppointmentListScope(authUser);
     const [page, setPage] = useState(1);
-    const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
         q: '',
         status: '',
@@ -139,7 +139,7 @@ export default function AppointmentsPage() {
     const canViewAppointments = canReadAppointments(authUser);
 
     // API hooks — doctors must pass scope=assigned to see booked consultations
-    const { data, isLoading, refetch, isFetching } = useGetAppointmentsQuery(
+    const { data, isLoading, refetch, isFetching, isError, error } = useGetAppointmentsQuery(
         {
             page,
             page_size: 10,
@@ -155,8 +155,10 @@ export default function AppointmentsPage() {
         { skip: !canViewAppointments },
     );
 
-    const { data: servicesData } = useGetServicesQuery();
-    const { data: doctorsData } = useGetDoctorsQuery();
+    const canReadServices = hasAnyPermission(authUser, [PERMISSIONS.SERVICE_READ_ANY]);
+    const canReadDoctors = hasAnyPermission(authUser, [PERMISSIONS.DOCTOR_READ_ANY]);
+    const { data: servicesData } = useGetServicesQuery(undefined, { skip: !canReadServices });
+    const { data: doctorsData } = useGetDoctorsQuery(undefined, { skip: !canReadDoctors });
 
     const [createAppointment, { isLoading: isCreating }] = useCreateAppointmentMutation();
     const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
@@ -264,6 +266,7 @@ export default function AppointmentsPage() {
             router.push(`/finance/invoices/${appointment.invoice_id}`);
             return;
         }
+        if (!window.confirm('Complete this appointment and create a draft invoice?')) return;
         try {
             const result = await completeAppointment({ id: appointment.id }).unwrap();
             toast.success('Appointment completed and draft invoice created');
@@ -290,16 +293,20 @@ export default function AppointmentsPage() {
             key: 'patient',
             label: 'Patient',
             priority: 'primary',
-            render: (row) => (
-                <div>
-                    <p className="font-medium text-gray-900">
-                        {row.patient_info?.full_name || row.user?.name || 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                        {row.patient_info?.email || row.user?.email}
-                    </p>
-                </div>
-            ),
+            render: (row) => {
+                const patientId = row.user_id || row.user?.id;
+                const patientName = row.patient_info?.full_name || row.user?.name || 'N/A';
+                return (
+                    <div>
+                        <EntityLink href={patientId ? `/users/${patientId}/edit` : null}>
+                            {patientName}
+                        </EntityLink>
+                        <p className="text-sm text-gray-500">
+                            {row.patient_info?.email || row.user?.email}
+                        </p>
+                    </div>
+                );
+            },
         },
         {
             key: 'service',
@@ -315,9 +322,15 @@ export default function AppointmentsPage() {
             key: 'doctor',
             label: 'Doctor',
             priority: 'secondary',
-            render: (row) => (
-                <span className="text-gray-900">{getDoctorName(row) || '—'}</span>
-            ),
+            render: (row) => {
+                const doctorId = row.doctor_id || row.doctor?.id || row.doctor_user_id;
+                const doctorName = getDoctorName(row) || '—';
+                return (
+                    <EntityLink href={doctorId ? `/doctors/${doctorId}/edit` : null}>
+                        {doctorName}
+                    </EntityLink>
+                );
+            },
         },
         {
             key: 'consultation_mode',
@@ -397,110 +410,6 @@ export default function AppointmentsPage() {
                 ) : (
                     <span className="text-gray-400 text-xs">—</span>
                 ),
-        },
-        {
-            key: 'actions',
-            label: 'Actions',
-            priority: 'actions',
-            hideBelow: false,
-            render: (row) => (
-                <div className="flex items-center gap-1 flex-wrap justify-end">
-                    {canView && (
-                        <Button
-                            size="sm"
-                            variant="light"
-                            isIconOnly
-                            className="min-w-9 min-h-9"
-                            onPress={() => handleViewDetails(row)}
-                            aria-label="View details"
-                        >
-                            <Eye className="w-4 h-4" />
-                        </Button>
-                    )}
-                    {canEdit && (
-                        <Button
-                            size="sm"
-                            variant="light"
-                            isIconOnly
-                            className="min-w-9 min-h-9"
-                            onPress={() => handleEditClick(row)}
-                            aria-label="Edit appointment"
-                        >
-                            <Edit className="w-4 h-4" />
-                        </Button>
-                    )}
-                    {canComplete && row.status === 'confirmed' && (
-                        <Button
-                            size="sm"
-                            color="success"
-                            variant="flat"
-                            isIconOnly
-                            className="min-w-9 min-h-9"
-                            onPress={() => handleComplete(row)}
-                            isLoading={isCompleting}
-                            title="Complete and create invoice"
-                            aria-label="Complete and create invoice"
-                        >
-                            <CheckCircle className="w-4 h-4" />
-                        </Button>
-                    )}
-                    {canGenerateInvoice && row.status === 'completed' && !row.invoice_id && (
-                        <Button
-                            size="sm"
-                            color="primary"
-                            variant="flat"
-                            isIconOnly
-                            className="min-w-9 min-h-9"
-                            onPress={() => handleGenerateInvoice(row)}
-                            title="Generate Invoice"
-                            aria-label="Generate invoice"
-                        >
-                            <FileText className="w-4 h-4" />
-                        </Button>
-                    )}
-                    {canPrescribe && row.status === 'completed' && (
-                        <Button
-                            size="sm"
-                            color="secondary"
-                            variant="flat"
-                            isIconOnly
-                            className="min-w-9 min-h-9"
-                            onPress={() => handlePrescribe(row)}
-                            title="Write prescription"
-                            aria-label="Write prescription"
-                        >
-                            <FileCheck className="w-4 h-4" />
-                        </Button>
-                    )}
-                    {canChangeStatus && row.status === 'pending' && (
-                        <Button
-                            size="sm"
-                            color="success"
-                            variant="flat"
-                            isIconOnly
-                            className="min-w-9 min-h-9"
-                            onPress={() => handleQuickStatus(row.id, 'confirmed')}
-                            isLoading={isUpdating}
-                            aria-label="Confirm appointment"
-                        >
-                            <BadgeCheck className="w-4 h-4" />
-                        </Button>
-                    )}
-                    {canDelete && row.status !== 'cancelled' && (
-                        <Button
-                            size="sm"
-                            color="danger"
-                            variant="flat"
-                            isIconOnly
-                            className="min-w-9 min-h-9"
-                            onPress={() => handleCancelClick(row)}
-                            aria-label="Cancel appointment"
-                        >
-                            <XCircle className="w-4 h-4" />
-                        </Button>
-                    )}
-                </div>
-            ),
         },
     ];
 
@@ -630,7 +539,6 @@ export default function AppointmentsPage() {
 
     const activeFiltersCount =
         Object.entries(filters).filter(([key, value]) => key !== 'q' && Boolean(value)).length
-        + (filters.q ? 1 : 0)
         + (onlineTodayOnly ? 1 : 0);
 
     const handleExportCsv = () => {
@@ -747,154 +655,133 @@ export default function AppointmentsPage() {
                 )}
             </div>
 
-            {/* Mobile Filter Toggle */}
-            <div className="sm:hidden">
-                <Button
-                    variant="flat"
-                    fullWidth
-                    startContent={<Filter className="w-4 h-4" />}
-                    endContent={
-                        activeFiltersCount > 0 && (
-                            <Chip size="sm" color="primary">{activeFiltersCount}</Chip>
-                        )
-                    }
-                    onPress={() => setShowFilters(!showFilters)}
-                >
-                    Filters
-                </Button>
-            </div>
+            {isError && (
+                <Alert
+                    variant="danger"
+                    title="Failed to load appointments"
+                    message={error?.data?.detail || error?.message || 'An error occurred while loading appointments.'}
+                    icon={<AlertCircle className="w-5 h-5" />}
+                />
+            )}
 
-            {/* Filters */}
-            <Card padding="md" className={`${showFilters ? 'block' : 'hidden'} sm:block`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <SearchInput
-                        value={filters.q}
-                        onChange={(value) => handleFilterChange('q', value)}
-                        placeholder="Search patient name, email, phone..."
-                        className="sm:col-span-2 xl:col-span-2 w-full sm:w-full"
-                        fullWidth
-                    />
-                    <Select
-                        label="Status"
-                        labelPlacement="outside"
-                        placeholder="All Statuses"
-                        selectedKeys={filters.status ? [filters.status] : []}
-                        onSelectionChange={(keys) => {
-                            const value = Array.from(keys)[0] || '';
-                            handleFilterChange('status', value === 'all' ? '' : value);
-                        }}
-                        size="sm"
-                    >
-                        {STATUS_OPTIONS.map((option) => (
-                            <SelectItem key={option.value || 'all'} value={option.value || 'all'}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </Select>
-                    <Select
-                        label="Doctor"
-                        labelPlacement="outside"
-                        placeholder="All Doctors"
-                        selectedKeys={filters.doctor_id ? [filters.doctor_id] : []}
-                        onSelectionChange={(keys) => {
-                            const value = Array.from(keys)[0] || '';
-                            handleFilterChange('doctor_id', value === 'all-doctors' ? '' : value);
-                        }}
-                        size="sm"
-                    >
-                        <SelectItem key="all-doctors" value="all-doctors">
-                            All Doctors
+            <FilterBar
+                searchValue={filters.q}
+                onSearchChange={(value) => handleFilterChange('q', value)}
+                searchPlaceholder="Search patient name, email, phone..."
+                activeFiltersCount={activeFiltersCount}
+                onClearAll={clearFilters}
+            >
+                <Select
+                    label="Status"
+                    placeholder="All Statuses"
+                    selectedKeys={filters.status ? [filters.status] : ['all']}
+                    onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0] || '';
+                        handleFilterChange('status', value === 'all' ? '' : value);
+                    }}
+                    size="sm"
+                >
+                    {STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} textValue={option.label}>
+                            {option.label}
                         </SelectItem>
-                        {doctors.map((doctor) => {
-                            const doctorId = doctor.user_id || doctor.id;
-                            return (
-                                <SelectItem key={doctorId} value={doctorId}>
-                                    {doctor.name}
-                                </SelectItem>
-                            );
-                        })}
-                    </Select>
-                    <Select
-                        label="Service"
-                        labelPlacement="outside"
-                        placeholder="All Services"
-                        selectedKeys={filters.service_id ? [filters.service_id] : []}
-                        onSelectionChange={(keys) => {
-                            const value = Array.from(keys)[0] || '';
-                            handleFilterChange('service_id', value === 'all-services' ? '' : value);
-                        }}
-                        size="sm"
-                    >
-                        <SelectItem key="all-services" value="all-services">
-                            All Services
+                    ))}
+                </Select>
+                <Select
+                    label="Doctor"
+                    placeholder="All Doctors"
+                    selectedKeys={filters.doctor_id ? [filters.doctor_id] : ['all-doctors']}
+                    onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0] || '';
+                        handleFilterChange('doctor_id', value === 'all-doctors' ? '' : value);
+                    }}
+                    size="sm"
+                >
+                    <SelectItem key="all-doctors" value="all-doctors" textValue="All Doctors">
+                        All Doctors
+                    </SelectItem>
+                    {doctors.map((doctor) => {
+                        const doctorId = doctor.user_id || doctor.id;
+                        const doctorName =
+                            doctor.name ||
+                            `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim() ||
+                            doctor.email ||
+                            String(doctorId);
+                        return (
+                            <SelectItem key={doctorId} value={doctorId} textValue={doctorName}>
+                                {doctorName}
+                            </SelectItem>
+                        );
+                    })}
+                </Select>
+                <Select
+                    label="Service"
+                    placeholder="All Services"
+                    selectedKeys={filters.service_id ? [filters.service_id] : ['all-services']}
+                    onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0] || '';
+                        handleFilterChange('service_id', value === 'all-services' ? '' : value);
+                    }}
+                    size="sm"
+                >
+                    <SelectItem key="all-services" value="all-services" textValue="All Services">
+                        All Services
+                    </SelectItem>
+                    {services.map((service) => (
+                        <SelectItem key={service.id} value={service.id} textValue={service.name}>
+                            {service.name}
                         </SelectItem>
-                        {services.map((service) => (
-                            <SelectItem key={service.id} value={service.id}>
-                                {service.name}
-                            </SelectItem>
-                        ))}
-                    </Select>
-                    <Select
-                        label="Mode"
-                        labelPlacement="outside"
-                        placeholder="All Modes"
-                        selectedKeys={filters.consultation_mode ? [filters.consultation_mode] : []}
-                        onSelectionChange={(keys) => {
-                            const value = Array.from(keys)[0] || '';
-                            handleFilterChange('consultation_mode', value === 'all-modes' ? '' : value);
+                    ))}
+                </Select>
+                <Select
+                    label="Mode"
+                    placeholder="All Modes"
+                    selectedKeys={filters.consultation_mode ? [filters.consultation_mode] : ['all-modes']}
+                    onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0] || '';
+                        handleFilterChange('consultation_mode', value === 'all-modes' ? '' : value);
+                    }}
+                    size="sm"
+                >
+                    {MODE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} textValue={option.label}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </Select>
+                <Input
+                    type="date"
+                    label="From Date"
+                    labelPlacement="outside"
+                    placeholder=" "
+                    value={filters.date_from}
+                    onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                    size="sm"
+                />
+                <Input
+                    type="date"
+                    label="To Date"
+                    labelPlacement="outside"
+                    placeholder=" "
+                    value={filters.date_to}
+                    onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                    size="sm"
+                />
+                <div className="flex items-end gap-2">
+                    <Button
+                        variant={onlineTodayOnly ? 'solid' : 'flat'}
+                        color={onlineTodayOnly ? 'warning' : 'default'}
+                        size="sm"
+                        className={onlineTodayOnly ? 'bg-[#db924b] text-white' : ''}
+                        onPress={() => {
+                            setOnlineTodayOnly((v) => !v);
+                            setPage(1);
                         }}
-                        size="sm"
                     >
-                        {MODE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value || 'all-modes'} value={option.value || 'all-modes'}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </Select>
-                    <Input
-                        type="date"
-                        label="From Date"
-                        labelPlacement="outside"
-                        placeholder=" "
-                        value={filters.date_from}
-                        onChange={(e) => handleFilterChange('date_from', e.target.value)}
-                        size="sm"
-                    />
-                    <Input
-                        type="date"
-                        label="To Date"
-                        labelPlacement="outside"
-                        placeholder=" "
-                        value={filters.date_to}
-                        onChange={(e) => handleFilterChange('date_to', e.target.value)}
-                        size="sm"
-                    />
-                    <div className="flex items-end gap-2">
-                        <Button
-                            variant={onlineTodayOnly ? 'solid' : 'flat'}
-                            color={onlineTodayOnly ? 'warning' : 'default'}
-                            size="sm"
-                            className={onlineTodayOnly ? 'bg-[#db924b] text-white' : ''}
-                            onPress={() => {
-                                setOnlineTodayOnly((v) => !v);
-                                setPage(1);
-                            }}
-                        >
-                            Online today
-                        </Button>
-                        <Button
-                            variant="light"
-                            size="sm"
-                            startContent={<X className="w-4 h-4" />}
-                            onPress={clearFilters}
-                            isDisabled={activeFiltersCount === 0}
-                            className="w-full sm:w-auto"
-                        >
-                            Clear Filters
-                        </Button>
-                    </div>
+                        Online today
+                    </Button>
                 </div>
-            </Card>
+            </FilterBar>
 
             {/* Desktop — online consultation cards */}
             {appointments.some(isOnlineConsultation) && (
@@ -943,25 +830,39 @@ export default function AppointmentsPage() {
                 selectedIds={selectedIds}
                 onSelectionChange={onSelectionChange}
                 isRowSelectable={(row) => row.status !== 'cancelled'}
-                renderMobileCard={(apt, { isSelected, onSelect }) => (
+                actions={(row) => [
+                    ...(canView
+                        ? [{ key: 'view', label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: handleViewDetails }]
+                        : []),
+                    ...(canEdit
+                        ? [{ key: 'edit', label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: handleEditClick }]
+                        : []),
+                    ...(row.status === 'invoiced' && row.invoice_id
+                        ? [{ key: 'view-invoice', label: 'View Invoice', icon: <FileText className="w-4 h-4" />, onClick: handleViewInvoice, color: 'primary' }]
+                        : []),
+                    ...(canComplete && row.status === 'confirmed'
+                        ? [{ key: 'complete', label: 'Complete and invoice', icon: <CheckCircle className="w-4 h-4" />, onClick: handleComplete, color: 'success' }]
+                        : []),
+                    ...(canGenerateInvoice && row.status === 'completed' && !row.invoice_id
+                        ? [{ key: 'invoice', label: 'Generate Invoice', icon: <FileText className="w-4 h-4" />, onClick: handleGenerateInvoice }]
+                        : []),
+                    ...(canPrescribe && row.status === 'completed'
+                        ? [{ key: 'prescribe', label: 'Write prescription', icon: <FileCheck className="w-4 h-4" />, onClick: handlePrescribe }]
+                        : []),
+                    ...(canChangeStatus && row.status === 'pending'
+                        ? [{ key: 'confirm', label: 'Confirm', icon: <BadgeCheck className="w-4 h-4" />, onClick: (apt) => handleQuickStatus(apt.id, 'confirmed'), color: 'success' }]
+                        : []),
+                    ...(canChangeStatus
+                        ? [{ key: 'status', label: 'Change Status', icon: <RefreshCw className="w-4 h-4" />, onClick: handleStatusClick }]
+                        : []),
+                    ...(canDelete && row.status !== 'cancelled'
+                        ? [{ key: 'cancel', label: 'Cancel', icon: <XCircle className="w-4 h-4" />, onClick: handleCancelClick, danger: true }]
+                        : []),
+                ]}
+                renderMobileCard={(apt, { isSelected, onSelect, actions }) => (
                     <AppointmentCard
                         appointment={apt}
-                        onView={() => handleViewDetails(apt)}
-                        onEdit={() => handleEditClick(apt)}
-                        onCancel={() => handleCancelClick(apt)}
-                        onStatusChange={() => handleStatusClick(apt)}
-                        onQuickConfirm={() => handleQuickStatus(apt.id, 'confirmed')}
-                        onGenerateInvoice={() => handleGenerateInvoice(apt)}
-                        onComplete={() => handleComplete(apt)}
-                        onViewInvoice={() => handleViewInvoice(apt)}
-                        onPrescribe={() => handlePrescribe(apt)}
-                        canView={canView}
-                        canEdit={canEdit}
-                        canDelete={canDelete}
-                        canChangeStatus={canChangeStatus}
-                        canGenerateInvoice={canGenerateInvoice}
-                        canComplete={canComplete}
-                        canPrescribe={canPrescribe}
+                        actions={actions}
                         selectable={canDelete}
                         isSelected={isSelected}
                         onSelect={onSelect}
@@ -1024,9 +925,14 @@ export default function AppointmentsPage() {
                             >
                                 {doctors.map((doctor) => {
                                     const doctorId = doctor.user_id || doctor.id;
+                                    const doctorName =
+                                        doctor.name ||
+                                        `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim() ||
+                                        doctor.email ||
+                                        String(doctorId);
                                     return (
-                                        <SelectItem key={doctorId} value={doctorId}>
-                                            {doctor.name}
+                                        <SelectItem key={doctorId} value={doctorId} textValue={doctorName}>
+                                            {doctorName}
                                         </SelectItem>
                                     );
                                 })}
@@ -1164,6 +1070,8 @@ function AppointmentCard({
 }) {
     const apt = appointment;
     const canSelect = selectable && apt.status !== 'cancelled';
+    const patientId = apt.user_id || apt.user?.id;
+    const doctorId = apt.doctor_id || apt.doctor?.id || apt.doctor_user_id;
 
     return (
         <HeroCard className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary-500' : ''}`}>
@@ -1180,9 +1088,9 @@ function AppointmentCard({
                     ) : null}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h3 className="font-semibold text-gray-900 truncate">
+                            <EntityLink href={patientId ? `/users/${patientId}/edit` : null}>
                                 {apt.patient_info?.full_name || apt.user?.name || 'N/A'}
-                            </h3>
+                            </EntityLink>
                             <StatusBadge status={apt.status} />
                             {(apt.consultation_mode === 'online') && (
                                 <Chip size="sm" color="secondary" variant="flat">
@@ -1196,7 +1104,7 @@ function AppointmentCard({
                     </div>
                     <Dropdown>
                         <DropdownTrigger>
-                            <Button variant="light" isIconOnly size="sm">
+                            <Button variant="light" isIconOnly size="sm" aria-label="More actions">
                                 <MoreVertical className="w-4 h-4" />
                             </Button>
                         </DropdownTrigger>
@@ -1267,9 +1175,9 @@ function AppointmentCard({
                     </div>
                     <div>
                         <p className="text-gray-500">Doctor</p>
-                        <p className="font-medium text-gray-900 truncate">
+                        <EntityLink href={doctorId ? `/doctors/${doctorId}/edit` : null}>
                             {getDoctorName(apt) || '—'}
-                        </p>
+                        </EntityLink>
                     </div>
                     <div>
                         <p className="text-gray-500">Date</p>

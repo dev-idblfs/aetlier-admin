@@ -51,6 +51,10 @@ import {
     FormRow,
     FormSwitchRow,
     BulkActionBar,
+    FilterBar,
+    Alert,
+    EntityLink,
+    SectionCard,
 } from '@/components/ui';
 import {
     useGetUsersQuery,
@@ -81,15 +85,18 @@ export default function UsersPage() {
     const { isOpen: isRoleOpen, onOpen: onRoleOpen, onOpenChange: onRoleOpenChange } = useDisclosure();
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange, onClose: onDeleteClose } = useDisclosure();
 
+    const authUser = useSelector((s) => s.auth.user);
+    const canDelete = hasPermission(authUser, PERMISSIONS.USER_DELETE);
+    const canCreate = hasPermission(authUser, PERMISSIONS.USER_CREATE);
+    const canUpdate = hasPermission(authUser, PERMISSIONS.USER_UPDATE_ANY);
+    const canView = hasPermission(authUser, PERMISSIONS.USER_READ_ANY);
+
     // API hooks
-    const { data: usersData, isLoading, refetch } = useGetUsersQuery({});
-    const { data: rolesData } = useGetRolesQuery();
+    const { data: usersData, isLoading, isError, error, refetch } = useGetUsersQuery({}, { skip: !canView });
+    const { data: rolesData } = useGetRolesQuery(undefined, { skip: !canView });
     const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
     const [assignRole, { isLoading: isAssigning }] = useAssignUserRoleMutation();
     const [revokeRole, { isLoading: isRevoking }] = useRevokeUserRoleMutation();
-
-    const authUser = useSelector((s) => s.auth.user);
-    const canDelete = hasPermission(authUser, PERMISSIONS.USER_DELETE);
 
     // Reset page when filters change
     useEffect(() => {
@@ -149,11 +156,16 @@ export default function UsersPage() {
         usersArray.forEach(user => {
             (user.roles || []).forEach(role => uniqueRoles.add(role.name));
         });
-        return [
-            { value: '', label: 'All Roles' },
-            ...Array.from(uniqueRoles).map(name => ({ value: name, label: name }))
-        ];
+        return Array.from(uniqueRoles).map(name => ({ value: name, label: name }));
     }, [usersArray]);
+
+    // Active filters count
+    const activeFiltersCount = [search, roleFilter].filter(Boolean).length;
+
+    const handleClearFilters = () => {
+        setSearch('');
+        setRoleFilter('');
+    };
 
     // Handlers
     const handleAddUser = () => {
@@ -281,15 +293,7 @@ export default function UsersPage() {
             label: 'Status',
             render: (row) => {
                 if (!row) return null;
-                return (
-                    <Chip
-                        size="sm"
-                        color={row.is_active !== false ? 'success' : 'default'}
-                        variant="flat"
-                    >
-                        {row.is_active !== false ? 'Active' : 'Inactive'}
-                    </Chip>
-                );
+                return <StatusBadge status={row.is_active !== false ? 'active' : 'inactive'} />;
             },
         },
         {
@@ -301,88 +305,59 @@ export default function UsersPage() {
                 return <span className="text-gray-600">{formatDate(row.created_at)}</span>;
             },
         },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (row) => {
-                if (!row) return null;
-                return (
-                    <Dropdown>
-                        <DropdownTrigger>
-                            <Button variant="light" isIconOnly size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                            </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu aria-label="User actions">
-                            <DropdownItem key="view" startContent={<Eye className="w-4 h-4" />} onPress={() => handleViewDetails(row)}>
-                                View Details
-                            </DropdownItem>
-                            <DropdownItem key="edit" startContent={<Edit className="w-4 h-4" />} onPress={() => handleEditUser(row)}>
-                                Edit User
-                            </DropdownItem>
-                            <DropdownItem key="role" startContent={<Shield className="w-4 h-4" />} onPress={() => handleRoleManagement(row)}>
-                                Manage Roles
-                            </DropdownItem>
-                            <DropdownItem key="delete" startContent={<Trash2 className="w-4 h-4" />} className="text-danger" color="danger" onPress={() => handleDeleteClick(row)}>
-                                Delete User
-                            </DropdownItem>
-                        </DropdownMenu>
-                    </Dropdown>
-                );
-            },
-        },
     ];
 
     return (
         <ListPageLayout
             title="Users"
             breadcrumbs={[{ label: 'Users' }]}
-            actions={(
+            actions={canCreate ? (
                 <Button
                     color="primary"
                     size="sm"
                     startContent={<UserPlus className="w-4 h-4" />}
                     onPress={handleAddUser}
+                    className="min-h-11"
                 >
                     Add User
                 </Button>
-            )}
-            toolbar={(
-                <>
-                    <SearchInput
-                        value={search}
-                        onChange={setSearch}
-                        placeholder="Search users..."
-                        className="flex-1"
-                    />
-                    <div className="flex gap-2">
-                        <Select
-                            placeholder="Filter by role"
-                            selectedKeys={roleFilter ? [roleFilter] : []}
-                            onSelectionChange={(keys) => setRoleFilter(Array.from(keys)[0] || '')}
-                            className="w-full sm:w-40"
-                            size="sm"
-                            classNames={{ trigger: 'bg-white' }}
-                        >
-                            {roleOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </Select>
-                        {(search || roleFilter) && (
-                            <Button
-                                variant="flat"
-                                size="sm"
-                                onPress={() => { setSearch(''); setRoleFilter(''); }}
-                            >
-                                Clear
-                            </Button>
-                        )}
-                    </div>
-                </>
-            )}
+            ) : null}
         >
+            {isError && (
+                <Alert
+                    variant="danger"
+                    title="Failed to load users"
+                    message={error?.data?.detail || error?.message || 'Unable to fetch users. Please try again.'}
+                    className="mb-4"
+                />
+            )}
+
+            <FilterBar
+                searchValue={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Search users..."
+                activeFiltersCount={activeFiltersCount}
+                onClearAll={handleClearFilters}
+            >
+                <Select
+                    label="Role"
+                    placeholder="All roles"
+                    selectedKeys={roleFilter ? [roleFilter] : ['all']}
+                    onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0] || ''
+                        setRoleFilter(value === 'all' ? '' : value)
+                    }}
+                    size="sm"
+                    classNames={{ trigger: 'bg-white' }}
+                >
+                    <SelectItem key="all" value="all">All roles</SelectItem>
+                    {roleOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </Select>
+            </FilterBar>
 
             {/* Results count */}
             <div className="text-sm text-gray-500">
@@ -410,10 +385,16 @@ export default function UsersPage() {
                     description: search || roleFilter ? 'Try adjusting your filters' : 'No users in the system yet',
                 }}
                 actions={[
-                    { label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: handleViewDetails },
-                    { label: 'Edit User', icon: <Edit className="w-4 h-4" />, onClick: handleEditUser },
-                    { label: 'Manage Roles', icon: <Shield className="w-4 h-4" />, onClick: handleRoleManagement },
-                    { label: 'Delete', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true },
+                    { key: 'view', label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: handleViewDetails },
+                    ...(canUpdate
+                        ? [
+                            { key: 'edit', label: 'Edit User', icon: <Edit className="w-4 h-4" />, onClick: handleEditUser },
+                            { key: 'role', label: 'Manage Roles', icon: <Shield className="w-4 h-4" />, onClick: handleRoleManagement },
+                        ]
+                        : []),
+                    ...(canDelete
+                        ? [{ key: 'delete', label: 'Delete', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true }]
+                        : []),
                 ]}
                 renderMobileCard={(user, { onClick, actions }) => (
                     <UserMobileCard user={user} onClick={() => handleViewDetails(user)} actions={actions} />
@@ -446,8 +427,8 @@ export default function UsersPage() {
                 isOpen={isDetailOpen}
                 onOpenChange={onDetailOpenChange}
                 title="User Details"
-                editLabel="Edit User"
-                onEdit={() => handleEditUser(selectedUser)}
+                editLabel={canUpdate ? "Edit User" : undefined}
+                onEdit={canUpdate ? () => handleEditUser(selectedUser) : undefined}
             >
                 {selectedUser && (
                     <div className="space-y-4">
@@ -466,21 +447,51 @@ export default function UsersPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <DetailRow label="Phone" value={selectedUser.phone} />
                             <DetailRow label="Status" value={
-                                <Chip size="sm" color={selectedUser.is_active !== false ? 'success' : 'default'} variant="flat">
-                                    {selectedUser.is_active !== false ? 'Active' : 'Inactive'}
-                                </Chip>
+                                <StatusBadge status={selectedUser.is_active !== false ? 'active' : 'inactive'} />
                             } />
                             <DetailRow label="Joined" value={formatDate(selectedUser.created_at)} />
-                            <DetailRow label="Type" value={selectedUser.user_type || 'PATIENT'} />
+                            <DetailRow label="Type" value={
+                                <StatusBadge status={selectedUser.user_type || 'PATIENT'} showIcon={false} />
+                            } />
                             <DetailRow label="Roles" value={
                                 <div className="flex flex-wrap gap-1">
                                     {(selectedUser.roles || []).map(role => (
-                                        <StatusBadge key={role.id} status={role.name} />
+                                        <StatusBadge key={role.id} status={role.name} showIcon={false} />
                                     ))}
                                     {(!selectedUser.roles || selectedUser.roles.length === 0) && 'No roles'}
                                 </div>
                             } />
                         </div>
+
+                        {/* Related Records */}
+                        <SectionCard title="Related Records" embedded className="mt-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="p-3 bg-gray-50 rounded-lg">
+                                    <p className="text-xs text-gray-500 mb-1">Appointments</p>
+                                    <EntityLink 
+                                        href={selectedUser.email ? `/appointments?q=${encodeURIComponent(selectedUser.email)}` : '/appointments'}
+                                        className="text-sm"
+                                    >
+                                        View appointments
+                                    </EntityLink>
+                                    {!selectedUser.email && (
+                                        <p className="text-xs text-gray-400 mt-1">Search by name in appointments list</p>
+                                    )}
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-lg">
+                                    <p className="text-xs text-gray-500 mb-1">Invoices</p>
+                                    <EntityLink 
+                                        href={selectedUser.email ? `/finance/invoices?search=${encodeURIComponent(selectedUser.email)}` : '/finance/invoices'}
+                                        className="text-sm"
+                                    >
+                                        View invoices
+                                    </EntityLink>
+                                    {!selectedUser.email && (
+                                        <p className="text-xs text-gray-400 mt-1">Search by email in invoices list</p>
+                                    )}
+                                </div>
+                            </div>
+                        </SectionCard>
                     </div>
                 )}
             </DetailModal>
@@ -579,14 +590,12 @@ function UserMobileCard({ user, onClick, actions }) {
                     <MobileCard.Title>{user.name}</MobileCard.Title>
                     <MobileCard.Subtitle>{user.email}</MobileCard.Subtitle>
                 </div>
-                <Chip size="sm" color={user.is_active !== false ? 'success' : 'default'} variant="flat">
-                    {user.is_active !== false ? 'Active' : 'Inactive'}
-                </Chip>
+                <StatusBadge status={user.is_active !== false ? 'active' : 'inactive'} />
             </MobileCard.Header>
             <MobileCard.Meta>
-                <MobileCard.Badge>{user.user_type || 'PATIENT'}</MobileCard.Badge>
+                <StatusBadge status={user.user_type || 'PATIENT'} showIcon={false} size="sm" />
                 {(user.roles || []).map(role => (
-                    <MobileCard.Badge key={role.id}>{role.name}</MobileCard.Badge>
+                    <StatusBadge key={role.id} status={role.name} showIcon={false} size="sm" />
                 ))}
                 {(!user.roles || user.roles.length === 0) && <span className="text-gray-400">No roles</span>}
             </MobileCard.Meta>

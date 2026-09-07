@@ -35,7 +35,7 @@ import {
 } from '@/lib/heroui';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, LinkButton, BulkActionBar } from '@/components/ui';
+import { ListPageLayout, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, FormModal, LinkButton, BulkActionBar, EntityLink, StatusBadge } from '@/components/ui';
 import {
     useGetInvoicesQuery,
     useCancelInvoiceMutation,
@@ -50,7 +50,7 @@ import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
 
 const statusOptions = [
-    { value: '', label: 'All Status' },
+    { value: 'all', label: 'All Status' },
     { value: 'DRAFT', label: 'Draft' },
     { value: 'SENT', label: 'Sent' },
     { value: 'PAID', label: 'Paid' },
@@ -69,18 +69,23 @@ export default function InvoicesPage() {
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange, onClose: onDeleteClose } = useDisclosure();
     const { isOpen: isSendOpen, onOpen: onSendOpen, onOpenChange: onSendOpenChange, onClose: onSendClose } = useDisclosure();
 
+    const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.INVOICE_VIEW_ANY);
+    const canDelete = hasPermission(authUser, PERMISSIONS.INVOICE_DELETE);
+    const canCreate = hasPermission(authUser, PERMISSIONS.INVOICE_CREATE);
+    const canUpdate = hasPermission(authUser, PERMISSIONS.INVOICE_UPDATE);
+    const canSend = hasPermission(authUser, PERMISSIONS.INVOICE_SEND);
+
     const { data, isLoading, refetch } = useGetInvoicesQuery({
         page,
         page_size: 20,
         status: statusFilter || undefined,
         search: search || undefined,
-    });
+    }, { skip: !canView });
 
     const [cancelInvoice, { isLoading: isCancelling }] = useCancelInvoiceMutation();
     const [sendInvoice, { isLoading: isSending }] = useSendInvoiceMutation();
     const [getInvoicePdf] = useLazyGetInvoicePdfUrlQuery();
-    const authUser = useSelector((s) => s.auth.user);
-    const canDelete = hasPermission(authUser, PERMISSIONS.INVOICE_DELETE);
 
     const invoices = data?.invoices || [];
     const totalPages = data?.total_pages || 1;
@@ -168,7 +173,15 @@ export default function InvoicesPage() {
             label: 'Customer',
             render: (row) => (
                 <div>
-                    <p className="font-medium text-gray-900">{row.customer_name || 'N/A'}</p>
+                    {row.customer_id || row.user_id ? (
+                        <EntityLink 
+                            type="customer" 
+                            id={row.customer_id || row.user_id}
+                            label={row.customer_name || 'N/A'}
+                        />
+                    ) : (
+                        <p className="font-medium text-gray-900">{row.customer_name || 'N/A'}</p>
+                    )}
                     <p className="text-sm text-gray-500">{row.customer_email}</p>
                 </div>
             ),
@@ -188,7 +201,7 @@ export default function InvoicesPage() {
         {
             key: 'status',
             label: 'Status',
-            render: (row) => <InvoiceStatusBadge status={row.status} />,
+            render: (row) => <StatusBadge status={row.status} type="invoice" />,
         },
         {
             key: 'dueDate',
@@ -209,15 +222,17 @@ export default function InvoicesPage() {
                 { label: 'Invoices' },
             ]}
             actions={
-                <LinkButton
-                    href="/finance/invoices/new"
-                    color="primary"
-                    size="sm"
-                    startContent={<Plus className="w-4 h-4" />}
-                    className="w-full sm:w-auto"
-                >
-                    New Invoice
-                </LinkButton>
+                canCreate ? (
+                    <LinkButton
+                        href="/finance/invoices/new"
+                        color="primary"
+                        size="sm"
+                        startContent={<Plus className="w-4 h-4" />}
+                        className="min-h-11 w-full sm:w-auto"
+                    >
+                        New Invoice
+                    </LinkButton>
+                ) : null
             }
             toolbar={(
                 <>
@@ -230,14 +245,17 @@ export default function InvoicesPage() {
                     <div className="flex gap-2">
                         <Select
                             placeholder="Status"
-                            selectedKeys={statusFilter ? [statusFilter] : []}
-                            onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] || '')}
+                            selectedKeys={statusFilter ? [statusFilter] : ['all']}
+                            onSelectionChange={(keys) => {
+                                const value = Array.from(keys)[0] || 'all';
+                                setStatusFilter(value === 'all' ? '' : value);
+                            }}
                             className="w-full sm:w-40"
                             size="sm"
                             classNames={{ trigger: 'bg-white' }}
                         >
                             {statusOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem key={option.value} value={option.value} textValue={option.label}>
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -288,11 +306,11 @@ export default function InvoicesPage() {
                 }}
                 actions={[
                     { label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: (row) => router.push(`/finance/invoices/${row.id}`) },
-                    { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: (row) => router.push(`/finance/invoices/${row.id}/edit`) },
+                    canUpdate && { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: (row) => router.push(`/finance/invoices/${row.id}/edit`) },
                     { label: 'Download PDF', icon: <Download className="w-4 h-4" />, onClick: handleDownloadPdf },
-                    { label: 'Send', icon: <Send className="w-4 h-4" />, onClick: handleSendClick },
-                    { label: 'Cancel', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true },
-                ]}
+                    canSend && { label: 'Send', icon: <Send className="w-4 h-4" />, onClick: handleSendClick },
+                    canDelete && { label: 'Cancel', icon: <Trash2 className="w-4 h-4" />, onClick: handleDeleteClick, danger: true },
+                ].filter(Boolean)}
                 renderMobileCard={(invoice, { actions }) => (
                     <InvoiceMobileCard invoice={invoice} actions={actions} onClick={() => router.push(`/finance/invoices/${invoice.id}`)} />
                 )}
@@ -354,26 +372,6 @@ export default function InvoicesPage() {
     );
 }
 
-// Invoice Status Badge
-function InvoiceStatusBadge({ status }) {
-    const statusConfig = {
-        PAID: { color: 'success', label: 'Paid' },
-        PARTIALLY_PAID: { color: 'warning', label: 'Partial' },
-        SENT: { color: 'primary', label: 'Sent' },
-        OVERDUE: { color: 'danger', label: 'Overdue' },
-        CANCELLED: { color: 'default', label: 'Cancelled' },
-        DRAFT: { color: 'secondary', label: 'Draft' },
-    };
-
-    const config = statusConfig[status] || statusConfig.DRAFT;
-
-    return (
-        <Chip size="sm" color={config.color} variant="flat">
-            {config.label}
-        </Chip>
-    );
-}
-
 // Check if invoice is overdue
 function isOverdue(invoice) {
     if (invoice.status === 'PAID' || invoice.status === 'CANCELLED') return false;
@@ -392,7 +390,7 @@ function InvoiceMobileCard({ invoice, actions, onClick }) {
                 </div>
                 <div className="text-right">
                     <p className="font-semibold text-gray-900">{formatCurrency(invoice.grand_total)}</p>
-                    <InvoiceStatusBadge status={invoice.status} />
+                    <StatusBadge status={invoice.status} type="invoice" />
                 </div>
             </MobileCard.Header>
             <MobileCard.Meta>

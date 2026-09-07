@@ -10,6 +10,7 @@ import {
     Card,
     CardBody,
     Button,
+    Checkbox,
     Chip,
     Input,
     Switch,
@@ -50,6 +51,7 @@ import {
     useDeleteNavigationItemMutation,
     useBulkDeleteNavigationMutation,
     useUpdateNavigationPermissionsMutation,
+    useReorderNavigationMutation,
     useGetPermissionsQuery,
     useGetNavigationPermissionPresetsQuery,
 } from '@/redux/services/api';
@@ -101,13 +103,11 @@ function NavigationItemCard({ item, onEdit, onDelete, onManagePermissions, onTog
             <Card className="mb-2">
                 <CardBody className="p-3">
                     <div className="flex items-center gap-3">
-                        {/* Drag Handle */}
-                        <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
-                        <input
-                            type="checkbox"
-                            checked={selectedIds.includes(item.id)}
-                            onChange={() => onToggleSelect(item.id)}
-                            className="w-4 h-4"
+                        {/* Drag Handle — visual only; reorder via sort_order field when editing */}
+                        <GripVertical className="w-4 h-4 text-gray-400" />
+                        <Checkbox
+                            isSelected={selectedIds.includes(item.id)}
+                            onValueChange={() => onToggleSelect(item.id)}
                             aria-label={`Select ${item.label}`}
                         />
 
@@ -220,6 +220,7 @@ export default function NavigationManagementPage() {
     const [updateNavItem, { isLoading: isUpdating }] = useUpdateNavigationItemMutation();
     const [deleteNavItem, { isLoading: isDeleting }] = useDeleteNavigationItemMutation();
     const [updatePermissions, { isLoading: isUpdatingPermissions }] = useUpdateNavigationPermissionsMutation();
+    const [reorderNavigation] = useReorderNavigationMutation();
 
     // Modal states
     const createModal = useDisclosure();
@@ -418,6 +419,15 @@ export default function NavigationManagementPage() {
                 ? selectedIds.filter((selectedId) => selectedId !== id)
                 : [...selectedIds, id]
         );
+    };
+
+    const handleReorder = async (reorderedItems) => {
+        try {
+            await reorderNavigation(reorderedItems).unwrap();
+            toast.success('Navigation order updated');
+        } catch (error) {
+            toast.error('Failed to reorder navigation');
+        }
     };
 
     // Navigation Form Fields
@@ -651,11 +661,10 @@ export default function NavigationManagementPage() {
                             >
                                 <CardBody className="p-3">
                                     <div className="flex items-center gap-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedPermissions.includes(perm.id)}
-                                            onChange={() => togglePermission(perm.id)}
-                                            className="w-4 h-4"
+                                        <Checkbox
+                                            isSelected={selectedPermissions.includes(perm.id)}
+                                            onValueChange={() => togglePermission(perm.id)}
+                                            aria-label={`Select permission ${perm.name}`}
                                         />
                                         <div>
                                             <p className="font-mono text-sm">{perm.name}</p>

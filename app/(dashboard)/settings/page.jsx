@@ -15,6 +15,8 @@ import {
     Save,
     FileText,
     MessageCircle,
+    LayoutDashboard,
+    ChevronRight,
 } from '@/lib/icons';
 import WhatsAppIntegrationsPanel from '@/components/settings/WhatsAppIntegrationsPanel';
 import {
@@ -35,6 +37,7 @@ import { settingsSchema } from '@/lib/validation';
 import { Form, DEFAULT_FORM_OPTIONS } from '@/components/ui/Form';
 import { FormInput, FormSelect, FormSwitchRow, FormTextarea } from '@/components/ui/FormFields';
 import { ListPageLayout } from '@/components/ui';
+import Link from 'next/link';
 import {
     useGetInvoiceSettingsQuery,
     useUpdateInvoiceSettingsMutation,
@@ -232,6 +235,24 @@ export default function SettingsPage() {
                                                 <FormInput name="clinicPhone" label="Phone" />
                                                 <FormInput name="clinicAddress" label="Address" />
                                             </div>
+                                        </SettingsCard>
+
+                                        <SettingsCard title="Quick Links">
+                                            <Link
+                                                href="/settings/mobile-home"
+                                                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-lg bg-primary-100">
+                                                        <LayoutDashboard className="w-5 h-5 text-primary-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">Mobile Home</p>
+                                                        <p className="text-sm text-gray-500">Manage mobile app banners and promotions</p>
+                                                    </div>
+                                                </div>
+                                                <ChevronRight className="w-5 h-5 text-gray-400" />
+                                            </Link>
                                         </SettingsCard>
                                     </motion.div>
                                 </Tab>

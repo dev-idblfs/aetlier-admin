@@ -1,5 +1,5 @@
 export const STATUS_OPTIONS = [
-  { value: '', label: 'All Statuses' },
+  { value: 'all', label: 'All Statuses' },
   { value: 'pending', label: 'Pending' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'completed', label: 'Completed' },
@@ -18,7 +18,7 @@ export const STATUS_COLORS = {
 }
 
 export const MODE_OPTIONS = [
-  { value: '', label: 'All Modes' },
+  { value: 'all-modes', label: 'All Modes' },
   { value: 'in_person', label: 'In-clinic' },
   { value: 'online', label: 'Online' },
 ]

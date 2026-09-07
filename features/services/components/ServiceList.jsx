@@ -24,7 +24,7 @@ import {
     Pagination,
 } from '@/lib/heroui';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton, ServiceThumbnail, BulkActionBar } from '@/components/ui';
+import { ListPageLayout, StatusBadge, SearchInput, ResponsiveTable, MobileCard, ConfirmModal, DetailModal, LinkButton, ServiceThumbnail, BulkActionBar, FilterBar, Alert } from '@/components/ui';
 import {
     useGetServicesQuery,
     useGetServiceQuery,
@@ -49,16 +49,20 @@ export default function ServiceList() {
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
 
-    const { data, isLoading, refetch } = useGetServicesQuery();
-    const { data: categories } = useGetCategoriesQuery({ type: 'SERVICE' });
+    const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.SERVICE_READ_ANY);
+
+    const { data, isLoading, error, refetch } = useGetServicesQuery(undefined, { skip: !canView });
+    const { data: categories } = useGetCategoriesQuery({ type: 'SERVICE' }, { skip: !canView });
     const { data: detailService, isLoading: isDetailLoading } = useGetServiceQuery(
         selectedService?.id,
         { skip: !selectedService?.id || !isDetailOpen }
     );
 
     const [deleteService, { isLoading: isDeleting }] = useDeleteServiceMutation();
-    const authUser = useSelector((s) => s.auth.user);
     const canDelete = hasPermission(authUser, PERMISSIONS.SERVICE_DELETE);
+    const canCreate = hasPermission(authUser, PERMISSIONS.SERVICE_CREATE);
+    const canUpdate = hasPermission(authUser, PERMISSIONS.SERVICE_UPDATE);
 
     const categoryOptions = [
         { value: '', label: 'All Categories' },
@@ -161,39 +165,6 @@ export default function ServiceList() {
                 />
             ),
         },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (row) => (
-                <div className="flex items-center gap-2">
-                    <Button
-                        size="sm"
-                        variant="light"
-                        isIconOnly
-                        onPress={() => handleViewDetails(row)}
-                    >
-                        <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="light"
-                        isIconOnly
-                        onPress={() => handleEdit(row)}
-                    >
-                        <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="light"
-                        isIconOnly
-                        color="danger"
-                        onPress={() => handleDeleteClick(row)}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
-                </div>
-            ),
-        },
     ];
 
     const handleViewDetails = (service) => {
@@ -236,79 +207,63 @@ export default function ServiceList() {
                         variant="flat"
                         size="sm"
                         startContent={<Briefcase className="w-4 h-4" />}
+                        className="min-h-11"
                     >
                         Categories
                     </LinkButton>
-                    <Button
-                        color="primary"
-                        size="sm"
-                        startContent={<Plus className="w-4 h-4" />}
-                        onPress={handleAdd}
-                        className="w-full sm:w-auto"
-                    >
-                        <span className="hidden sm:inline">Add Service</span>
-                        <span className="sm:hidden">Add</span>
-                    </Button>
+                    {canCreate ? (
+                        <Button
+                            color="primary"
+                            size="sm"
+                            startContent={<Plus className="w-4 h-4" />}
+                            onPress={handleAdd}
+                            className="min-h-11 w-full sm:w-auto"
+                        >
+                            <span className="hidden sm:inline">Add Service</span>
+                            <span className="sm:hidden">Add</span>
+                        </Button>
+                    ) : null}
                 </div>
             }
             toolbar={(
-                <>
-                    <SearchInput
-                        value={search}
-                        onChange={setSearch}
-                        placeholder="Search services..."
-                        fullWidth
-                        className="flex-1"
-                    />
-                    <div className="flex gap-2">
-                        <Select
-                            placeholder="Category"
-                            selectedKeys={categoryFilter ? [categoryFilter] : []}
-                            onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0] || '')}
-                            className="w-full sm:w-40"
-                            size="sm"
-                            classNames={{
-                                trigger: 'bg-white',
-                            }}
-                        >
-                            {categoryOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </Select>
-
-                        {(search || categoryFilter) && (
-                            <Button
-                                variant="flat"
-                                size="sm"
-                                isIconOnly
-                                className="sm:hidden"
-                                onPress={() => {
-                                    setSearch('');
-                                    setCategoryFilter('');
-                                }}
-                            >
-                                <X className="w-4 h-4" />
-                            </Button>
-                        )}
-
-                        <Button
-                            variant="flat"
-                            size="sm"
-                            className="hidden sm:flex"
-                            onPress={() => {
-                                setSearch('');
-                                setCategoryFilter('');
-                            }}
-                            isDisabled={!search && !categoryFilter}
-                        >
-                            Clear
-                        </Button>
-                    </div>
-                </>
+                <FilterBar
+                    searchValue={search}
+                    onSearchChange={setSearch}
+                    searchPlaceholder="Search services..."
+                    activeFiltersCount={categoryFilter ? 1 : 0}
+                    onClearAll={() => {
+                        setSearch('');
+                        setCategoryFilter('');
+                    }}
+                >
+                    <Select
+                        placeholder="Category"
+                        selectedKeys={categoryFilter ? [categoryFilter] : []}
+                        onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0] || '')}
+                        className="w-full"
+                        size="sm"
+                        label="Category"
+                        classNames={{
+                            trigger: 'bg-white',
+                        }}
+                    >
+                        {categoryOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </Select>
+                </FilterBar>
             )}
         >
+            {error && (
+                <Alert
+                    variant="danger"
+                    title="Failed to load services"
+                    message={error?.data?.detail || error?.message || 'An error occurred while loading services.'}
+                />
+            )}
+
             {/* Results count */}
             <div className="flex items-center justify-between text-sm text-gray-500">
                 <span>
@@ -340,21 +295,28 @@ export default function ServiceList() {
                 }}
                 actions={[
                     {
+                        key: 'view',
                         label: 'View Details',
                         icon: <Eye className="w-4 h-4" />,
                         onClick: handleViewDetails,
                     },
-                    {
-                        label: 'Edit',
-                        icon: <Edit className="w-4 h-4" />,
-                        onClick: handleEdit,
-                    },
-                    {
-                        label: 'Delete',
-                        icon: <Trash2 className="w-4 h-4" />,
-                        color: 'danger',
-                        onClick: handleDeleteClick,
-                    },
+                    ...(canUpdate
+                        ? [{
+                            key: 'edit',
+                            label: 'Edit',
+                            icon: <Edit className="w-4 h-4" />,
+                            onClick: handleEdit,
+                        }]
+                        : []),
+                    ...(canDelete
+                        ? [{
+                            key: 'delete',
+                            label: 'Delete',
+                            icon: <Trash2 className="w-4 h-4" />,
+                            color: 'danger',
+                            onClick: handleDeleteClick,
+                        }]
+                        : []),
                 ]}
                 renderMobileCard={(service, { onClick, actions }) => (
                     <ServiceMobileCard

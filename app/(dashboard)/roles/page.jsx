@@ -23,6 +23,10 @@ import {
     Checkbox,
     Avatar,
     Pagination,
+    Dropdown,
+    DropdownTrigger,
+    DropdownMenu,
+    DropdownItem,
 } from '@/lib/heroui';
 import {
     Shield,
@@ -32,7 +36,7 @@ import {
     Key,
     Users,
     Lock,
-    ChevronRight,
+    MoreVertical,
 } from '@/lib/icons';
 import { toast } from 'react-hot-toast';
 import { ListPageLayout, ConfirmModal, MobileCard, EmptyState, SearchInput, FormModal, DetailModal, BulkActionBar, DataTable } from '@/components/ui';
@@ -109,6 +113,13 @@ export default function RolesPage() {
 // ============================================================================
 
 function RolesTab() {
+    const currentUser = useSelector((state) => state.auth.user);
+    const canCreate = hasPermission(currentUser, PERMISSIONS.ROLE_CREATE);
+    const canUpdate = hasPermission(currentUser, PERMISSIONS.ROLE_UPDATE);
+    const canDeleteRoles = hasPermission(currentUser, PERMISSIONS.ROLE_DELETE);
+    const canManagePermissions = hasPermission(currentUser, PERMISSIONS.PERMISSION_ASSIGN);
+    const canEditSystemFlags = isSuperAdmin(currentUser);
+
     const { data: roles = [], isLoading, error } = useGetRolesQuery();
     const { data: permissions = [] } = useGetPermissionsQuery();
     const [createRole, { isLoading: isCreating }] = useCreateRoleMutation();
@@ -125,10 +136,6 @@ function RolesTab() {
     const [roleToDelete, setRoleToDelete] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-
-    const currentUser = useSelector((state) => state.auth.user);
-    const canEditSystemFlags = isSuperAdmin(currentUser);
-    const canDeleteRoles = hasPermission(currentUser, PERMISSIONS.ROLE_DELETE);
 
     const methods = useForm({
         resolver: zodResolver(roleSchema),
@@ -282,15 +289,17 @@ function RolesTab() {
                 <span className="text-sm text-gray-500">
                     Showing {roleList.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, roleList.length)} of {roleList.length} role{roleList.length !== 1 ? 's' : ''}
                 </span>
-                <Button
-                    color="primary"
-                    startContent={<Plus className="w-4 h-4" />}
-                    onPress={handleCreate}
-                    size="sm"
-                >
-                    <span className="hidden sm:inline">Create Role</span>
-                    <span className="sm:hidden">Add</span>
-                </Button>
+                {canCreate && (
+                    <Button
+                        color="primary"
+                        startContent={<Plus className="w-4 h-4" />}
+                        onPress={handleCreate}
+                        size="sm"
+                    >
+                        <span className="hidden sm:inline">Create Role</span>
+                        <span className="sm:hidden">Add</span>
+                    </Button>
+                )}
             </div>
 
             <BulkActionBar
@@ -329,50 +338,7 @@ function RolesTab() {
                         label: 'Permissions',
                         priority: 'secondary',
                         render: (role) => (
-                            <Button
-                                size="sm"
-                                variant="flat"
-                                color="primary"
-                                className="min-h-9"
-                                startContent={<Key className="w-3 h-3" />}
-                                onPress={() => handleManagePermissions(role)}
-                            >
-                                {role.permissions?.length || 0}
-                            </Button>
-                        ),
-                    },
-                    {
-                        key: 'actions',
-                        label: 'Actions',
-                        priority: 'actions',
-                        hideBelow: false,
-                        align: 'right',
-                        render: (role) => (
-                            <div className="flex justify-end gap-2">
-                                <Button
-                                    size="sm"
-                                    variant="flat"
-                                    isIconOnly
-                                    className="min-w-9 min-h-9"
-                                    onPress={() => handleEdit(role)}
-                                    aria-label={`Edit ${role.name}`}
-                                >
-                                    <Edit className="w-4 h-4" />
-                                </Button>
-                                {!systemRoles.includes(role.name) && (
-                                    <Button
-                                        size="sm"
-                                        variant="flat"
-                                        color="danger"
-                                        isIconOnly
-                                        className="min-w-9 min-h-9"
-                                        onPress={() => handleDeleteClick(role)}
-                                        aria-label={`Delete ${role.name}`}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                )}
-                            </div>
+                            <span className="text-sm text-gray-500">{role.permissions?.length || 0}</span>
                         ),
                     },
                 ]}
@@ -394,13 +360,38 @@ function RolesTab() {
                     actionLabel: 'Create Role',
                     onAction: handleCreate,
                 }}
-                renderMobileCard={(role) => (
+                actions={(role) => [
+                    ...(canManagePermissions
+                        ? [{
+                            key: 'permissions',
+                            label: 'Manage permissions',
+                            icon: <Key className="w-4 h-4" />,
+                            onClick: handleManagePermissions,
+                        }]
+                        : []),
+                    ...(canUpdate
+                        ? [{
+                            key: 'edit',
+                            label: 'Edit',
+                            icon: <Edit className="w-4 h-4" />,
+                            onClick: handleEdit,
+                        }]
+                        : []),
+                    ...(canDeleteRoles && !systemRoles.includes(role.name)
+                        ? [{
+                            key: 'delete',
+                            label: 'Delete',
+                            icon: <Trash2 className="w-4 h-4" />,
+                            danger: true,
+                            onClick: handleDeleteClick,
+                        }]
+                        : []),
+                ]}
+                renderMobileCard={(role, { actions }) => (
                     <RoleMobileCard
                         role={role}
                         isSystem={systemRoles.includes(role.name)}
-                        onEdit={() => handleEdit(role)}
-                        onDelete={() => handleDeleteClick(role)}
-                        onManagePermissions={() => handleManagePermissions(role)}
+                        actions={actions}
                     />
                 )}
             />
@@ -519,7 +510,7 @@ function RolesTab() {
 }
 
 // Role Mobile Card Component
-function RoleMobileCard({ role, isSystem, onEdit, onDelete, onManagePermissions }) {
+function RoleMobileCard({ role, isSystem, actions = [] }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -527,43 +518,43 @@ function RoleMobileCard({ role, isSystem, onEdit, onDelete, onManagePermissions 
             className="bg-white rounded-lg border border-gray-200 p-4"
         >
             <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center shrink-0">
                         <Shield className="w-5 h-5 text-primary-600" />
                     </div>
-                    <div>
-                        <div className="flex items-center gap-2">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-gray-900">{role.name}</span>
                             {isSystem && (
                                 <Chip size="sm" color="warning" variant="flat">System</Chip>
                             )}
                         </div>
                         <p className="text-sm text-gray-500 line-clamp-1">{role.description || 'No description'}</p>
+                        <p className="text-xs text-gray-400 mt-1">{role.permissions?.length || 0} permissions</p>
                     </div>
                 </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                <Button
-                    size="sm"
-                    variant="flat"
-                    color="primary"
-                    startContent={<Key className="w-3 h-3" />}
-                    onPress={onManagePermissions}
-                >
-                    {role.permissions?.length || 0} permissions
-                </Button>
-
-                <div className="flex gap-1">
-                    <Button size="sm" variant="flat" isIconOnly onPress={onEdit}>
-                        <Edit className="w-4 h-4" />
-                    </Button>
-                    {!isSystem && (
-                        <Button size="sm" variant="flat" color="danger" isIconOnly onPress={onDelete}>
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
-                    )}
-                </div>
+                {actions.length > 0 ? (
+                    <Dropdown placement="bottom-end">
+                        <DropdownTrigger>
+                            <Button isIconOnly size="sm" variant="light" aria-label="Row actions" className="min-w-9 min-h-9 shrink-0">
+                                <MoreVertical className="w-4 h-4 text-gray-500" />
+                            </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu aria-label="Role actions">
+                            {actions.map((action, index) => (
+                                <DropdownItem
+                                    key={action.key || index}
+                                    color={action.color || (action.danger ? 'danger' : 'default')}
+                                    className={action.danger || action.color === 'danger' ? 'text-danger' : undefined}
+                                    startContent={action.icon}
+                                    onPress={() => action.onClick?.()}
+                                >
+                                    {action.label}
+                                </DropdownItem>
+                            ))}
+                        </DropdownMenu>
+                    </Dropdown>
+                ) : null}
             </div>
         </motion.div>
     );
@@ -680,32 +671,21 @@ function UserRolesTab() {
                             </div>
                         ),
                     },
-                    {
-                        key: 'actions',
-                        label: 'Actions',
-                        priority: 'actions',
-                        hideBelow: false,
-                        align: 'right',
-                        render: (user) => (
-                            <Button
-                                size="sm"
-                                variant="flat"
-                                color="primary"
-                                className="min-h-9"
-                                startContent={<Shield className="w-3 h-3" />}
-                                onPress={() => handleManageRoles(user)}
-                            >
-                                Manage
-                            </Button>
-                        ),
-                    },
                 ]}
                 data={users}
                 emptyMessage="No users found"
-                renderMobileCard={(user) => (
+                actions={[
+                    {
+                        key: 'manage',
+                        label: 'Manage roles',
+                        icon: <Shield className="w-4 h-4" />,
+                        onClick: handleManageRoles,
+                    },
+                ]}
+                renderMobileCard={(user, { actions }) => (
                     <UserRoleMobileCard
                         user={user}
-                        onManageRoles={() => handleManageRoles(user)}
+                        actions={actions}
                     />
                 )}
             />
@@ -756,7 +736,7 @@ function UserRolesTab() {
 }
 
 // User Role Mobile Card Component
-function UserRoleMobileCard({ user, onManageRoles }) {
+function UserRoleMobileCard({ user, actions = [] }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -778,15 +758,27 @@ function UserRoleMobileCard({ user, onManageRoles }) {
                         <span className="text-sm text-gray-500 block truncate">{user.email}</span>
                     </div>
                 </div>
-                <Button
-                    size="sm"
-                    variant="flat"
-                    color="primary"
-                    isIconOnly
-                    onPress={onManageRoles}
-                >
-                    <ChevronRight className="w-4 h-4" />
-                </Button>
+                {actions.length > 0 ? (
+                    <Dropdown placement="bottom-end">
+                        <DropdownTrigger>
+                            <Button isIconOnly size="sm" variant="light" aria-label="Row actions" className="min-w-9 min-h-9 shrink-0">
+                                <MoreVertical className="w-4 h-4 text-gray-500" />
+                            </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu aria-label="User role actions">
+                            {actions.map((action, index) => (
+                                <DropdownItem
+                                    key={action.key || index}
+                                    color={action.color || (action.danger ? 'danger' : 'default')}
+                                    startContent={action.icon}
+                                    onPress={() => action.onClick?.()}
+                                >
+                                    {action.label}
+                                </DropdownItem>
+                            ))}
+                        </DropdownMenu>
+                    </Dropdown>
+                ) : null}
             </div>
 
             <div className="mt-3 pt-3 border-t border-gray-100">

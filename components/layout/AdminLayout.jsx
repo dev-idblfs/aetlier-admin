@@ -130,7 +130,7 @@ export default function AdminLayout({ children }) {
                     ${isCollapsed ? 'md:ml-[80px]' : 'md:ml-[280px]'}
                 `}>
                     <Header />
-                    <main className="flex-1 p-3 md:p-4">
+                    <main className="flex-1 px-3 py-3 md:px-4 md:py-4">
                         <RoutePermissionGuard>{children}</RoutePermissionGuard>
                     </main>
                 </div>

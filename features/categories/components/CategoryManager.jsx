@@ -31,7 +31,7 @@ import {
     useDeleteCategoryMutation,
     useBulkDeleteCategoriesMutation,
 } from '@/redux/services/api';
-import { ConfirmModal, FormModal, BulkActionBar } from '@/components/ui';
+import { ConfirmModal, FormModal, BulkActionBar, StatusBadge } from '@/components/ui';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 import useBulkSelection from '@/hooks/useBulkSelection';
 import useBulkDeleteAction from '@/hooks/useBulkDeleteAction';
@@ -58,17 +58,19 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
         onClose: onDeleteClose
     } = useDisclosure();
 
+    const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.SERVICE_READ_ANY);
+
     // API Hooks
     const { data: categories = [], isLoading, refetch } = useGetCategoriesQuery({
         type,
         active_only: false // Fetch all to manage them
-    });
+    }, { skip: !canView });
 
     const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
     const [updateCategory, { isLoading: isUpdating }] = useUpdateCategoryMutation();
     const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
 
-    const authUser = useSelector((s) => s.auth.user);
     const canDelete = hasPermission(authUser, PERMISSIONS.CATEGORY_DELETE);
 
     const itemsPerPage = categories.length || 1;
@@ -228,13 +230,11 @@ export default function CategoryManager({ type, title = 'Manage Categories' }) {
                 >
                     {category.icon || <Folder className="w-4 h-4" />}
                 </div>
-                <div className="min-w-0">
-                    <h4 className="font-medium text-gray-900 flex flex-wrap items-center gap-2">
-                        <span className="truncate">{category.name}</span>
-                        {!category.is_active && (
-                            <Chip size="sm" variant="flat" color="danger" className="h-5 text-xs">Inactive</Chip>
-                        )}
-                    </h4>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="font-medium text-gray-900 truncate">{category.name}</h4>
+                        <StatusBadge status={category.is_active ? 'active' : 'inactive'} />
+                    </div>
                     {category.description && (
                         <p className="text-sm text-gray-500 line-clamp-2">{category.description}</p>
                     )}

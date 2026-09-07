@@ -38,6 +38,8 @@ import { motion } from 'framer-motion';
 import { ListPageLayout, StatusBadge, LinkButton } from '@/components/ui';
 import { useGetFinancialDashboardQuery, useGetInvoicesQuery, useGetExpensesQuery } from '@/redux/services/api';
 import { formatDate, formatCurrency } from '@/utils/dateFormatters';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 
 // Date range options
 const dateRangeOptions = [
@@ -89,9 +91,23 @@ export default function FinanceDashboardPage() {
     const [dateRange, setDateRange] = useState('this_month');
     const { date_from, date_to } = getDateRange(dateRange);
 
-    const { data: dashboard, isLoading } = useGetFinancialDashboardQuery({ date_from, date_to });
-    const { data: recentInvoices } = useGetInvoicesQuery({ page: 1, page_size: 5 });
-    const { data: recentExpenses } = useGetExpensesQuery({ page: 1, page_size: 5 });
+    const authUser = useSelector((s) => s.auth.user);
+    const canViewDashboard = hasPermission(authUser, PERMISSIONS.FINANCE_DASHBOARD_VIEW);
+    const canViewInvoices = hasPermission(authUser, PERMISSIONS.INVOICE_VIEW_ANY);
+    const canViewExpenses = hasPermission(authUser, PERMISSIONS.EXPENSE_VIEW_ANY);
+
+    const { data: dashboard, isLoading } = useGetFinancialDashboardQuery(
+        { date_from, date_to },
+        { skip: !canViewDashboard }
+    );
+    const { data: recentInvoices } = useGetInvoicesQuery(
+        { page: 1, page_size: 5 },
+        { skip: !canViewInvoices }
+    );
+    const { data: recentExpenses } = useGetExpensesQuery(
+        { page: 1, page_size: 5 },
+        { skip: !canViewExpenses }
+    );
 
     const stats = useMemo(() => {
         if (!dashboard) return null;
@@ -242,8 +258,8 @@ export default function FinanceDashboardPage() {
                                         <p className="text-sm text-gray-500">{invoice.customer_name}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-medium">{formatCurrency(invoice.total_amount)}</p>
-                                        <InvoiceStatusBadge status={invoice.status} />
+                                        <p className="font-medium">{formatCurrency(invoice.grand_total)}</p>
+                                        <StatusBadge status={invoice.status} type="invoice" />
                                     </div>
                                 </Link>
                             )) || (
@@ -270,7 +286,7 @@ export default function FinanceDashboardPage() {
                     </CardHeader>
                     <CardBody className="p-0">
                         <div className="divide-y">
-                            {recentExpenses?.items?.slice(0, 5).map((expense) => (
+                            {recentExpenses?.expenses?.slice(0, 5).map((expense) => (
                                 <Link
                                     key={expense.id}
                                     href={`/finance/expenses/${expense.id}`}
@@ -365,25 +381,5 @@ function MiniStatCard({ title, value, icon: Icon, color, isLoading, isCount = fa
                 )}
             </CardBody>
         </Card>
-    );
-}
-
-// Invoice Status Badge
-function InvoiceStatusBadge({ status }) {
-    const statusConfig = {
-        PAID: { color: 'success', label: 'Paid' },
-        PARTIALLY_PAID: { color: 'warning', label: 'Partial' },
-        SENT: { color: 'primary', label: 'Sent' },
-        OVERDUE: { color: 'danger', label: 'Overdue' },
-        CANCELLED: { color: 'default', label: 'Cancelled' },
-        DRAFT: { color: 'default', label: 'Draft' },
-    };
-
-    const config = statusConfig[status] || statusConfig.DRAFT;
-
-    return (
-        <Chip size="sm" color={config.color} variant="flat">
-            {config.label}
-        </Chip>
     );
 }

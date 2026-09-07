@@ -51,6 +51,7 @@ constants/ config/ hooks/ contexts/
 - Add route-level `loading.jsx` for sections with data fetching, matching existing sections.
 - Import shared UI from the barrel: `import { PageHeader, DataTable, Button } from '@/components/ui'`.
 - Forms: define Zod schemas in `lib/validation/index.js`, use `react-hook-form` + shared `components/ui/FormFields`.
+- Prefer Tailwind utility classes for layout/spacing (e.g. `min-h-11` for 44px touch targets, `px-3 py-3 md:px-4` for page padding). Avoid inventing custom CSS variables or inline `style={{}}` for theme chrome.
 - Set page title/breadcrumbs via `SidebarContext` (from `AdminLayout`).
 
 ## Data fetching
@@ -69,6 +70,8 @@ constants/ config/ hooks/ contexts/
 - Pattern: `const user = useSelector(s => s.auth.user)` → `hasPermission(user, PERMISSIONS.X)`; gate queries with `{ skip: !canView }`.
 - Admin portal entry is gated by `canAccessAdminPortal(user)` (`utils/permissions.js`), which prefers the backend `user.can_access_admin_app` and falls back to the `admin.portal.access` permission. The portal flags (`grants_admin_portal`, `prefer_admin_redirect_on_login`) live on **roles**, not users, and are editable from the Roles page.
 - Sidebar nav is permission-filtered **server-side** via `useGetNavigationQuery`. To add a nav icon, extend `ICON_MAP` in `components/layout/Sidebar.jsx`.
+- **Audit logs**: `app/(dashboard)/audit/page.jsx` lists all audit activity via `useGetAuditLogsQuery` with filters, permission-gated with `skip: !canView`. Entity IDs link to detail pages via `EntityLink` when a route mapping exists (`ENTITY_ROUTES`). Timeline component (`components/audit/AuditTimeline.jsx`) shows history for a single entity.
+- **Mobile home**: `app/(dashboard)/settings/mobile-home/page.jsx` manages mobile app banners/promotions via `GET /api/mobile/home`. Linked from Settings → General → Quick Links card.
 
 ## Coding Principles (apply to every change)
 
@@ -81,7 +84,7 @@ constants/ config/ hooks/ contexts/
 ## Gotchas
 
 - Tailwind v4 config lives in `hero.ts` (imported via `@config` in `app/globals.css`), not a classic `tailwind.config.js`.
-- HeroUI v3 tokens come from `@import "@heroui/styles"` in `app/globals.css`. Terracotta brand maps to `--accent`. Do not import `@heroui/react` in pages — use `@/lib/heroui`.
+- HeroUI v3 tokens come from `@import "@heroui/styles"` in `app/globals.css`. Terracotta brand maps to `--accent` (HeroUI semantic tokens only — prefer Tailwind `primary-*` in UI). Do not import `@heroui/react` in pages — use `@/lib/heroui`.
 - `yarn lint` is stricter under `eslint-config-next` 16.3 (react-compiler / hooks). Existing screens may fail lint; that is not a HeroUI-layer regression unless the error is in `lib/heroui.jsx`.
 - No Prettier/format script — keep diffs consistent with surrounding code.
 - Many root-level `*_IMPLEMENTATION.md` / `INVOICE_*.md` are historical notes, not coding conventions.

@@ -35,18 +35,15 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { ListPageLayout, ConfirmModal } from '@/components/ui';
+import { ListPageLayout, ConfirmModal, StatusBadge } from '@/components/ui';
 import {
     useGetExpenseQuery,
     useDeleteExpenseMutation,
 } from '@/redux/services/api';
 import { formatDate, formatCurrency } from '@/utils/dateFormatters';
 import Image from 'next/image';
-
-const paymentStatusConfig = {
-    PAID: { label: 'Paid', color: 'success' },
-    PENDING: { label: 'Pending', color: 'warning' },
-};
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 
 const paymentMethodLabels = {
     CASH: 'Cash',
@@ -61,6 +58,11 @@ export default function ExpenseDetailPage({ params }) {
     const router = useRouter();
     const [deleteExpense, { isLoading: isDeleting }] = useDeleteExpenseMutation();
 
+    const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.EXPENSE_VIEW_ANY);
+    const canUpdate = hasPermission(authUser, PERMISSIONS.EXPENSE_UPDATE);
+    const canDelete = hasPermission(authUser, PERMISSIONS.EXPENSE_DELETE);
+
     const {
         isOpen: isDeleteModalOpen,
         onOpen: onDeleteModalOpen,
@@ -68,7 +70,19 @@ export default function ExpenseDetailPage({ params }) {
     } = useDisclosure();
 
     // Fetch expense
-    const { data: expense, isLoading, error, refetch } = useGetExpenseQuery(unwrappedParams.id);
+    const { data: expense, isLoading, error, refetch } = useGetExpenseQuery(unwrappedParams.id, {
+        skip: !canView || !unwrappedParams?.id,
+    });
+
+    if (!canView) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <AlertCircle className="w-16 h-16 text-warning" />
+                <h2 className="text-xl font-semibold">Access denied</h2>
+                <p className="text-gray-600">You do not have permission to view expenses.</p>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
@@ -114,25 +128,29 @@ export default function ExpenseDetailPage({ params }) {
             ]}
             actions={
                 <div className="flex flex-wrap gap-2">
-                    <Button
-                        size="sm"
-                        color="primary"
-                        variant="flat"
-                        startContent={<Edit className="w-4 h-4" />}
-                        as={Link}
-                        href={`/finance/expenses/${expense.id}/edit`}
-                    >
-                        Edit
-                    </Button>
-                    <Button
-                        size="sm"
-                        color="danger"
-                        variant="flat"
-                        startContent={<Trash2 className="w-4 h-4" />}
-                        onClick={onDeleteModalOpen}
-                    >
-                        Delete
-                    </Button>
+                    {canUpdate && (
+                        <Button
+                            size="sm"
+                            color="primary"
+                            variant="flat"
+                            startContent={<Edit className="w-4 h-4" />}
+                            as={Link}
+                            href={`/finance/expenses/${expense.id}/edit`}
+                        >
+                            Edit
+                        </Button>
+                    )}
+                    {canDelete && (
+                        <Button
+                            size="sm"
+                            color="danger"
+                            variant="flat"
+                            startContent={<Trash2 className="w-4 h-4" />}
+                            onClick={onDeleteModalOpen}
+                        >
+                            Delete
+                        </Button>
+                    )}
                 </div>
             }
         >
@@ -152,12 +170,7 @@ export default function ExpenseDetailPage({ params }) {
                                         >
                                             {expense.category_name || 'Uncategorized'}
                                         </Chip>
-                                        <Chip
-                                            color={paymentStatusConfig[expense.payment_status]?.color}
-                                            variant="flat"
-                                        >
-                                            {paymentStatusConfig[expense.payment_status]?.label}
-                                        </Chip>
+                                        <StatusBadge status={expense.payment_status} type="payment" />
                                     </div>
                                     <h2 className="text-2xl font-bold">{expense.vendor || 'N/A'}</h2>
                                     {expense.description && (
@@ -297,13 +310,7 @@ export default function ExpenseDetailPage({ params }) {
                         <CardBody className="space-y-3">
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">Status</span>
-                                <Chip
-                                    color={paymentStatusConfig[expense.payment_status]?.color}
-                                    variant="flat"
-                                    size="sm"
-                                >
-                                    {paymentStatusConfig[expense.payment_status]?.label}
-                                </Chip>
+                                <StatusBadge status={expense.payment_status} type="payment" />
                             </div>
                             <Divider />
                             <div className="flex justify-between">

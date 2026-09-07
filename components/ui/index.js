@@ -14,6 +14,10 @@ export {
 } from "./Card";
 export { default as DataTable } from "./DataTable";
 export { default as StatusBadge } from "./StatusBadge";
+export { default as EntityLink } from "./EntityLink";
+export { default as FilterBar } from "./FilterBar";
+export { default as Alert } from "./Alert";
+export { default as SectionCard } from "./SectionCard";
 export { default as PageHeader } from "./PageHeader";
 export { default as FormPageLayout } from "./FormPageLayout";
 export { default as ListPageLayout } from "./ListPageLayout";

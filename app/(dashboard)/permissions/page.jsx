@@ -33,12 +33,20 @@ import {
     FormInput,
     FormTextarea,
     DEFAULT_FORM_OPTIONS,
+    Alert,
+    StatusBadge,
 } from '@/components/ui';
 import { permissionCreateSchema } from '@/lib/validation';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
+import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 
 export default function PermissionsPage() {
-    const { data: permissions = [], isLoading, error } = useGetPermissionsQuery();
+    const authUser = useSelector((s) => s.auth.user);
+    const canView = hasPermission(authUser, PERMISSIONS.PERMISSION_READ);
+    const canCreate = hasPermission(authUser, PERMISSIONS.PERMISSION_CREATE);
+
+    const { data: permissions = [], isLoading, error } = useGetPermissionsQuery({}, { skip: !canView });
     const [createPermission, { isLoading: isCreating }] = useCreatePermissionMutation();
 
     const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
@@ -79,13 +87,27 @@ export default function PermissionsPage() {
         );
     }
 
+    if (!canView) {
+        return (
+            <ListPageLayout title="Permissions" breadcrumbs={[{ label: 'Permissions' }]}>
+                <Alert
+                    variant="warning"
+                    title="Access Denied"
+                    message="You do not have permission to view permissions."
+                />
+            </ListPageLayout>
+        );
+    }
+
     if (error) {
         return (
-            <Card>
-                <CardBody className="text-center py-12 text-red-500">
-                    Failed to load permissions. Please try again.
-                </CardBody>
-            </Card>
+            <ListPageLayout title="Permissions" breadcrumbs={[{ label: 'Permissions' }]}>
+                <Alert
+                    variant="danger"
+                    title="Failed to load permissions"
+                    message={error?.data?.detail || error?.message || 'Unable to fetch permissions. Please try again.'}
+                />
+            </ListPageLayout>
         );
     }
 
@@ -132,7 +154,7 @@ export default function PermissionsPage() {
         <ListPageLayout
             title="Permissions"
             breadcrumbs={[{ label: 'Permissions' }]}
-            actions={(
+            actions={canCreate ? (
                 <Button
                     color="primary"
                     size="sm"
@@ -141,7 +163,7 @@ export default function PermissionsPage() {
                 >
                     Add Permission
                 </Button>
-            )}
+            ) : null}
             toolbar={(
                 <SearchInput
                     value={searchQuery}
@@ -257,9 +279,12 @@ function PermissionGroup({ resource, permissions, getActionColor, getScopeBadge,
                                                         <span className="text-xs md:text-sm font-mono font-medium truncate">{perm.name}</span>
                                                     </div>
                                                     <div className="flex gap-1 shrink-0">
-                                                        <Chip size="sm" color={getActionColor(perm.name)} variant="flat">
-                                                            {perm.name.split('.')[1]}
-                                                        </Chip>
+                                                        <StatusBadge 
+                                                            status={perm.name.split('.')[1]} 
+                                                            showIcon={false}
+                                                            size="sm"
+                                                            label={perm.name.split('.')[1]}
+                                                        />
                                                         {scope && (
                                                             <Chip size="sm" color={scope.color} variant="dot">
                                                                 {scope.text}

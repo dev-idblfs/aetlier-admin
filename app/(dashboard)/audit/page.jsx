@@ -14,13 +14,21 @@ import {
 } from '@/lib/heroui';
 import { RefreshCw, Filter, X } from '@/lib/icons';
 import { useSelector } from 'react-redux';
-import { ListPageLayout, Card, DataTable } from '@/components/ui';
+import { ListPageLayout, Card, DataTable, EntityLink } from '@/components/ui';
 import AuditTimeline from '@/components/audit/AuditTimeline';
 import { useGetAuditLogsQuery } from '@/redux/services/api';
 import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 
+// Map entity types to routes for EntityLink
+const ENTITY_ROUTES = {
+  appointments: (id) => `/appointments/${id}`,
+  users: (id) => `/users/${id}/edit`,
+  invoices: (id) => `/finance/invoices/${id}`,
+  doctor_profiles: (id) => `/doctors/${id}/edit`,
+};
+
 const ENTITY_TYPES = [
-  { value: '', label: 'All entities' },
+  { value: 'all', label: 'All entities' },
   { value: 'appointments', label: 'Appointments' },
   { value: 'prescriptions', label: 'Prescriptions' },
   { value: 'users', label: 'Users' },
@@ -74,16 +82,29 @@ export default function AuditExplorerPage() {
       key: 'entity',
       label: 'Entity',
       priority: 'primary',
-      render: (row) => (
-        <div>
-          <p className="text-sm font-medium capitalize text-gray-900">
-            {row.entity_type?.replace(/_/g, ' ')}
-          </p>
-          <p className="text-xs text-gray-500 font-mono truncate max-w-[140px]">
-            {row.entity_id}
-          </p>
-        </div>
-      ),
+      render: (row) => {
+        const routeFn = ENTITY_ROUTES[row.entity_type];
+        return (
+          <div>
+            <p className="text-sm font-medium capitalize text-gray-900">
+              {row.entity_type?.replace(/_/g, ' ')}
+            </p>
+            {routeFn ? (
+              <EntityLink
+                href={routeFn(row.entity_id)}
+                mono
+                className="text-xs truncate max-w-[140px] inline-block"
+              >
+                {row.entity_id}
+              </EntityLink>
+            ) : (
+              <p className="text-xs text-gray-500 font-mono truncate max-w-[140px]">
+                {row.entity_id}
+              </p>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'action',
@@ -136,15 +157,15 @@ export default function AuditExplorerPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <Select
             label="Entity type"
-            labelPlacement="outside"
             size="sm"
-            selectedKeys={filters.entity_type ? [filters.entity_type] : []}
-            onSelectionChange={(keys) =>
-              setFilters((f) => ({ ...f, entity_type: Array.from(keys)[0] || '' }))
-            }
+            selectedKeys={filters.entity_type ? [filters.entity_type] : ['all']}
+            onSelectionChange={(keys) => {
+              const value = Array.from(keys)[0] || 'all';
+              setFilters((f) => ({ ...f, entity_type: value === 'all' ? '' : value }));
+            }}
           >
             {ENTITY_TYPES.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={opt.value} value={opt.value} textValue={opt.label}>
                 {opt.label}
               </SelectItem>
             ))}

@@ -1,13 +1,12 @@
 'use client'
 
-import { Divider, Chip } from '@/lib/heroui'
+import { Divider } from '@/lib/heroui'
 import { Calendar, Clock, User, Mail, Phone } from '@/lib/icons'
-import { DetailRow } from '@/components/ui'
+import { DetailRow, EntityLink, StatusBadge } from '@/components/ui'
 import ConsultationJoinCard from '@/components/consultation/ConsultationJoinCard'
 import { useGetConsultationQuery } from '@/redux/services/api'
 import { formatDate, formatTime } from '@/utils/dateFormatters'
 import { isOnlineConsultation } from '@/utils/consultationJoinWindow'
-import { STATUS_COLORS } from '../constants'
 import {
   getDoctorName,
   getFeeLabel,
@@ -42,21 +41,20 @@ export default function AppointmentDetailBody({ appointment }) {
   const email = getPatientEmail(appointment)
   const phone = getPatientPhone(appointment)
   const fee = getFeeLabel(appointment)
+  const patientId = appointment.user_id || appointment.user?.id
+  const doctorId = appointment.doctor_id || appointment.doctor?.id || appointment.doctor_user_id
+  const serviceId = appointment.service_id || appointment.service?.id
+  const invoiceId = appointment.invoice_id
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <Chip
-          size="sm"
-          color={STATUS_COLORS[appointment.status] || 'default'}
-          variant="flat"
-          className="capitalize"
-        >
-          {appointment.status?.replace('_', ' ')}
-        </Chip>
-        <Chip size="sm" variant="flat" color={appointment.consultation_mode === 'online' ? 'secondary' : 'default'}>
-          {getModeLabel(appointment.consultation_mode)}
-        </Chip>
+        <StatusBadge status={appointment.status} />
+        <StatusBadge
+          status={appointment.consultation_mode === 'online' ? 'submitted' : 'inactive'}
+          label={getModeLabel(appointment.consultation_mode)}
+          showIcon={false}
+        />
       </div>
 
       <div>
@@ -64,7 +62,15 @@ export default function AppointmentDetailBody({ appointment }) {
           Patient
         </h4>
         <div className="space-y-3">
-          <DetailRow icon={<User className="h-4 w-4" />} label="Name" value={patientName} />
+          <DetailRow
+            icon={<User className="h-4 w-4" />}
+            label="Name"
+            value={
+              <EntityLink href={patientId ? `/users/${patientId}/edit` : null}>
+                {patientName}
+              </EntityLink>
+            }
+          />
           {email ? (
             <DetailRow icon={<Mail className="h-4 w-4" />} label="Email" value={email} />
           ) : null}
@@ -98,20 +104,38 @@ export default function AppointmentDetailBody({ appointment }) {
               appointment.appointment_time || appointment.preferred_time
             )}
           />
-          <DetailRow label="Service" value={getServiceName(appointment) || '—'} />
-          <DetailRow label="Doctor" value={getDoctorName(appointment) || '—'} />
+          <DetailRow
+            label="Service"
+            value={
+              <EntityLink href={serviceId ? `/services/${serviceId}/edit` : null}>
+                {getServiceName(appointment) || '—'}
+              </EntityLink>
+            }
+          />
+          <DetailRow
+            label="Doctor"
+            value={
+              <EntityLink href={doctorId ? `/doctors/${doctorId}/edit` : null}>
+                {getDoctorName(appointment) || '—'}
+              </EntityLink>
+            }
+          />
           <DetailRow
             label="Fee / payment"
             value={
-              appointment.invoice_number
-                ? `${appointment.invoice_number}${fee ? ` · ${fee}` : ''}${
+              appointment.invoice_number ? (
+                <EntityLink href={invoiceId ? `/finance/invoices/${invoiceId}` : null}>
+                  {`${appointment.invoice_number}${fee ? ` · ${fee}` : ''}${
                     appointment.invoice_status
                       ? ` · ${appointment.invoice_status}`
                       : ''
-                  }`
-                : fee
-                  ? `${fee} · Pay at clinic`
-                  : 'Pay at clinic'
+                  }`}
+                </EntityLink>
+              ) : fee ? (
+                `${fee} · Pay at clinic`
+              ) : (
+                'Pay at clinic'
+              )
             }
           />
         </div>
