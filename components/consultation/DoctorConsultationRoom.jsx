@@ -6,7 +6,6 @@ import {
   RoomEvent,
   ConnectionState,
   Track,
-  DisconnectReason,
 } from 'livekit-client';
 import { Button, Spinner } from '@heroui/react';
 import {
@@ -207,16 +206,8 @@ export default function DoctorConsultationRoom({
         setPhase('waiting');
       }
     });
-    room.on(RoomEvent.Disconnected, (reason) => {
-      if (endedRef.current) return;
-      if (
-        reason === DisconnectReason.CLIENT_INITIATED ||
-        reason === DisconnectReason.ROOM_DELETED ||
-        reason === DisconnectReason.PARTICIPANT_REMOVED
-      ) {
-        finishCall('disconnected');
-      }
-    });
+    // Do not end consultation on Disconnected — client disconnect from Strict Mode
+    // / retries fires CLIENT_INITIATED and would delete the LiveKit room.
 
     return () => {
       room.off(RoomEvent.ConnectionStateChanged, onState);
@@ -230,7 +221,6 @@ export default function DoctorConsultationRoom({
     startTimer,
     stopTimer,
     clearReconnectTimeout,
-    finishCall,
   ]);
 
   useEffect(() => {
@@ -251,9 +241,25 @@ export default function DoctorConsultationRoom({
         }
 
         await room.connect(url, tokenData.token);
-        if (cancelled) return;
+        if (cancelled) {
+          try {
+            await room.disconnect();
+          } catch {
+            // ignore
+          }
+          return;
+        }
 
-        await startConsultationRef.current({ appointmentId }).unwrap();
+        try {
+          await startConsultationRef.current({ appointmentId }).unwrap();
+        } catch (startErr) {
+          try {
+            await room.disconnect();
+          } catch {
+            // ignore
+          }
+          throw startErr;
+        }
 
         try {
           await room.localParticipant.setMicrophoneEnabled(true);
@@ -263,8 +269,21 @@ export default function DoctorConsultationRoom({
             await room.localParticipant.setCameraEnabled(false);
           }
         } catch (mediaErr) {
-          await room.disconnect();
+          try {
+            await room.disconnect();
+          } catch {
+            // ignore
+          }
           throw mediaErr;
+        }
+
+        if (cancelled) {
+          try {
+            await room.disconnect();
+          } catch {
+            // ignore
+          }
+          return;
         }
 
         refreshTracks();
@@ -275,6 +294,7 @@ export default function DoctorConsultationRoom({
           startTimer();
         }
       } catch (err) {
+        if (cancelled) return;
         setErrorMessage(formatDoctorConsultationError(err));
         setPhase('error');
         stopTimer();
@@ -287,14 +307,12 @@ export default function DoctorConsultationRoom({
       cancelled = true;
       clearReconnectTimeout();
       stopTimer();
-      if (!endedRef.current) {
-        endedRef.current = true;
-        endConsultationRef
-          .current({ appointmentId, end_reason: 'navigated_away' })
-          .catch(() => {});
-        notifyConsultationEnded(appointmentId);
+      // Disconnect media only — never POST /end on effect cleanup.
+      try {
+        room.disconnect();
+      } catch {
+        // ignore
       }
-      room.disconnect();
     };
   }, [
     appointmentId,
