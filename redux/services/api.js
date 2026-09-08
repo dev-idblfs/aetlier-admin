@@ -412,7 +412,7 @@ export const api = createApi({
         url: `/admin/users/${userId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["User"],
+      invalidatesTags: ["User", "Customer", "Appointment", "Invoice"],
     }),
 
     // GET /admin/users/:id/permissions - Get user's permissions
@@ -1311,7 +1311,7 @@ export const api = createApi({
         url: `/customers/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Customer"],
+      invalidatesTags: ["Customer", "User", "Appointment", "Invoice"],
     }),
 
     // =========================================================================
@@ -1509,7 +1509,7 @@ export const api = createApi({
         method: "DELETE",
         body,
       }),
-      invalidatesTags: ["User"],
+      invalidatesTags: ["User", "Customer", "Appointment", "Invoice"],
     }),
     bulkDeleteRoles: builder.mutation({
       query: (body) => ({
@@ -1541,7 +1541,7 @@ export const api = createApi({
         method: "DELETE",
         body,
       }),
-      invalidatesTags: ["Customer"],
+      invalidatesTags: ["Customer", "User", "Appointment", "Invoice"],
     }),
     bulkDeleteCategories: builder.mutation({
       query: (body) => ({
