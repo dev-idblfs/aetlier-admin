@@ -15,10 +15,10 @@ import {
 import { hasAnyPermission, hasPermission, PERMISSIONS } from '@/utils/permissions'
 
 const MEAL_OPTIONS = [
-  { key: '', label: 'Any / not specified' },
-  { key: 'before_food', label: 'Before food' },
   { key: 'after_food', label: 'After food' },
+  { key: 'before_food', label: 'Before food' },
   { key: 'with_food', label: 'With food' },
+  { key: 'any', label: 'Any time' },
 ]
 
 const FREQ_CHIPS = [
@@ -28,19 +28,141 @@ const FREQ_CHIPS = [
   'Night - 1 Tab',
 ]
 
+const DURATION_OPTIONS = [
+  '3 days',
+  '5 days',
+  '7 days',
+  '10 days',
+  '14 days',
+  '30 days',
+  'As advised',
+]
+
+const REFILL_OPTIONS = [
+  { key: '0', label: '0 — none' },
+  { key: '1', label: '1 refill' },
+  { key: '2', label: '2 refills' },
+  { key: '3', label: '3 refills' },
+]
+
+const ALLERGY_OPTIONS = [
+  { key: 'NKDA', label: 'NKDA (no known drug allergies)' },
+  { key: 'Penicillin', label: 'Penicillin' },
+  { key: 'Sulfa', label: 'Sulfa' },
+  { key: 'Aspirin / NSAIDs', label: 'Aspirin / NSAIDs' },
+  { key: 'Other', label: 'Other (specify)' },
+]
+
+const FOLLOW_UP_OPTIONS = [
+  'Review in 3 days',
+  'Review in 7 days',
+  'Review in 14 days',
+  'Review in 1 month',
+  'As needed (PRN)',
+]
+
+const STORAGE_OPTIONS = [
+  'Store in a cool, dry place',
+  'Protect from light',
+  'Refrigerate (2–8°C)',
+  'No special storage',
+]
+
+const FORM_PRESETS = [
+  {
+    key: 'oral_tablet',
+    label: 'Oral tablet',
+    tags: 'ORAL, TABLET',
+    description: 'Oral tablet',
+  },
+  {
+    key: 'oral_capsule',
+    label: 'Oral capsule',
+    tags: 'ORAL, CAPSULE',
+    description: 'Oral capsule',
+  },
+  {
+    key: 'topical_cream',
+    label: 'Topical cream',
+    tags: 'TOPICAL, CREAM',
+    description: 'Topical cream',
+  },
+  {
+    key: 'topical_gel',
+    label: 'Topical gel / serum',
+    tags: 'TOPICAL, GEL',
+    description: 'Topical gel / serum',
+  },
+  {
+    key: 'injectable',
+    label: 'Injectable',
+    tags: 'INJECTABLE',
+    description: 'Injectable',
+  },
+]
+
+const QUANTITY_OPTIONS = [
+  'As directed',
+  '10 tablets',
+  '15 tablets',
+  '20 tablets',
+  '30 tablets',
+  '1 tube',
+  '1 bottle',
+]
+
+const DEFAULT_STORAGE = STORAGE_OPTIONS[0]
+const DEFAULT_DURATION = '5 days'
+const DEFAULT_QUANTITY = QUANTITY_OPTIONS[0]
+const DEFAULT_FORM = FORM_PRESETS[0]
+
 const emptyItem = () => ({
   medicine_name: '',
   dosage: '',
   frequency: '',
-  duration: '',
+  duration: DEFAULT_DURATION,
   instructions: '',
-  meal_timing: '',
-  quantity: '',
-  refills: '',
-  storage: '',
-  description: '',
-  form_tags: '',
+  meal_timing: 'after_food',
+  quantity: DEFAULT_QUANTITY,
+  refills: '0',
+  storage: DEFAULT_STORAGE,
+  description: DEFAULT_FORM.description,
+  form_tags: DEFAULT_FORM.tags,
+  form_preset: DEFAULT_FORM.key,
 })
+
+function inferFormPreset(formTags, description) {
+  const normalized = String(formTags || '')
+    .toUpperCase()
+    .replace(/\s+/g, '')
+  const match = FORM_PRESETS.find((preset) => {
+    const presetNorm = preset.tags.replace(/\s+/g, '')
+    return normalized === presetNorm || description === preset.description
+  })
+  return match?.key || DEFAULT_FORM.key
+}
+
+function mapItemFromApi(item) {
+  const formTags = Array.isArray(item.form_tags)
+    ? item.form_tags.join(', ')
+    : item.form_tags || DEFAULT_FORM.tags
+  const description = item.description || DEFAULT_FORM.description
+  return {
+    medicine_name: item.medicine_name || '',
+    dosage: item.dosage || '',
+    frequency: item.frequency || '',
+    duration: item.duration || DEFAULT_DURATION,
+    instructions: item.instructions || '',
+    meal_timing: item.meal_timing || 'after_food',
+    quantity: item.quantity || DEFAULT_QUANTITY,
+    refills:
+      item.refills === 0 || item.refills ? String(item.refills) : '0',
+    storage: item.storage || DEFAULT_STORAGE,
+    description,
+    form_tags: formTags,
+    form_preset: inferFormPreset(formTags, description),
+  }
+}
 
 function pickActivePrescription(list) {
   if (!Array.isArray(list) || list.length === 0) return null
@@ -93,7 +215,8 @@ export default function PrescriptionPanel({
   const [advice, setAdvice] = useState('')
   const [followUp, setFollowUp] = useState('')
   const [notes, setNotes] = useState('')
-  const [allergies, setAllergies] = useState('')
+  const [allergies, setAllergies] = useState('NKDA')
+  const [allergyOther, setAllergyOther] = useState('')
   const [dispenseAsWritten, setDispenseAsWritten] = useState(true)
   const [items, setItems] = useState([emptyItem()])
   const [locallyCompleted, setLocallyCompleted] = useState(false)
@@ -112,7 +235,8 @@ export default function PrescriptionPanel({
       setAdvice('')
       setFollowUp('')
       setNotes('')
-      setAllergies('')
+      setAllergies('NKDA')
+      setAllergyOther('')
       setDispenseAsWritten(true)
       setItems([emptyItem()])
       return
@@ -124,7 +248,20 @@ export default function PrescriptionPanel({
     setAdvice(linesToText(activeRx.advice))
     setFollowUp(activeRx.follow_up || '')
     setNotes(activeRx.notes || '')
-    setAllergies(activeRx.allergies || '')
+    const savedAllergy = (activeRx.allergies || 'NKDA').trim() || 'NKDA'
+    const knownAllergy = ALLERGY_OPTIONS.find(
+      (opt) => opt.key !== 'Other' && opt.key === savedAllergy
+    )
+    if (knownAllergy) {
+      setAllergies(knownAllergy.key)
+      setAllergyOther('')
+    } else if (savedAllergy === 'NKDA') {
+      setAllergies('NKDA')
+      setAllergyOther('')
+    } else {
+      setAllergies('Other')
+      setAllergyOther(savedAllergy)
+    }
     setDispenseAsWritten(
       activeRx.dispense_as_written === undefined || activeRx.dispense_as_written === null
         ? true
@@ -132,24 +269,7 @@ export default function PrescriptionPanel({
     )
     setItems(
       activeRx.items?.length
-        ? activeRx.items.map((item) => ({
-            medicine_name: item.medicine_name || '',
-            dosage: item.dosage || '',
-            frequency: item.frequency || '',
-            duration: item.duration || '',
-            instructions: item.instructions || '',
-            meal_timing: item.meal_timing || '',
-            quantity: item.quantity || '',
-            refills:
-              item.refills === 0 || item.refills
-                ? String(item.refills)
-                : '',
-            storage: item.storage || '',
-            description: item.description || '',
-            form_tags: Array.isArray(item.form_tags)
-              ? item.form_tags.join(', ')
-              : item.form_tags || '',
-          }))
+        ? activeRx.items.map(mapItemFromApi)
         : [emptyItem()]
     )
   }, [activeRx])
@@ -181,27 +301,30 @@ export default function PrescriptionPanel({
   }
 
   const buildPayload = () => {
+    const allergyValue =
+      allergies === 'Other'
+        ? allergyOther.trim() || 'Other'
+        : allergies || 'NKDA'
     const cleaned = items
       .map((item) => {
-        const tags = String(item.form_tags || '')
+        const tags = String(item.form_tags || DEFAULT_FORM.tags)
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean)
-        const refillsRaw = String(item.refills || '').trim()
-        const refills =
-          refillsRaw === '' ? null : Number.parseInt(refillsRaw, 10)
+        const refillsRaw = String(item.refills ?? '0').trim()
+        const refills = Number.parseInt(refillsRaw === '' ? '0' : refillsRaw, 10)
         return {
           medicine_name: item.medicine_name.trim(),
           dosage: item.dosage.trim() || null,
           frequency: item.frequency.trim() || null,
-          duration: item.duration.trim() || null,
+          duration: (item.duration || DEFAULT_DURATION).trim() || null,
           instructions: item.instructions.trim() || null,
-          meal_timing: item.meal_timing || null,
-          quantity: item.quantity.trim() || null,
-          refills: Number.isFinite(refills) ? refills : null,
-          storage: item.storage.trim() || null,
-          description: item.description.trim() || null,
-          form_tags: tags.length ? tags : null,
+          meal_timing: item.meal_timing || 'after_food',
+          quantity: (item.quantity || DEFAULT_QUANTITY).trim() || null,
+          refills: Number.isFinite(refills) ? refills : 0,
+          storage: (item.storage || DEFAULT_STORAGE).trim() || null,
+          description: (item.description || DEFAULT_FORM.description).trim() || null,
+          form_tags: tags.length ? tags : DEFAULT_FORM.tags.split(', '),
         }
       })
       .filter((item) => item.medicine_name)
@@ -213,7 +336,7 @@ export default function PrescriptionPanel({
       advice: textToLines(advice),
       follow_up: followUp.trim() || null,
       notes: notes.trim() || null,
-      allergies: allergies.trim() || null,
+      allergies: allergyValue,
       dispense_as_written: Boolean(dispenseAsWritten),
       items: cleaned,
     }
@@ -289,6 +412,23 @@ export default function PrescriptionPanel({
     )
   }
 
+  const applyFormPreset = (index, presetKey) => {
+    const preset =
+      FORM_PRESETS.find((p) => p.key === presetKey) || DEFAULT_FORM
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              form_preset: preset.key,
+              form_tags: preset.tags,
+              description: preset.description,
+            }
+          : item
+      )
+    )
+  }
+
   const appendFrequencyChip = (index, chip) => {
     setItems((prev) =>
       prev.map((item, i) => {
@@ -302,6 +442,11 @@ export default function PrescriptionPanel({
       })
     )
   }
+
+  const allergySelectKey =
+    allergies === 'Other' || ALLERGY_OPTIONS.some((o) => o.key === allergies)
+      ? allergies
+      : 'Other'
 
   if (isLoading) {
     return (
@@ -467,24 +612,6 @@ export default function PrescriptionPanel({
       {demographicsStrip}
 
       <Textarea
-        label="Symptoms"
-        labelPlacement="outside"
-        placeholder="Chief complaints / symptoms"
-        value={symptoms}
-        onValueChange={setSymptoms}
-        minRows={2}
-        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
-      />
-      <Textarea
-        label="History"
-        labelPlacement="outside"
-        placeholder="Relevant medical / treatment history"
-        value={medicalHistory}
-        onValueChange={setMedicalHistory}
-        minRows={2}
-        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
-      />
-      <Textarea
         label="Diagnosis"
         labelPlacement="outside"
         placeholder="Primary diagnosis"
@@ -494,42 +621,54 @@ export default function PrescriptionPanel({
         minRows={2}
         classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
       />
-      <Textarea
-        label="Clinical notes"
-        labelPlacement="outside"
-        placeholder="Additional notes (optional)"
-        value={notes}
-        onValueChange={setNotes}
-        minRows={2}
-        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
-      />
+
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input
+        <Select
           label="Known allergies"
           labelPlacement="outside"
-          placeholder="e.g. NKDA or Penicillin"
-          value={allergies}
-          onValueChange={setAllergies}
-          classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
-        />
-        <Select
-          label="Dispense preference"
-          labelPlacement="outside"
-          selectedKeys={[dispenseAsWritten ? 'daw' : 'generic']}
+          selectedKeys={[allergySelectKey]}
           onSelectionChange={(keys) => {
-            const val = Array.from(keys)[0]
-            setDispenseAsWritten(val !== 'generic')
+            const val = Array.from(keys)[0] || 'NKDA'
+            setAllergies(val)
+            if (val !== 'Other') setAllergyOther('')
           }}
           classNames={{ trigger: 'bg-white border border-gray-200' }}
         >
-          <SelectItem key="daw" textValue="Dispense as written">
-            Dispense as written (DAW)
-          </SelectItem>
-          <SelectItem key="generic" textValue="Generic substitution permitted">
-            Generic substitution permitted
-          </SelectItem>
+          {ALLERGY_OPTIONS.map((opt) => (
+            <SelectItem key={opt.key} textValue={opt.label}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </Select>
+        <Select
+          label="Follow-up"
+          labelPlacement="outside"
+          selectedKeys={
+            FOLLOW_UP_OPTIONS.includes(followUp) ? [followUp] : []
+          }
+          onSelectionChange={(keys) => {
+            const val = Array.from(keys)[0]
+            setFollowUp(val ? String(val) : '')
+          }}
+          classNames={{ trigger: 'bg-white border border-gray-200' }}
+        >
+          {FOLLOW_UP_OPTIONS.map((opt) => (
+            <SelectItem key={opt} textValue={opt}>
+              {opt}
+            </SelectItem>
+          ))}
         </Select>
       </div>
+      {allergies === 'Other' && (
+        <Input
+          label="Specify allergy"
+          labelPlacement="outside"
+          placeholder="e.g. Lidocaine"
+          value={allergyOther}
+          onValueChange={setAllergyOther}
+          classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
+        />
+      )}
 
       <div className="space-y-3">
         <p className="text-sm font-medium text-gray-700">Medicines</p>
@@ -553,20 +692,43 @@ export default function PrescriptionPanel({
               onValueChange={(v) => updateItem(index, 'dosage', v)}
               classNames={{ inputWrapper: 'bg-white' }}
             />
-            <Input
-              label="Description / route"
+            <Select
+              label="Form"
               size="sm"
-              className="sm:col-span-2"
-              placeholder="e.g. Oral tablet · once daily"
-              value={item.description}
-              onValueChange={(v) => updateItem(index, 'description', v)}
-              classNames={{ inputWrapper: 'bg-white' }}
-            />
+              selectedKeys={[item.form_preset || DEFAULT_FORM.key]}
+              onSelectionChange={(keys) => {
+                const val = Array.from(keys)[0]
+                if (val) applyFormPreset(index, String(val))
+              }}
+              classNames={{ trigger: 'bg-white' }}
+            >
+              {FORM_PRESETS.map((opt) => (
+                <SelectItem key={opt.key} textValue={opt.label}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </Select>
+            <Select
+              label="Duration"
+              size="sm"
+              selectedKeys={[item.duration || DEFAULT_DURATION]}
+              onSelectionChange={(keys) => {
+                const val = Array.from(keys)[0]
+                updateItem(index, 'duration', val ? String(val) : DEFAULT_DURATION)
+              }}
+              classNames={{ trigger: 'bg-white' }}
+            >
+              {DURATION_OPTIONS.map((opt) => (
+                <SelectItem key={opt} textValue={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </Select>
             <div className="sm:col-span-2 space-y-2">
               <Input
                 label="Frequency / schedule"
                 size="sm"
-                placeholder="e.g. Morning - 1 Tab | Evening - 1 Tab"
+                placeholder="Tap chips below or type"
                 value={item.frequency}
                 onValueChange={(v) => updateItem(index, 'frequency', v)}
                 classNames={{ inputWrapper: 'bg-white' }}
@@ -585,69 +747,92 @@ export default function PrescriptionPanel({
                 ))}
               </div>
             </div>
-            <Input
-              label="Duration"
-              size="sm"
-              placeholder="e.g. 5 days"
-              value={item.duration}
-              onValueChange={(v) => updateItem(index, 'duration', v)}
-              classNames={{ inputWrapper: 'bg-white' }}
-            />
-            <Input
-              label="Quantity"
-              size="sm"
-              placeholder="e.g. 30 tablets"
-              value={item.quantity}
-              onValueChange={(v) => updateItem(index, 'quantity', v)}
-              classNames={{ inputWrapper: 'bg-white' }}
-            />
-            <Input
-              label="Refills"
-              size="sm"
-              type="number"
-              min={0}
-              placeholder="0"
-              value={item.refills}
-              onValueChange={(v) => updateItem(index, 'refills', v)}
-              classNames={{ inputWrapper: 'bg-white' }}
-            />
             <Select
               label="Meal timing"
               size="sm"
-              selectedKeys={item.meal_timing ? [item.meal_timing] : ['none']}
+              selectedKeys={[item.meal_timing || 'after_food']}
               onSelectionChange={(keys) => {
                 const val = Array.from(keys)[0]
-                updateItem(index, 'meal_timing', !val || val === 'none' ? '' : val)
+                updateItem(index, 'meal_timing', val ? String(val) : 'after_food')
               }}
               classNames={{ trigger: 'bg-white' }}
             >
               {MEAL_OPTIONS.map((opt) => (
-                <SelectItem key={opt.key || 'none'} textValue={opt.label}>
+                <SelectItem key={opt.key} textValue={opt.label}>
                   {opt.label}
                 </SelectItem>
               ))}
             </Select>
-            <Input
-              label="Form tags"
+            <Select
+              label="Refills"
               size="sm"
-              placeholder="e.g. ORAL, TABLET"
-              value={item.form_tags}
-              onValueChange={(v) => updateItem(index, 'form_tags', v)}
-              classNames={{ inputWrapper: 'bg-white' }}
-            />
-            <Input
+              selectedKeys={[item.refills || '0']}
+              onSelectionChange={(keys) => {
+                const val = Array.from(keys)[0]
+                updateItem(index, 'refills', val != null ? String(val) : '0')
+              }}
+              classNames={{ trigger: 'bg-white' }}
+            >
+              {REFILL_OPTIONS.map((opt) => (
+                <SelectItem key={opt.key} textValue={opt.label}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </Select>
+            <Select
+              label="Quantity"
+              size="sm"
+              selectedKeys={[
+                QUANTITY_OPTIONS.includes(item.quantity)
+                  ? item.quantity
+                  : DEFAULT_QUANTITY,
+              ]}
+              onSelectionChange={(keys) => {
+                const val = Array.from(keys)[0]
+                updateItem(
+                  index,
+                  'quantity',
+                  val ? String(val) : DEFAULT_QUANTITY
+                )
+              }}
+              classNames={{ trigger: 'bg-white' }}
+            >
+              {QUANTITY_OPTIONS.map((opt) => (
+                <SelectItem key={opt} textValue={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </Select>
+            <Select
               label="Storage"
               size="sm"
-              placeholder="e.g. Store below 25°C"
-              value={item.storage}
-              onValueChange={(v) => updateItem(index, 'storage', v)}
-              classNames={{ inputWrapper: 'bg-white' }}
-            />
+              selectedKeys={[
+                STORAGE_OPTIONS.includes(item.storage)
+                  ? item.storage
+                  : DEFAULT_STORAGE,
+              ]}
+              onSelectionChange={(keys) => {
+                const val = Array.from(keys)[0]
+                updateItem(
+                  index,
+                  'storage',
+                  val ? String(val) : DEFAULT_STORAGE
+                )
+              }}
+              classNames={{ trigger: 'bg-white' }}
+            >
+              {STORAGE_OPTIONS.map((opt) => (
+                <SelectItem key={opt} textValue={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </Select>
             <div className="sm:col-span-2 flex gap-2">
               <Input
                 label="Instructions (SIG)"
                 size="sm"
                 className="flex-1"
+                placeholder="Optional — defaults from frequency"
                 value={item.instructions}
                 onValueChange={(v) => updateItem(index, 'instructions', v)}
                 classNames={{ inputWrapper: 'bg-white' }}
@@ -677,33 +862,6 @@ export default function PrescriptionPanel({
           Add medicine
         </Button>
       </div>
-
-      <Textarea
-        label="Investigations"
-        labelPlacement="outside"
-        placeholder="One investigation per line"
-        value={investigations}
-        onValueChange={setInvestigations}
-        minRows={2}
-        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
-      />
-      <Textarea
-        label="Advice"
-        labelPlacement="outside"
-        placeholder="One advice line per line"
-        value={advice}
-        onValueChange={setAdvice}
-        minRows={2}
-        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
-      />
-      <Input
-        label="Follow-up"
-        labelPlacement="outside"
-        placeholder="e.g. Review after 7 days"
-        value={followUp}
-        onValueChange={setFollowUp}
-        classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
-      />
 
       <div className="flex flex-wrap gap-2 pt-1">
         <Button
