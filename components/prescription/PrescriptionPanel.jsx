@@ -35,6 +35,11 @@ const emptyItem = () => ({
   duration: '',
   instructions: '',
   meal_timing: '',
+  quantity: '',
+  refills: '',
+  storage: '',
+  description: '',
+  form_tags: '',
 })
 
 function pickActivePrescription(list) {
@@ -88,6 +93,8 @@ export default function PrescriptionPanel({
   const [advice, setAdvice] = useState('')
   const [followUp, setFollowUp] = useState('')
   const [notes, setNotes] = useState('')
+  const [allergies, setAllergies] = useState('')
+  const [dispenseAsWritten, setDispenseAsWritten] = useState(true)
   const [items, setItems] = useState([emptyItem()])
   const [locallyCompleted, setLocallyCompleted] = useState(false)
 
@@ -105,6 +112,8 @@ export default function PrescriptionPanel({
       setAdvice('')
       setFollowUp('')
       setNotes('')
+      setAllergies('')
+      setDispenseAsWritten(true)
       setItems([emptyItem()])
       return
     }
@@ -115,6 +124,12 @@ export default function PrescriptionPanel({
     setAdvice(linesToText(activeRx.advice))
     setFollowUp(activeRx.follow_up || '')
     setNotes(activeRx.notes || '')
+    setAllergies(activeRx.allergies || '')
+    setDispenseAsWritten(
+      activeRx.dispense_as_written === undefined || activeRx.dispense_as_written === null
+        ? true
+        : Boolean(activeRx.dispense_as_written)
+    )
     setItems(
       activeRx.items?.length
         ? activeRx.items.map((item) => ({
@@ -124,6 +139,16 @@ export default function PrescriptionPanel({
             duration: item.duration || '',
             instructions: item.instructions || '',
             meal_timing: item.meal_timing || '',
+            quantity: item.quantity || '',
+            refills:
+              item.refills === 0 || item.refills
+                ? String(item.refills)
+                : '',
+            storage: item.storage || '',
+            description: item.description || '',
+            form_tags: Array.isArray(item.form_tags)
+              ? item.form_tags.join(', ')
+              : item.form_tags || '',
           }))
         : [emptyItem()]
     )
@@ -157,14 +182,28 @@ export default function PrescriptionPanel({
 
   const buildPayload = () => {
     const cleaned = items
-      .map((item) => ({
-        medicine_name: item.medicine_name.trim(),
-        dosage: item.dosage.trim() || null,
-        frequency: item.frequency.trim() || null,
-        duration: item.duration.trim() || null,
-        instructions: item.instructions.trim() || null,
-        meal_timing: item.meal_timing || null,
-      }))
+      .map((item) => {
+        const tags = String(item.form_tags || '')
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+        const refillsRaw = String(item.refills || '').trim()
+        const refills =
+          refillsRaw === '' ? null : Number.parseInt(refillsRaw, 10)
+        return {
+          medicine_name: item.medicine_name.trim(),
+          dosage: item.dosage.trim() || null,
+          frequency: item.frequency.trim() || null,
+          duration: item.duration.trim() || null,
+          instructions: item.instructions.trim() || null,
+          meal_timing: item.meal_timing || null,
+          quantity: item.quantity.trim() || null,
+          refills: Number.isFinite(refills) ? refills : null,
+          storage: item.storage.trim() || null,
+          description: item.description.trim() || null,
+          form_tags: tags.length ? tags : null,
+        }
+      })
       .filter((item) => item.medicine_name)
     return {
       diagnosis: diagnosis.trim(),
@@ -174,6 +213,8 @@ export default function PrescriptionPanel({
       advice: textToLines(advice),
       follow_up: followUp.trim() || null,
       notes: notes.trim() || null,
+      allergies: allergies.trim() || null,
+      dispense_as_written: Boolean(dispenseAsWritten),
       items: cleaned,
     }
   }
@@ -462,6 +503,33 @@ export default function PrescriptionPanel({
         minRows={2}
         classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
       />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Input
+          label="Known allergies"
+          labelPlacement="outside"
+          placeholder="e.g. NKDA or Penicillin"
+          value={allergies}
+          onValueChange={setAllergies}
+          classNames={{ inputWrapper: 'bg-white border border-gray-200' }}
+        />
+        <Select
+          label="Dispense preference"
+          labelPlacement="outside"
+          selectedKeys={[dispenseAsWritten ? 'daw' : 'generic']}
+          onSelectionChange={(keys) => {
+            const val = Array.from(keys)[0]
+            setDispenseAsWritten(val !== 'generic')
+          }}
+          classNames={{ trigger: 'bg-white border border-gray-200' }}
+        >
+          <SelectItem key="daw" textValue="Dispense as written">
+            Dispense as written (DAW)
+          </SelectItem>
+          <SelectItem key="generic" textValue="Generic substitution permitted">
+            Generic substitution permitted
+          </SelectItem>
+        </Select>
+      </div>
 
       <div className="space-y-3">
         <p className="text-sm font-medium text-gray-700">Medicines</p>
@@ -478,11 +546,20 @@ export default function PrescriptionPanel({
               classNames={{ inputWrapper: 'bg-white' }}
             />
             <Input
-              label="Dosage"
+              label="Dosage / strength"
               size="sm"
               placeholder="e.g. 500mg"
               value={item.dosage}
               onValueChange={(v) => updateItem(index, 'dosage', v)}
+              classNames={{ inputWrapper: 'bg-white' }}
+            />
+            <Input
+              label="Description / route"
+              size="sm"
+              className="sm:col-span-2"
+              placeholder="e.g. Oral tablet · once daily"
+              value={item.description}
+              onValueChange={(v) => updateItem(index, 'description', v)}
               classNames={{ inputWrapper: 'bg-white' }}
             />
             <div className="sm:col-span-2 space-y-2">
@@ -516,6 +593,24 @@ export default function PrescriptionPanel({
               onValueChange={(v) => updateItem(index, 'duration', v)}
               classNames={{ inputWrapper: 'bg-white' }}
             />
+            <Input
+              label="Quantity"
+              size="sm"
+              placeholder="e.g. 30 tablets"
+              value={item.quantity}
+              onValueChange={(v) => updateItem(index, 'quantity', v)}
+              classNames={{ inputWrapper: 'bg-white' }}
+            />
+            <Input
+              label="Refills"
+              size="sm"
+              type="number"
+              min={0}
+              placeholder="0"
+              value={item.refills}
+              onValueChange={(v) => updateItem(index, 'refills', v)}
+              classNames={{ inputWrapper: 'bg-white' }}
+            />
             <Select
               label="Meal timing"
               size="sm"
@@ -532,9 +627,25 @@ export default function PrescriptionPanel({
                 </SelectItem>
               ))}
             </Select>
+            <Input
+              label="Form tags"
+              size="sm"
+              placeholder="e.g. ORAL, TABLET"
+              value={item.form_tags}
+              onValueChange={(v) => updateItem(index, 'form_tags', v)}
+              classNames={{ inputWrapper: 'bg-white' }}
+            />
+            <Input
+              label="Storage"
+              size="sm"
+              placeholder="e.g. Store below 25°C"
+              value={item.storage}
+              onValueChange={(v) => updateItem(index, 'storage', v)}
+              classNames={{ inputWrapper: 'bg-white' }}
+            />
             <div className="sm:col-span-2 flex gap-2">
               <Input
-                label="Instructions"
+                label="Instructions (SIG)"
                 size="sm"
                 className="flex-1"
                 value={item.instructions}

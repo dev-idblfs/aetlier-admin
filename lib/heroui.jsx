@@ -445,9 +445,25 @@ export function Input({
   radius: _radius,
   size: _size,
   fullWidth = true,
+  value,
+  defaultValue,
+  onChange,
+  onValueChange,
+  name,
+  onBlur,
   ...rest
 }) {
   const inputAriaLabel = rest['aria-label'] || (!label && rest.placeholder) || undefined;
+  const handleChange = (next) => {
+    const text = next == null ? '' : String(next);
+    onValueChange?.(text);
+    if (!onChange) return;
+    // Bridge RAC string onChange → legacy event handlers (e.target.value) and RHF.
+    onChange({
+      target: { value: text, name: name || '' },
+      currentTarget: { value: text, name: name || '' },
+    });
+  };
   const field = (
     <TextField
       isInvalid={isInvalid}
@@ -455,6 +471,11 @@ export function Input({
       isDisabled={isDisabled}
       aria-label={inputAriaLabel}
       className={cn(fullWidth && 'w-full', classNames?.base, className)}
+      name={name}
+      value={value}
+      defaultValue={defaultValue}
+      onChange={handleChange}
+      onBlur={onBlur}
     >
       {label ? <Label>{label}</Label> : null}
       {startContent || endContent ? (
@@ -484,14 +505,34 @@ export function Textarea({
   classNames,
   minRows,
   labelPlacement: _lp,
+  value,
+  defaultValue,
+  onChange,
+  onValueChange,
+  name,
+  onBlur,
   ...rest
 }) {
+  const handleChange = (next) => {
+    const text = next == null ? '' : String(next);
+    onValueChange?.(text);
+    if (!onChange) return;
+    onChange({
+      target: { value: text, name: name || '' },
+      currentTarget: { value: text, name: name || '' },
+    });
+  };
   return (
     <TextField
       isInvalid={isInvalid}
       isRequired={isRequired}
       isDisabled={isDisabled}
       className={cn(classNames?.base, className)}
+      name={name}
+      value={value}
+      defaultValue={defaultValue}
+      onChange={handleChange}
+      onBlur={onBlur}
     >
       {label ? <Label>{label}</Label> : null}
       <HeroTextArea rows={minRows} className={classNames?.input} {...rest} />
