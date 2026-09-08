@@ -23,6 +23,6 @@ utils/permissions.js      Client permission helpers
 - Most pages are `'use client'`; root is `force-dynamic`.
 - All REST endpoints live in `redux/services/api.js` with tag caching. Axios `apiClient` only for auth profile in `authSlice`.
 - Portal entry: `canAccessAdminPortal` / `admin.portal.access`; roles may set portal redirect flags.
-- Permission strings must stay aligned with backend `resource.action.scope`.
+- Permission strings must stay aligned with backend `resource.action.scope` (action may contain dots, e.g. `mobile.promotion.read.any`).
 - Tailwind config is via `hero.ts` / `@config` in `globals.css` — not classic `tailwind.config.js`.
 - HeroUI v3: import from `@/lib/heroui` (v2-compatible wrappers). Do not import `@heroui/react` in pages.

@@ -14,6 +14,6 @@ alwaysApply: false
 
 ## RBAC
 - Check permissions with `utils/permissions.js` helpers: `hasPermission`, `hasAnyPermission`, `hasAllPermissions`, `hasRole`, `isAdmin`, `isSuperAdmin` (super admins bypass).
-- Use the `PERMISSIONS` object (backend `resource.action.scope` dot-notation); add new permissions there, aligned with the backend.
+- Use the `PERMISSIONS` object (backend `resource.action.scope` dot-notation; **action may contain dots**, e.g. `mobile.promotion.read.any`); add new permissions there, aligned with the backend.
 - Pattern: `const user = useSelector(s => s.auth.user)`; gate queries with `{ skip: !canView }` and UI with the helpers.
 - Sidebar nav is permission-filtered server-side via `useGetNavigationQuery`; add icons to `ICON_MAP` in `components/layout/Sidebar.jsx`.
