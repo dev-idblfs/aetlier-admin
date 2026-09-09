@@ -121,6 +121,7 @@ export default function InvoiceDetailPage({ params }) {
     const showSend = canSend && ['DRAFT', 'SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(
         invoice.status
     );
+    const emailFailed = invoice.email_delivery_status === 'failed';
 
     const lineItems =
         invoice.line_items?.map((item, index) => ({
@@ -230,7 +231,7 @@ export default function InvoiceDetailPage({ params }) {
     });
     if (showSend) {
         actions.push({
-            label: 'Send',
+            label: emailFailed ? 'Resend email' : 'Send email',
             variant: 'flat',
             icon: <Send className="w-4 h-4" />,
             onClick: handleSendEmail,
@@ -276,6 +277,20 @@ export default function InvoiceDetailPage({ params }) {
                     compact
                 />
             )}
+
+            {invoice.email_delivery_status && invoice.email_delivery_status !== 'not_sent' ? (
+                <InvoiceAlert
+                    variant={emailFailed ? 'danger' : 'success'}
+                    icon={<AlertCircle className="w-4 h-4" />}
+                    title={emailFailed ? 'Invoice email failed' : 'Invoice email accepted'}
+                    message={
+                        emailFailed
+                            ? `${invoice.email_last_error || 'The email provider could not accept this message.'}${invoice.email_last_recipient ? ` Recipient: ${invoice.email_last_recipient}.` : ''}`
+                            : `${invoice.email_last_recipient ? `Sent to ${invoice.email_last_recipient}` : 'Email accepted by the provider'}${invoice.email_last_attempt_at ? ` · ${formatDate(invoice.email_last_attempt_at)}` : ''}`
+                    }
+                    compact
+                />
+            ) : null}
 
             <InvoiceDetailOverview invoice={invoice} isOverdue={isOverdue} />
 

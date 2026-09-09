@@ -62,6 +62,12 @@ export default function InvoiceDetailOverview({ invoice, isOverdue = false }) {
           <p className="text-xs text-gray-500 uppercase tracking-wide">Terms</p>
           <p className="font-medium">{invoice.payment_terms || 'N/A'}</p>
         </div>
+        {invoice.email_attempt_count > 0 && (
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Email attempts</p>
+            <p className="font-medium">{invoice.email_attempt_count}</p>
+          </div>
+        )}
         {address && (
           <div className="sm:col-span-2 lg:col-span-4 min-w-0">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Address</p>
