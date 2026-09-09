@@ -399,15 +399,8 @@ export default function PrescriptionPanel({
         rxId = created?.id
       }
       if (!rxId) throw new Error('Missing prescription id')
-      const sent = await sendPrescription({ prescriptionId: rxId, appointmentId }).unwrap()
-      if (sent?.delivery?.email?.sent) {
-        toast.success('Prescription emailed to the patient')
-      } else if (sent?.delivery?.email?.error) {
-        toast.success('Prescription issued in the patient app')
-        toast.error(`Email was not delivered: ${sent.delivery.email.error}`)
-      } else {
-        toast.success('Prescription issued to the patient')
-      }
+      await sendPrescription({ prescriptionId: rxId, appointmentId }).unwrap()
+      toast.success('Prescription emailed to the patient')
     } catch (err) {
       toast.error(err?.data?.detail || 'Failed to send prescription')
     }
@@ -588,17 +581,20 @@ export default function PrescriptionPanel({
             <p className="text-sm text-gray-900">{activeRx.follow_up}</p>
           </div>
         )}
-        {activeRx.pdf_url && (
-          <Button
-            as="a"
+        {activeRx.pdf_url ? (
+          <a
             href={activeRx.pdf_url}
             target="_blank"
             rel="noopener noreferrer"
-            variant="bordered"
-            startContent={<FileText className="h-4 w-4" />}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
           >
+            <FileText className="h-4 w-4" />
             Open PDF
-          </Button>
+          </a>
+        ) : (
+          <p className="text-xs text-amber-700">
+            PDF is not available. Send the prescription again to generate it.
+          </p>
         )}
       </div>
     )
