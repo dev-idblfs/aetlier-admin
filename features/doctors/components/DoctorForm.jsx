@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Save } from '@/lib/icons';
 import { Button, SelectItem } from '@/lib/heroui';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-hot-toast';
 
@@ -19,7 +19,7 @@ import {
     FormDivider,
 } from '@/components/ui/FormFields';
 import { FormActions, FormSectionCard, FormCompactCard, FormSpecializationSelect } from '@/components/ui';
-import { useUploadDoctorRxAssetMutation } from '@/redux/services/api';
+import { useGetDoctorRxAssetsQuery, useUploadDoctorRxAssetMutation } from '@/redux/services/api';
 
 const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam'];
 
@@ -56,17 +56,20 @@ export default function DoctorForm({
         },
     });
 
-    const { formState: { isSubmitting }, watch } = methods;
-    const wantsOnline = watch('accepts_online_consultation');
-    const wantsPrescribe = watch('can_prescribe');
+    const { formState: { isSubmitting } } = methods;
+    const wantsOnline = useWatch({ control: methods.control, name: 'accepts_online_consultation' });
+    const wantsPrescribe = useWatch({ control: methods.control, name: 'can_prescribe' });
     const needsRegistration = wantsOnline || wantsPrescribe;
     const [uploadRxAsset, { isLoading: isUploading }] = useUploadDoctorRxAssetMutation();
+    const { data: rxAssets } = useGetDoctorRxAssetsQuery(doctorId, {
+        skip: !doctorId,
+    });
     const stampInputRef = useRef(null);
     const signatureInputRef = useRef(null);
-    const [stampPreview, setStampPreview] = useState(defaultValues?.rx_stamp_url || null);
-    const [signaturePreview, setSignaturePreview] = useState(
-        defaultValues?.rx_signature_url || null
-    );
+    const [stampPreview, setStampPreview] = useState(null);
+    const [signaturePreview, setSignaturePreview] = useState(null);
+    const visibleStampPreview = stampPreview || rxAssets?.stamp_url || null;
+    const visibleSignaturePreview = signaturePreview || rxAssets?.signature_url || null;
 
     const handleUpload = async (kind, file) => {
         if (!doctorId || !file) {
@@ -79,9 +82,9 @@ export default function DoctorForm({
             formData.append('file', file);
             const updated = await uploadRxAsset({ doctorId, formData }).unwrap();
             if (kind === 'stamp') {
-                setStampPreview(updated.rx_stamp_url || null);
+                setStampPreview(updated.stamp_url || null);
             } else {
-                setSignaturePreview(updated.rx_signature_url || null);
+                setSignaturePreview(updated.signature_url || null);
             }
             toast.success(`${kind === 'stamp' ? 'Stamp' : 'Signature'} uploaded`);
         } catch (err) {
@@ -218,7 +221,7 @@ export default function DoctorForm({
                 <FormSectionCard
                     embedded
                     title="E-Prescription pad"
-                    description="Practice address plus stamp or signature are required before enabling e-prescriptions"
+                    description="Practice address and a doctor stamp are required before enabling e-prescriptions. A signature is optional."
                 >
                     <FormTextarea
                         name="rx_practice_address"
@@ -229,11 +232,11 @@ export default function DoctorForm({
                     />
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <p className="text-sm font-medium text-gray-700">Stamp image</p>
-                            {stampPreview ? (
+                            <p className="text-sm font-medium text-gray-700">Stamp image <span className="text-danger">*</span></p>
+                            {visibleStampPreview ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                    src={stampPreview}
+                                    src={visibleStampPreview}
                                     alt="Doctor stamp preview"
                                     className="h-20 w-auto rounded border border-gray-200 bg-white object-contain p-1"
                                 />
@@ -262,11 +265,11 @@ export default function DoctorForm({
                             </Button>
                         </div>
                         <div className="space-y-2">
-                            <p className="text-sm font-medium text-gray-700">Signature image</p>
-                            {signaturePreview ? (
+                            <p className="text-sm font-medium text-gray-700">Signature image <span className="text-gray-400">(optional)</span></p>
+                            {visibleSignaturePreview ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                    src={signaturePreview}
+                                    src={visibleSignaturePreview}
                                     alt="Doctor signature preview"
                                     className="h-20 w-auto rounded border border-gray-200 bg-white object-contain p-1"
                                 />
@@ -313,7 +316,7 @@ export default function DoctorForm({
                     <FormSwitchRow
                         name="can_prescribe"
                         label="E-prescriptions"
-                        description="Requires registration number, practice address, and stamp or signature"
+                        description="Requires registration number, practice address, and a doctor stamp"
                     />
                 </FormSectionCard>
             </FormCompactCard>

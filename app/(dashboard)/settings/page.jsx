@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Settings as SettingsIcon,
     Bell,
@@ -41,6 +41,7 @@ import Link from 'next/link';
 import {
     useGetInvoiceSettingsQuery,
     useUpdateInvoiceSettingsMutation,
+    useUploadInvoiceLogoMutation,
     useGetUserPreferencesQuery,
     useUpdateUserPreferencesMutation,
 } from '@/redux/services/api';
@@ -52,6 +53,8 @@ export default function SettingsPage() {
     // API hooks
     const { data: invoiceSettings, isLoading: isLoadingInvoice, refetch: refetchInvoice } = useGetInvoiceSettingsQuery();
     const [updateInvoiceSettings, { isLoading: isSavingInvoice }] = useUpdateInvoiceSettingsMutation();
+    const [uploadInvoiceLogo, { isLoading: isUploadingLogo }] = useUploadInvoiceLogoMutation();
+    const logoInputRef = useRef(null);
 
     const { data: userPreferences, isLoading: isLoadingPreferences, refetch: refetchPreferences } = useGetUserPreferencesQuery(user?.id, {
         skip: !user?.id,
@@ -195,6 +198,33 @@ export default function SettingsPage() {
         }
     };
 
+    const handleLogoUpload = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024;
+        if (!allowedTypes.includes(file.type)) {
+            toast.error('Use a PNG, JPEG, or WebP logo');
+            return;
+        }
+        if (file.size > maxSize) {
+            toast.error('Logo must be 5MB or smaller');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            await uploadInvoiceLogo(formData).unwrap();
+            await refetchInvoice();
+            toast.success('Clinic logo updated');
+        } catch (error) {
+            toast.error(error?.data?.detail || 'Failed to upload clinic logo');
+        }
+    };
+
     return (
         <ListPageLayout
             title="Settings"
@@ -252,6 +282,43 @@ export default function SettingsPage() {
                                             <FormInput name="clinicEmail" label="Email" type="email" />
                                             <FormInput name="clinicPhone" label="Phone" />
                                             <FormInput name="clinicAddress" label="Address" />
+                                        </div>
+                                        <div className="mt-5 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    {invoiceSettings?.logo_url ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                            src={invoiceSettings.logo_url}
+                                                            alt="Clinic logo"
+                                                            className="h-12 w-40 rounded bg-white border border-gray-200 object-contain p-2"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-12 w-40 items-center rounded border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700">
+                                                            Aetlier
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-900">Clinic logo</p>
+                                                        <p className="text-xs text-gray-500">Used on invoices, prescriptions, and transactional emails.</p>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    ref={logoInputRef}
+                                                    type="file"
+                                                    accept="image/png,image/jpeg,image/webp"
+                                                    className="hidden"
+                                                    onChange={handleLogoUpload}
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    variant="flat"
+                                                    isLoading={isUploadingLogo}
+                                                    onPress={() => logoInputRef.current?.click()}
+                                                >
+                                                    {invoiceSettings?.logo_url ? 'Replace logo' : 'Upload logo'}
+                                                </Button>
+                                            </div>
                                         </div>
                                     </SettingsCard>
 
@@ -504,7 +571,7 @@ export default function SettingsPage() {
 
                                     <SettingsCard title="Invoice Payment Instructions">
                                         <p className="mb-4 text-sm text-gray-500">
-                                            These optional clinic details appear in invoice previews, downloads, and emailed PDFs. Account numbers are masked on the generated invoice.
+                                            These are internal clinic settings. Generated invoices only show a recorded payment method and never expose account, IFSC, UPI, reference, or payment-link details.
                                         </p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormInput

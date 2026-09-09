@@ -249,8 +249,6 @@ export default function EditDoctorPage() {
                     registration_number: doctor.registration_number || '',
                     registration_council: doctor.registration_council || '',
                     rx_practice_address: doctor.rx_practice_address || '',
-                    rx_stamp_url: doctor.rx_stamp_url || null,
-                    rx_signature_url: doctor.rx_signature_url || null,
                 }}
                 onSubmit={onSubmit}
                 isLoading={isUpdating}

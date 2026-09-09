@@ -590,6 +590,14 @@ export const api = createApi({
       providesTags: (result, error, id) => [{ type: "Doctor", id }],
     }),
 
+    // GET /doctors/:id/rx-assets - Private stamp/signature preview URLs
+    getDoctorRxAssets: builder.query({
+      query: (doctorId) => `/doctors/${doctorId}/rx-assets`,
+      providesTags: (result, error, doctorId) => [
+        { type: "Doctor", id: doctorId },
+      ],
+    }),
+
     // GET /doctors/:id/services - Doctor service assignments
     getDoctorServices: builder.query({
       query: (arg) => {
@@ -1720,6 +1728,7 @@ export const {
   useGetDoctorsQuery,
   useGetDoctorsBySpecialtyQuery,
   useGetDoctorQuery,
+  useGetDoctorRxAssetsQuery,
   useCreateDoctorMutation,
   useUpdateDoctorMutation,
   useUploadDoctorRxAssetMutation,
