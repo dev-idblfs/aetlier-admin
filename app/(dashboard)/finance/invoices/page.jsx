@@ -9,6 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useMemo } from 'react';
+import { downloadInvoicePdfDirect } from '@/utils/invoiceDownload';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
     FileText,
@@ -144,16 +145,13 @@ export default function InvoicesPage() {
     };
 
     const handleDownloadPdf = async (invoice) => {
+        if (!invoice?.id) return;
+        console.log('[Invoice List] Downloading PDF for invoice:', invoice.id);
         try {
-            const result = await getInvoicePdf(invoice.id).unwrap();
-            const link = document.createElement('a');
-            link.href = result;
-            link.download = `${invoice.invoice_number || 'invoice'}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            toast.success('Invoice PDF downloaded');
+            await downloadInvoicePdfDirect(invoice.id, invoice.invoice_number);
+            toast.success('Invoice PDF downloaded successfully');
         } catch (error) {
+            console.error('[Invoice List] PDF download error:', error);
             toast.error(error?.message || error?.data?.detail || 'Failed to download PDF');
         }
     };

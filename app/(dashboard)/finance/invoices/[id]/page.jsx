@@ -6,8 +6,9 @@
 
 export const dynamic = 'force-dynamic';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
+import { downloadInvoicePdfDirect } from '@/utils/invoiceDownload';
 import {
     Edit,
     Download,
@@ -138,20 +139,20 @@ export default function InvoiceDetailPage({ params }) {
     );
     const showBalanceDue = remainingBalance > 0 && statusAllowsPayment;
 
+    const [isDownloadingDirect, setIsDownloadingDirect] = useState(false);
+
     const handleDownloadPdf = async () => {
+        if (!invoice?.id) return;
+        setIsDownloadingDirect(true);
+        console.log('[Invoice Detail] Triggering PDF download for invoice:', invoice.id);
         try {
-            const pdfUrl = await getPdfUrl(invoice.id).unwrap();
-            if (pdfUrl) {
-                const link = document.createElement('a');
-                link.href = pdfUrl;
-                link.download = `${invoice.invoice_number || 'invoice'}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success('Invoice PDF downloaded');
-            }
+            await downloadInvoicePdfDirect(invoice.id, invoice.invoice_number);
+            toast.success('Invoice PDF downloaded successfully');
         } catch (err) {
+            console.error('[Invoice Detail] PDF download failed:', err);
             toast.error(err?.message || err?.data?.detail || 'Failed to download PDF');
+        } finally {
+            setIsDownloadingDirect(false);
         }
     };
 
@@ -223,7 +224,7 @@ export default function InvoiceDetailPage({ params }) {
         variant: 'flat',
         icon: <Download className="w-4 h-4" />,
         onClick: handleDownloadPdf,
-        loading: isDownloading,
+        loading: isDownloadingDirect || isDownloading,
     });
     if (showSend) {
         actions.push({
