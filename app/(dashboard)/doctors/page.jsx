@@ -214,8 +214,8 @@ export default function DoctorsPage() {
                 typeof detail === 'string'
                     ? detail
                     : Array.isArray(detail)
-                      ? detail.map((d) => d.msg || d).join(', ')
-                      : 'Failed to delete doctor';
+                        ? detail.map((d) => d.msg || d).join(', ')
+                        : 'Failed to delete doctor';
             toast.error(message);
         }
     };
