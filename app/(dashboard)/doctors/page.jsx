@@ -49,6 +49,7 @@ import {
 } from '@/components/ui';
 import {
     useGetDoctorsQuery,
+    useGetSpecializationsQuery,
     useDeleteDoctorMutation,
     useBulkDeleteDoctorsMutation,
 } from '@/redux/services/api';
@@ -69,9 +70,12 @@ export default function DoctorsPage() {
     const [verificationFilter, setVerificationFilter] = useState('');
     const [activeFilter, setActiveFilter] = useState('');
     const [publishedFilter, setPublishedFilter] = useState('');
+    const [specializationFilter, setSpecializationFilter] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+
+    const { data: specializations = [] } = useGetSpecializationsQuery({ is_active: true });
 
     const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange } = useDisclosure();
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
@@ -83,7 +87,7 @@ export default function DoctorsPage() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [verificationFilter, activeFilter, publishedFilter]);
+    }, [verificationFilter, activeFilter, publishedFilter, specializationFilter]);
 
     const queryArgs = useMemo(() => {
         const args = {};
@@ -92,9 +96,11 @@ export default function DoctorsPage() {
         if (activeFilter === 'false') args.is_active = false;
         if (publishedFilter === 'true') args.is_published = true;
         if (publishedFilter === 'false') args.is_published = false;
+        if (specializationFilter) args.specialization = specializationFilter;
         if (debouncedSearch.trim()) args.q = debouncedSearch.trim();
         return args;
-    }, [verificationFilter, activeFilter, publishedFilter, debouncedSearch]);
+    }, [verificationFilter, activeFilter, publishedFilter, specializationFilter, debouncedSearch]);
+
 
     const { data, isLoading, isError, error, refetch } = useGetDoctorsQuery(queryArgs, {
         skip: !canView,
@@ -239,14 +245,33 @@ export default function DoctorsPage() {
                     activeFiltersCount={
                         (verificationFilter ? 1 : 0) +
                         (activeFilter ? 1 : 0) +
-                        (publishedFilter ? 1 : 0)
+                        (publishedFilter ? 1 : 0) +
+                        (specializationFilter ? 1 : 0)
                     }
                     onClearAll={() => {
                         setVerificationFilter('');
                         setActiveFilter('');
                         setPublishedFilter('');
+                        setSpecializationFilter('');
                     }}
                 >
+                    <Select
+                        aria-label="Specialization filter"
+                        placeholder="Specialization"
+                        selectedKeys={specializationFilter ? [specializationFilter] : ['all']}
+                        onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] || 'all';
+                            setSpecializationFilter(value === 'all' ? '' : value);
+                        }}
+                        size="sm"
+                    >
+                        <SelectItem key="all" value="all" textValue="All specialties">All specialties</SelectItem>
+                        {specializations.map((spec) => (
+                            <SelectItem key={spec.name} value={spec.name} textValue={spec.name}>
+                                {spec.name}
+                            </SelectItem>
+                        ))}
+                    </Select>
                     <Select
                         aria-label="Verification status"
                         placeholder="Verification"
@@ -292,6 +317,7 @@ export default function DoctorsPage() {
                         <SelectItem key="true" value="true" textValue="Published">Published</SelectItem>
                         <SelectItem key="false" value="false" textValue="Unpublished">Unpublished</SelectItem>
                     </Select>
+
                 </FilterBar>
             )}
         >

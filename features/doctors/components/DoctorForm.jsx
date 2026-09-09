@@ -18,21 +18,11 @@ import {
     FormTagInput,
     FormDivider,
 } from '@/components/ui/FormFields';
-import { FormActions, FormSectionCard, FormCompactCard } from '@/components/ui';
+import { FormActions, FormSectionCard, FormCompactCard, FormSpecializationSelect } from '@/components/ui';
 import { useUploadDoctorRxAssetMutation } from '@/redux/services/api';
 
-const SPECIALIZATIONS = [
-    'Dermatologist',
-    'Gynecologist',
-    'Pediatrician',
-    'Cardiologist',
-    'Neurologist',
-    'Orthopedic',
-    'General Physician',
-    'ENT Specialist',
-];
-
 const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam'];
+
 
 export default function DoctorForm({
     defaultValues,
@@ -152,24 +142,19 @@ export default function DoctorForm({
 
                 <FormSectionCard embedded title="Professional Details">
                     <FormRow columns={2}>
-                        <FormSelect
+                        <FormSpecializationSelect
                             name="specializations"
                             label="Specializations"
-                            placeholder="Select specializations"
-                            selectionMode="multiple"
-                        >
-                            {SPECIALIZATIONS.map((spec) => (
-                                <SelectItem key={spec} value={spec}>
-                                    {spec}
-                                </SelectItem>
-                            ))}
-                        </FormSelect>
+                            placeholder="Search & select specializations..."
+                            isRequired
+                        />
 
                         <FormTagInput
                             name="qualifications"
                             label="Qualifications"
                             placeholder="Add qualification (e.g., MBBS, MD)"
                         />
+
 
                         <FormInput
                             name="experience_years"

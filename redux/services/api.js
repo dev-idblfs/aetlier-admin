@@ -114,7 +114,9 @@ export const api = createApi({
     "MobilePromotion",
     "Prescription",
     "Location",
+    "Specialization",
   ],
+
   endpoints: (builder) => ({
     // =========================================================================
     // AUTH ENDPOINTS
@@ -662,6 +664,62 @@ export const api = createApi({
       transformResponse: (response) => response ?? { success: true },
       invalidatesTags: ["Doctor"],
     }),
+
+    // =========================================================================
+    // SPECIALIZATION ENDPOINTS (Master Taxonomy)
+    // =========================================================================
+
+    // GET /specializations - List master specializations
+    getSpecializations: builder.query({
+      query: ({ q, category, is_active = true } = {}) => {
+        const params = new URLSearchParams();
+        if (q) params.append("q", q);
+        if (category) params.append("category", category);
+        if (is_active !== undefined && is_active !== null) {
+          params.append("is_active", String(is_active));
+        }
+        const qs = params.toString();
+        return `/specializations${qs ? `?${qs}` : ""}`;
+      },
+      providesTags: ["Specialization"],
+      keepUnusedDataFor: 300,
+    }),
+
+    // GET /specializations/:id - Get single specialization
+    getSpecialization: builder.query({
+      query: (id) => `/specializations/${id}`,
+      providesTags: (result, error, id) => [{ type: "Specialization", id }],
+    }),
+
+    // POST /specializations - Create specialization
+    createSpecialization: builder.mutation({
+      query: (data) => ({
+        url: "/specializations",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Specialization"],
+    }),
+
+    // PATCH /specializations/:id - Update specialization
+    updateSpecialization: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/specializations/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Specialization"],
+    }),
+
+    // DELETE /specializations/:id - Delete specialization
+    deleteSpecialization: builder.mutation({
+      query: (id) => ({
+        url: `/specializations/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Specialization"],
+    }),
+
 
     // =========================================================================
     // VERIFICATION ENDPOINTS
@@ -1667,6 +1725,13 @@ export const {
   useUpdateDoctorMutation,
   useUploadDoctorRxAssetMutation,
   useDeleteDoctorMutation,
+  // Specializations (Master Taxonomy)
+  useGetSpecializationsQuery,
+  useGetSpecializationQuery,
+  useCreateSpecializationMutation,
+  useUpdateSpecializationMutation,
+  useDeleteSpecializationMutation,
+
   // Services
   useGetServicesQuery,
   useGetServicesByCategoryQuery,

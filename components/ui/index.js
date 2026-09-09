@@ -51,7 +51,12 @@ export {
   FormFileUploadField,
 } from "./FormFields";
 export { IndiaStateCityFields } from "./IndiaStateCityFields";
+export {
+  FormSpecializationSelect,
+  SpecializationSelectBase,
+} from "./FormSpecializationSelect";
 export { Form, FormErrorSummary, DEFAULT_FORM_OPTIONS } from "./Form";
+
 export { default as FormFileUpload } from "./FormFileUpload";
 export { default as FormRepeater } from "./FormRepeater";
 export { default as ServiceThumbnail } from "./ServiceThumbnail";
