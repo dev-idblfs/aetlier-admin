@@ -1082,7 +1082,9 @@ export const api = createApi({
             errorData.detail ||
             `Failed to download PDF (HTTP ${response.status})`;
           console.error("[RTK Query PDF Error]:", errorMsg);
-          return { error: { status: response.status, data: { detail: errorMsg } } };
+          return {
+            error: { status: response.status, data: { detail: errorMsg } },
+          };
         }
         const blob = await response.blob();
         console.log(`[RTK Query PDF] Received PDF blob (${blob.size} bytes)`);
