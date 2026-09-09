@@ -426,11 +426,11 @@ export default function PrescriptionPanel({
       prev.map((item, i) =>
         i === index
           ? {
-              ...item,
-              form_preset: preset.key,
-              form_tags: preset.tags,
-              description: preset.description,
-            }
+            ...item,
+            form_preset: preset.key,
+            form_tags: preset.tags,
+            description: preset.description,
+          }
           : item
       )
     )
