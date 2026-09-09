@@ -148,12 +148,13 @@ export default function InvoicesPage() {
             const result = await getInvoicePdf(invoice.id).unwrap();
             const link = document.createElement('a');
             link.href = result;
-            link.download = `${invoice.invoice_number}.pdf`;
+            link.download = `${invoice.invoice_number || 'invoice'}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            toast.success('Invoice PDF downloaded');
         } catch (error) {
-            toast.error('Failed to download PDF');
+            toast.error(error?.message || error?.data?.detail || 'Failed to download PDF');
         }
     };
 
@@ -174,8 +175,8 @@ export default function InvoicesPage() {
             render: (row) => (
                 <div>
                     {row.customer_id || row.user_id ? (
-                        <EntityLink 
-                            type="customer" 
+                        <EntityLink
+                            type="customer"
                             id={row.customer_id || row.user_id}
                             label={row.customer_name || 'N/A'}
                         />
@@ -306,6 +307,12 @@ export default function InvoicesPage() {
                 }}
                 actions={[
                     { label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: (row) => router.push(`/finance/invoices/${row.id}`) },
+                    {
+                        label: 'Preview HTML', icon: <Eye className="w-4 h-4" />, onClick: (row) => {
+                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                            window.open(`${apiUrl}/api/invoices/${row.id}/preview`, '_blank');
+                        }
+                    },
                     canUpdate && { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: (row) => router.push(`/finance/invoices/${row.id}/edit`) },
                     { label: 'Download PDF', icon: <Download className="w-4 h-4" />, onClick: handleDownloadPdf },
                     canSend && { label: 'Send', icon: <Send className="w-4 h-4" />, onClick: handleSendClick },

@@ -15,6 +15,7 @@ import {
     Trash2,
     DollarSign,
     AlertCircle,
+    Eye,
 } from '@/lib/icons';
 import { Button, Spinner, useDisclosure } from '@/lib/heroui';
 import { useRouter } from 'next/navigation';
@@ -141,12 +142,23 @@ export default function InvoiceDetailPage({ params }) {
         try {
             const pdfUrl = await getPdfUrl(invoice.id).unwrap();
             if (pdfUrl) {
-                window.open(pdfUrl, '_blank');
-                toast.success('Opening PDF...');
+                const link = document.createElement('a');
+                link.href = pdfUrl;
+                link.download = `${invoice.invoice_number || 'invoice'}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success('Invoice PDF downloaded');
             }
         } catch (err) {
-            toast.error(err?.data?.detail || 'Failed to download PDF');
+            toast.error(err?.message || err?.data?.detail || 'Failed to download PDF');
         }
+    };
+
+    const handleViewInvoice = () => {
+        if (!invoice?.id) return;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        window.open(`${apiUrl}/api/invoices/${invoice.id}/preview`, '_blank');
     };
 
     const handleSendEmail = async () => {
@@ -200,6 +212,12 @@ export default function InvoiceDetailPage({ params }) {
             onClick: () => router.push(`/finance/invoices/${invoice.id}/edit`),
         });
     }
+    actions.push({
+        label: 'View Invoice',
+        variant: 'bordered',
+        icon: <Eye className="w-4 h-4" />,
+        onClick: handleViewInvoice,
+    });
     actions.push({
         label: 'PDF',
         variant: 'flat',
@@ -261,7 +279,7 @@ export default function InvoiceDetailPage({ params }) {
             <InvoiceSection title="Line items" compact>
                 <LineItemsTable
                     items={lineItems}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     services={[]}
                     readonly
                     compact

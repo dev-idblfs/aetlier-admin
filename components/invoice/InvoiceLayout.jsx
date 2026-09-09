@@ -6,7 +6,7 @@
 
 import { useMemo } from 'react';
 import { Button } from '@/lib/heroui';
-import { Download, Printer, Mail } from '@/lib/icons';
+import { Download, Printer, Mail, Eye } from '@/lib/icons';
 import PageHeader from '@/components/ui/PageHeader';
 import { cn } from '@/utils/cn';
 
@@ -109,6 +109,13 @@ export const invoiceActions = {
         color: 'primary',
         onClick,
         loading,
+    }),
+
+    view: (onClick) => ({
+        label: 'View Invoice',
+        variant: 'bordered',
+        icon: <Eye className="w-4 h-4" />,
+        onClick,
     }),
 
     download: (onClick) => ({

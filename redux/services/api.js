@@ -175,7 +175,8 @@ export const api = createApi({
         if (q) params.append("q", q);
         if (doctor_id) params.append("doctor_id", doctor_id);
         if (service_id) params.append("service_id", service_id);
-        if (consultation_mode) params.append("consultation_mode", consultation_mode);
+        if (consultation_mode)
+          params.append("consultation_mode", consultation_mode);
         if (sort) params.append("sort", sort);
         return `/appointments?${params.toString()}`;
       },
@@ -551,11 +552,16 @@ export const api = createApi({
         active_only,
       } = {}) => {
         const params = new URLSearchParams();
-        if (verification_status) params.append("verification_status", verification_status);
+        if (verification_status)
+          params.append("verification_status", verification_status);
         if (is_active !== undefined && is_active !== null && is_active !== "") {
           params.append("is_active", String(is_active));
         }
-        if (is_published !== undefined && is_published !== null && is_published !== "") {
+        if (
+          is_published !== undefined &&
+          is_published !== null &&
+          is_published !== ""
+        ) {
           params.append("is_published", String(is_published));
         }
         if (q) params.append("q", q);
@@ -694,7 +700,8 @@ export const api = createApi({
     }),
 
     getAdminVerificationRecord: builder.query({
-      query: (verificationId) => `/verification/admin/records/${verificationId}`,
+      query: (verificationId) =>
+        `/verification/admin/records/${verificationId}`,
       providesTags: (result, error, id) => [{ type: "Verification", id }],
     }),
 
@@ -708,7 +715,9 @@ export const api = createApi({
 
     getVerificationAudit: builder.query({
       query: (verificationId) => `/verification/${verificationId}/audit`,
-      providesTags: (result, error, id) => [{ type: "Verification", id: `audit-${id}` }],
+      providesTags: (result, error, id) => [
+        { type: "Verification", id: `audit-${id}` },
+      ],
     }),
 
     getAuditLogs: builder.query({
@@ -751,7 +760,8 @@ export const api = createApi({
     }),
 
     getDocumentDownloadUrl: builder.query({
-      query: (documentId) => `/verification/documents/${documentId}/download-url`,
+      query: (documentId) =>
+        `/verification/documents/${documentId}/download-url`,
     }),
 
     // =========================================================================
@@ -1066,6 +1076,13 @@ export const api = createApi({
     getInvoicePdfUrl: builder.query({
       query: (id) => `/invoices/${id}/pdf`,
       responseHandler: async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.detail ||
+              `Failed to download PDF (HTTP ${response.status})`,
+          );
+        }
         const blob = await response.blob();
         return URL.createObjectURL(blob);
       },
