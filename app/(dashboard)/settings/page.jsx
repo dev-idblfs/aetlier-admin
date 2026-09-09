@@ -87,12 +87,12 @@ export default function SettingsPage() {
             invoiceFooterNotes: '',
             showGstBreakdown: true,
             autoSendInvoice: false,
-                bankName: '',
-                bankAccountName: '',
-                bankAccountNumber: '',
-                bankIfsc: '',
-                upiId: '',
-                paymentUrl: '',
+            bankName: '',
+            bankAccountName: '',
+            bankAccountNumber: '',
+            bankIfsc: '',
+            upiId: '',
+            paymentUrl: '',
         },
     });
 
@@ -221,345 +221,345 @@ export default function SettingsPage() {
                 </div>
             ) : (
                 <Form methods={methods} onSubmit={onSubmit}>
-                        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-                            <Tabs
-                                selectedKey={activeTab}
-                                onSelectionChange={setActiveTab}
-                                variant="underlined"
-                                classNames={{
-                                    tabList: "border-b border-gray-200 gap-0 min-w-max",
-                                    cursor: "bg-primary-500",
-                                    tab: "px-3 md:px-4 py-3 text-sm",
-                                }}
+                    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+                        <Tabs
+                            selectedKey={activeTab}
+                            onSelectionChange={setActiveTab}
+                            variant="underlined"
+                            classNames={{
+                                tabList: "border-b border-gray-200 gap-0 min-w-max",
+                                cursor: "bg-primary-500",
+                                tab: "px-3 md:px-4 py-3 text-sm",
+                            }}
+                        >
+                            <Tab
+                                key="general"
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <Globe className="w-4 h-4" />
+                                        <span className="hidden sm:inline">General</span>
+                                    </div>
+                                }
                             >
-                                <Tab
-                                    key="general"
-                                    title={
-                                        <div className="flex items-center gap-2">
-                                            <Globe className="w-4 h-4" />
-                                            <span className="hidden sm:inline">General</span>
-                                        </div>
-                                    }
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="pt-4 md:pt-6 space-y-4 md:space-y-6"
                                 >
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="pt-4 md:pt-6 space-y-4 md:space-y-6"
-                                    >
-                                        <SettingsCard title="Clinic Information">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput name="clinicName" label="Clinic Name" />
-                                                <FormInput name="clinicEmail" label="Email" type="email" />
-                                                <FormInput name="clinicPhone" label="Phone" />
-                                                <FormInput name="clinicAddress" label="Address" />
-                                            </div>
-                                        </SettingsCard>
+                                    <SettingsCard title="Clinic Information">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormInput name="clinicName" label="Clinic Name" />
+                                            <FormInput name="clinicEmail" label="Email" type="email" />
+                                            <FormInput name="clinicPhone" label="Phone" />
+                                            <FormInput name="clinicAddress" label="Address" />
+                                        </div>
+                                    </SettingsCard>
 
-                                        <SettingsCard title="Quick Links">
-                                            <Link
-                                                href="/settings/mobile-home"
-                                                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 rounded-lg bg-primary-100">
-                                                        <LayoutDashboard className="w-5 h-5 text-primary-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium text-gray-900">Mobile Home</p>
-                                                        <p className="text-sm text-gray-500">Manage mobile app banners and promotions</p>
-                                                    </div>
+                                    <SettingsCard title="Quick Links">
+                                        <Link
+                                            href="/settings/mobile-home"
+                                            className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-lg bg-primary-100">
+                                                    <LayoutDashboard className="w-5 h-5 text-primary-600" />
                                                 </div>
-                                                <ChevronRight className="w-5 h-5 text-gray-400" />
-                                            </Link>
-                                        </SettingsCard>
-                                    </motion.div>
-                                </Tab>
-
-                                <Tab
-                                    key="notifications"
-                                    title={
-                                        <div className="flex items-center gap-2">
-                                            <Bell className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Notifications</span>
-                                        </div>
-                                    }
-                                >
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="pt-4 md:pt-6 space-y-4 md:space-y-6"
-                                    >
-                                        <SettingsCard title="Email Notifications">
-                                            <div className="space-y-1">
-                                                <FormSwitchRow
-                                                    name="emailNotifications"
-                                                    label="Email Notifications"
-                                                    description="Receive email notifications for important updates"
-                                                />
-                                                <FormSwitchRow
-                                                    name="appointmentReminders"
-                                                    label="Appointment Reminders"
-                                                    description="Get reminded about upcoming appointments"
-                                                />
-                                                <FormSwitchRow
-                                                    name="marketingEmails"
-                                                    label="Marketing Emails"
-                                                    description="Receive promotional and marketing emails"
-                                                />
+                                                <div>
+                                                    <p className="font-medium text-gray-900">Mobile Home</p>
+                                                    <p className="text-sm text-gray-500">Manage mobile app banners and promotions</p>
+                                                </div>
                                             </div>
-                                        </SettingsCard>
+                                            <ChevronRight className="w-5 h-5 text-gray-400" />
+                                        </Link>
+                                    </SettingsCard>
+                                </motion.div>
+                            </Tab>
 
-                                        <SettingsCard title="SMS Notifications">
+                            <Tab
+                                key="notifications"
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <Bell className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Notifications</span>
+                                    </div>
+                                }
+                            >
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="pt-4 md:pt-6 space-y-4 md:space-y-6"
+                                >
+                                    <SettingsCard title="Email Notifications">
+                                        <div className="space-y-1">
                                             <FormSwitchRow
-                                                name="smsNotifications"
-                                                label="SMS Notifications"
-                                                description="Preference is saved; SMS delivery is not wired yet (WhatsApp is used for mobile alerts)"
+                                                name="emailNotifications"
+                                                label="Email Notifications"
+                                                description="Receive email notifications for important updates"
                                             />
-                                        </SettingsCard>
-                                    </motion.div>
-                                </Tab>
-
-                                <Tab
-                                    key="integrations"
-                                    title={
-                                        <div className="flex items-center gap-2">
-                                            <MessageCircle className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Integrations</span>
+                                            <FormSwitchRow
+                                                name="appointmentReminders"
+                                                label="Appointment Reminders"
+                                                description="Get reminded about upcoming appointments"
+                                            />
+                                            <FormSwitchRow
+                                                name="marketingEmails"
+                                                label="Marketing Emails"
+                                                description="Receive promotional and marketing emails"
+                                            />
                                         </div>
-                                    }
-                                >
-                                    <WhatsAppIntegrationsPanel />
-                                </Tab>
+                                    </SettingsCard>
 
-                                <Tab
-                                    key="appearance"
-                                    title={
-                                        <div className="flex items-center gap-2">
-                                            <Palette className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Appearance</span>
-                                        </div>
-                                    }
-                                >
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="pt-4 md:pt-6 space-y-4 md:space-y-6"
-                                    >
-                                        <SettingsCard title="Display Settings">
-                                            <div className="space-y-1">
-                                                <FormSwitchRow
-                                                    name="darkMode"
-                                                    label="Dark Mode"
-                                                    description="Use dark theme across the admin panel"
-                                                />
-                                                <FormSwitchRow
-                                                    name="compactView"
-                                                    label="Compact View"
-                                                    description="Show more content with reduced spacing"
-                                                />
-                                                <FormSwitchRow
-                                                    name="showAnimations"
-                                                    label="Animations"
-                                                    description="Enable smooth animations and transitions"
-                                                />
-                                            </div>
-                                        </SettingsCard>
-                                    </motion.div>
-                                </Tab>
+                                    <SettingsCard title="SMS Notifications">
+                                        <FormSwitchRow
+                                            name="smsNotifications"
+                                            label="SMS Notifications"
+                                            description="Preference is saved; SMS delivery is not wired yet (WhatsApp is used for mobile alerts)"
+                                        />
+                                    </SettingsCard>
+                                </motion.div>
+                            </Tab>
 
-                                <Tab
-                                    key="security"
-                                    title={
-                                        <div className="flex items-center gap-2">
-                                            <Shield className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Security</span>
-                                        </div>
-                                    }
+                            <Tab
+                                key="integrations"
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <MessageCircle className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Integrations</span>
+                                    </div>
+                                }
+                            >
+                                <WhatsAppIntegrationsPanel />
+                            </Tab>
+
+                            <Tab
+                                key="appearance"
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <Palette className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Appearance</span>
+                                    </div>
+                                }
+                            >
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="pt-4 md:pt-6 space-y-4 md:space-y-6"
                                 >
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="pt-4 md:pt-6 space-y-4 md:space-y-6"
-                                    >
-                                        <SettingsCard title="Account Security">
-                                            <div className="space-y-1">
-                                                <FormSwitchRow
-                                                    name="twoFactorAuth"
-                                                    label="Two-Factor Authentication"
-                                                    description="Preference is saved for future use; login 2FA is not enforced yet"
-                                                />
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-2 sm:gap-4 border-b border-gray-100">
-                                                    <div>
-                                                        <p className="font-medium text-gray-900 text-sm md:text-base">Session Timeout</p>
-                                                        <p className="text-xs md:text-sm text-gray-500">
-                                                            Not persisted yet — display only
-                                                        </p>
-                                                    </div>
-                                                    <div className="w-full sm:w-24">
-                                                        <FormInput
-                                                            name="sessionTimeout"
-                                                            type="number"
-                                                            size="sm"
-                                                            isDisabled
-                                                        />
-                                                    </div>
+                                    <SettingsCard title="Display Settings">
+                                        <div className="space-y-1">
+                                            <FormSwitchRow
+                                                name="darkMode"
+                                                label="Dark Mode"
+                                                description="Use dark theme across the admin panel"
+                                            />
+                                            <FormSwitchRow
+                                                name="compactView"
+                                                label="Compact View"
+                                                description="Show more content with reduced spacing"
+                                            />
+                                            <FormSwitchRow
+                                                name="showAnimations"
+                                                label="Animations"
+                                                description="Enable smooth animations and transitions"
+                                            />
+                                        </div>
+                                    </SettingsCard>
+                                </motion.div>
+                            </Tab>
+
+                            <Tab
+                                key="security"
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <Shield className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Security</span>
+                                    </div>
+                                }
+                            >
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="pt-4 md:pt-6 space-y-4 md:space-y-6"
+                                >
+                                    <SettingsCard title="Account Security">
+                                        <div className="space-y-1">
+                                            <FormSwitchRow
+                                                name="twoFactorAuth"
+                                                label="Two-Factor Authentication"
+                                                description="Preference is saved for future use; login 2FA is not enforced yet"
+                                            />
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-2 sm:gap-4 border-b border-gray-100">
+                                                <div>
+                                                    <p className="font-medium text-gray-900 text-sm md:text-base">Session Timeout</p>
+                                                    <p className="text-xs md:text-sm text-gray-500">
+                                                        Not persisted yet — display only
+                                                    </p>
+                                                </div>
+                                                <div className="w-full sm:w-24">
+                                                    <FormInput
+                                                        name="sessionTimeout"
+                                                        type="number"
+                                                        size="sm"
+                                                        isDisabled
+                                                    />
                                                 </div>
                                             </div>
-                                        </SettingsCard>
-
-                                        <SettingsCard title="Current Session">
-                                            <div className="space-y-2">
-                                                <p className="text-sm text-gray-600">
-                                                    Logged in as: <strong className="break-all">{user?.email || 'N/A'}</strong>
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                    Role: <strong className="capitalize">{user?.role || 'N/A'}</strong>
-                                                </p>
-                                                <Button
-                                                    variant="flat"
-                                                    color="danger"
-                                                    size="sm"
-                                                    className="mt-2 w-full sm:w-auto"
-                                                >
-                                                    Sign out of all devices
-                                                </Button>
-                                            </div>
-                                        </SettingsCard>
-                                    </motion.div>
-                                </Tab>
-
-                                <Tab
-                                    key="invoicing"
-                                    title={
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Invoicing</span>
                                         </div>
-                                    }
-                                >
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="pt-4 md:pt-6 space-y-4 md:space-y-6"
-                                    >
-                                        <SettingsCard title="Invoice Numbering">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput
-                                                    name="invoicePrefix"
-                                                    label="Invoice Prefix"
-                                                    placeholder="e.g., INV-, AET-"
-                                                    description="Prefix for all invoice numbers"
-                                                />
-                                                <FormInput
-                                                    name="invoiceStartNumber"
-                                                    label="Starting Number"
-                                                    type="number"
-                                                    description="Next invoice will use this number"
-                                                />
-                                            </div>
-                                        </SettingsCard>
+                                    </SettingsCard>
 
-                                        <SettingsCard title="Default Settings">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                <FormSelect
-                                                    name="defaultPaymentTerms"
-                                                    label="Default Payment Terms"
-                                                >
-                                                    <SelectItem key="DUE_ON_RECEIPT">Due on Receipt</SelectItem>
-                                                    <SelectItem key="NET_7">Net 7 Days</SelectItem>
-                                                    <SelectItem key="NET_15">Net 15 Days</SelectItem>
-                                                    <SelectItem key="NET_30">Net 30 Days</SelectItem>
-                                                    <SelectItem key="NET_45">Net 45 Days</SelectItem>
-                                                    <SelectItem key="NET_60">Net 60 Days</SelectItem>
-                                                </FormSelect>
-                                                <FormInput
-                                                    name="defaultTaxRate"
-                                                    label="Default Tax Rate (%)"
-                                                    type="number"
-                                                    endContent={<span className="text-gray-500">%</span>}
-                                                />
-                                            </div>
-                                            <FormTextarea
-                                                name="invoiceFooterNotes"
-                                                label="Invoice Footer Notes"
-                                                placeholder="Enter default notes for invoices"
-                                                minRows={2}
-                                            />
-                                        </SettingsCard>
-
-                                        <SettingsCard title="Tax Information">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput
-                                                    name="companyGstNumber"
-                                                    label="Company GST Number"
-                                                    placeholder="e.g., 22AAAAA0000A1Z5"
-                                                />
-                                                <FormInput
-                                                    name="companyPanNumber"
-                                                    label="Company PAN Number"
-                                                    placeholder="e.g., AAAAA0000A"
-                                                />
-                                            </div>
-                                        </SettingsCard>
-
-                                        <SettingsCard title="Invoice Payment Instructions">
-                                            <p className="mb-4 text-sm text-gray-500">
-                                                These optional clinic details appear in invoice previews, downloads, and emailed PDFs. Account numbers are masked on the generated invoice.
+                                    <SettingsCard title="Current Session">
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-gray-600">
+                                                Logged in as: <strong className="break-all">{user?.email || 'N/A'}</strong>
                                             </p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput
-                                                    name="bankName"
-                                                    label="Bank Name"
-                                                    placeholder="e.g., HDFC Bank"
-                                                />
-                                                <FormInput
-                                                    name="bankAccountName"
-                                                    label="Account Holder Name"
-                                                    placeholder="e.g., Aetlier Clinical Group"
-                                                />
-                                                <FormInput
-                                                    name="bankAccountNumber"
-                                                    label="Account Number"
-                                                    type="password"
-                                                    placeholder="Saved securely; masked on invoices"
-                                                />
-                                                <FormInput
-                                                    name="bankIfsc"
-                                                    label="IFSC / Routing Code"
-                                                    placeholder="e.g., HDFC0000123"
-                                                />
-                                                <FormInput
-                                                    name="upiId"
-                                                    label="UPI ID"
-                                                    placeholder="e.g., billing@aetlier"
-                                                />
-                                                <FormInput
-                                                    name="paymentUrl"
-                                                    label="Online Payment URL"
-                                                    placeholder="https://..."
-                                                />
-                                            </div>
-                                        </SettingsCard>
+                                            <p className="text-sm text-gray-600">
+                                                Role: <strong className="capitalize">{user?.role || 'N/A'}</strong>
+                                            </p>
+                                            <Button
+                                                variant="flat"
+                                                color="danger"
+                                                size="sm"
+                                                className="mt-2 w-full sm:w-auto"
+                                            >
+                                                Sign out of all devices
+                                            </Button>
+                                        </div>
+                                    </SettingsCard>
+                                </motion.div>
+                            </Tab>
 
-                                        <SettingsCard title="Invoice Options">
-                                            <div className="space-y-1">
-                                                <FormSwitchRow
-                                                    name="showGstBreakdown"
-                                                    label="Show GST Breakdown"
-                                                    description="Display CGST and SGST separately on invoices"
-                                                />
-                                                <FormSwitchRow
-                                                    name="autoSendInvoice"
-                                                    label="Auto-send Invoice"
-                                                    description="Automatically email invoice to customer when created"
-                                                />
-                                            </div>
-                                        </SettingsCard>
-                                    </motion.div>
-                                </Tab>
-                            </Tabs>
-                        </div>
-                    </Form>
+                            <Tab
+                                key="invoicing"
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Invoicing</span>
+                                    </div>
+                                }
+                            >
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="pt-4 md:pt-6 space-y-4 md:space-y-6"
+                                >
+                                    <SettingsCard title="Invoice Numbering">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormInput
+                                                name="invoicePrefix"
+                                                label="Invoice Prefix"
+                                                placeholder="e.g., INV-, AET-"
+                                                description="Prefix for all invoice numbers"
+                                            />
+                                            <FormInput
+                                                name="invoiceStartNumber"
+                                                label="Starting Number"
+                                                type="number"
+                                                description="Next invoice will use this number"
+                                            />
+                                        </div>
+                                    </SettingsCard>
+
+                                    <SettingsCard title="Default Settings">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <FormSelect
+                                                name="defaultPaymentTerms"
+                                                label="Default Payment Terms"
+                                            >
+                                                <SelectItem key="DUE_ON_RECEIPT">Due on Receipt</SelectItem>
+                                                <SelectItem key="NET_7">Net 7 Days</SelectItem>
+                                                <SelectItem key="NET_15">Net 15 Days</SelectItem>
+                                                <SelectItem key="NET_30">Net 30 Days</SelectItem>
+                                                <SelectItem key="NET_45">Net 45 Days</SelectItem>
+                                                <SelectItem key="NET_60">Net 60 Days</SelectItem>
+                                            </FormSelect>
+                                            <FormInput
+                                                name="defaultTaxRate"
+                                                label="Default Tax Rate (%)"
+                                                type="number"
+                                                endContent={<span className="text-gray-500">%</span>}
+                                            />
+                                        </div>
+                                        <FormTextarea
+                                            name="invoiceFooterNotes"
+                                            label="Invoice Footer Notes"
+                                            placeholder="Enter default notes for invoices"
+                                            minRows={2}
+                                        />
+                                    </SettingsCard>
+
+                                    <SettingsCard title="Tax Information">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormInput
+                                                name="companyGstNumber"
+                                                label="Company GST Number"
+                                                placeholder="e.g., 22AAAAA0000A1Z5"
+                                            />
+                                            <FormInput
+                                                name="companyPanNumber"
+                                                label="Company PAN Number"
+                                                placeholder="e.g., AAAAA0000A"
+                                            />
+                                        </div>
+                                    </SettingsCard>
+
+                                    <SettingsCard title="Invoice Payment Instructions">
+                                        <p className="mb-4 text-sm text-gray-500">
+                                            These optional clinic details appear in invoice previews, downloads, and emailed PDFs. Account numbers are masked on the generated invoice.
+                                        </p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormInput
+                                                name="bankName"
+                                                label="Bank Name"
+                                                placeholder="e.g., HDFC Bank"
+                                            />
+                                            <FormInput
+                                                name="bankAccountName"
+                                                label="Account Holder Name"
+                                                placeholder="e.g., Aetlier Clinical Group"
+                                            />
+                                            <FormInput
+                                                name="bankAccountNumber"
+                                                label="Account Number"
+                                                type="password"
+                                                placeholder="Saved securely; masked on invoices"
+                                            />
+                                            <FormInput
+                                                name="bankIfsc"
+                                                label="IFSC / Routing Code"
+                                                placeholder="e.g., HDFC0000123"
+                                            />
+                                            <FormInput
+                                                name="upiId"
+                                                label="UPI ID"
+                                                placeholder="e.g., billing@aetlier"
+                                            />
+                                            <FormInput
+                                                name="paymentUrl"
+                                                label="Online Payment URL"
+                                                placeholder="https://..."
+                                            />
+                                        </div>
+                                    </SettingsCard>
+
+                                    <SettingsCard title="Invoice Options">
+                                        <div className="space-y-1">
+                                            <FormSwitchRow
+                                                name="showGstBreakdown"
+                                                label="Show GST Breakdown"
+                                                description="Display CGST and SGST separately on invoices"
+                                            />
+                                            <FormSwitchRow
+                                                name="autoSendInvoice"
+                                                label="Auto-send Invoice"
+                                                description="Automatically email invoice to customer when created"
+                                            />
+                                        </div>
+                                    </SettingsCard>
+                                </motion.div>
+                            </Tab>
+                        </Tabs>
+                    </div>
+                </Form>
             )}
         </ListPageLayout>
     );
