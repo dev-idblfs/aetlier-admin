@@ -399,8 +399,15 @@ export default function PrescriptionPanel({
         rxId = created?.id
       }
       if (!rxId) throw new Error('Missing prescription id')
-      await sendPrescription({ prescriptionId: rxId, appointmentId }).unwrap()
-      toast.success('Prescription sent to patient')
+      const sent = await sendPrescription({ prescriptionId: rxId, appointmentId }).unwrap()
+      if (sent?.delivery?.email?.sent) {
+        toast.success('Prescription emailed to the patient')
+      } else if (sent?.delivery?.email?.error) {
+        toast.success('Prescription issued in the patient app')
+        toast.error(`Email was not delivered: ${sent.delivery.email.error}`)
+      } else {
+        toast.success('Prescription issued to the patient')
+      }
     } catch (err) {
       toast.error(err?.data?.detail || 'Failed to send prescription')
     }
