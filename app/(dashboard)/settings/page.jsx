@@ -87,6 +87,12 @@ export default function SettingsPage() {
             invoiceFooterNotes: '',
             showGstBreakdown: true,
             autoSendInvoice: false,
+                bankName: '',
+                bankAccountName: '',
+                bankAccountNumber: '',
+                bankIfsc: '',
+                upiId: '',
+                paymentUrl: '',
         },
     });
 
@@ -122,6 +128,12 @@ export default function SettingsPage() {
                 invoiceFooterNotes: invoiceSettings?.default_notes || '',
                 showGstBreakdown: invoiceSettings?.enable_cgst_sgst ?? true,
                 autoSendInvoice: invoiceSettings?.auto_send_on_create ?? false,
+                bankName: invoiceSettings?.bank_name || '',
+                bankAccountName: invoiceSettings?.bank_account_name || '',
+                bankAccountNumber: invoiceSettings?.bank_account_number || '',
+                bankIfsc: invoiceSettings?.bank_ifsc || '',
+                upiId: invoiceSettings?.upi_id || '',
+                paymentUrl: invoiceSettings?.payment_url || '',
             });
         }
     }, [invoiceSettings, userPreferences, reset]);
@@ -145,6 +157,12 @@ export default function SettingsPage() {
                 enable_cgst_sgst: data.showGstBreakdown,
                 auto_send_on_create: data.autoSendInvoice,
                 default_payment_terms: data.defaultPaymentTerms,
+                bank_name: data.bankName,
+                bank_account_name: data.bankAccountName,
+                bank_account_number: data.bankAccountNumber,
+                bank_ifsc: data.bankIfsc,
+                upi_id: data.upiId,
+                payment_url: data.paymentUrl,
             };
 
             promises.push(updateInvoiceSettings(invoiceData).unwrap());
@@ -480,6 +498,45 @@ export default function SettingsPage() {
                                                     name="companyPanNumber"
                                                     label="Company PAN Number"
                                                     placeholder="e.g., AAAAA0000A"
+                                                />
+                                            </div>
+                                        </SettingsCard>
+
+                                        <SettingsCard title="Invoice Payment Instructions">
+                                            <p className="mb-4 text-sm text-gray-500">
+                                                These optional clinic details appear in invoice previews, downloads, and emailed PDFs. Account numbers are masked on the generated invoice.
+                                            </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormInput
+                                                    name="bankName"
+                                                    label="Bank Name"
+                                                    placeholder="e.g., HDFC Bank"
+                                                />
+                                                <FormInput
+                                                    name="bankAccountName"
+                                                    label="Account Holder Name"
+                                                    placeholder="e.g., Aetlier Clinical Group"
+                                                />
+                                                <FormInput
+                                                    name="bankAccountNumber"
+                                                    label="Account Number"
+                                                    type="password"
+                                                    placeholder="Saved securely; masked on invoices"
+                                                />
+                                                <FormInput
+                                                    name="bankIfsc"
+                                                    label="IFSC / Routing Code"
+                                                    placeholder="e.g., HDFC0000123"
+                                                />
+                                                <FormInput
+                                                    name="upiId"
+                                                    label="UPI ID"
+                                                    placeholder="e.g., billing@aetlier"
+                                                />
+                                                <FormInput
+                                                    name="paymentUrl"
+                                                    label="Online Payment URL"
+                                                    placeholder="https://..."
                                                 />
                                             </div>
                                         </SettingsCard>

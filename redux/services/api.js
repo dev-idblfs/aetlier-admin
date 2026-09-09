@@ -1339,9 +1339,9 @@ export const api = createApi({
     // WALLET / REFERRAL ENDPOINTS
     // =========================================================================
 
-    // GET /wallet/:user_id - Get user's coin wallet (admin only)
+    // GET /referral/wallet/:user_id - Get user's coin wallet (admin only)
     getUserWallet: builder.query({
-      query: (userId) => `/wallet/${userId}`,
+      query: (userId) => `/referral/wallet/${userId}`,
       providesTags: (result, error, userId) => [{ type: "Wallet", id: userId }],
     }),
 
