@@ -8,8 +8,9 @@ export async function downloadInvoicePdfDirect(invoiceId, invoiceNumber) {
   console.log(`[Invoice PDF] Initiating download for invoice ID: ${invoiceId}`);
   try {
     const token = getAccessTokenCookie();
-    const baseUrl = config.apiUrl || "http://localhost:8000";
-    const url = `${baseUrl}/api/invoices/${invoiceId}/pdf`;
+    const rawApiUrl = config.apiUrl || "http://localhost:8000/api";
+    const base = rawApiUrl.replace(/\/+$/, "").replace(/\/api$/, "");
+    const url = `${base}/api/invoices/${invoiceId}/pdf`;
 
     const response = await fetch(url, {
       method: "GET",

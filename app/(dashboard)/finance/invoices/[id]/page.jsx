@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { use, useState } from 'react';
 import Link from 'next/link';
+import config from '@/config';
 import { downloadInvoicePdfDirect } from '@/utils/invoiceDownload';
 import {
     Edit,
@@ -158,8 +159,9 @@ export default function InvoiceDetailPage({ params }) {
 
     const handleViewInvoice = () => {
         if (!invoice?.id) return;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        window.open(`${apiUrl}/api/invoices/${invoice.id}/preview`, '_blank');
+        const rawApiUrl = config?.apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const base = rawApiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+        window.open(`${base}/api/invoices/${invoice.id}/preview`, '_blank');
     };
 
     const handleSendEmail = async () => {

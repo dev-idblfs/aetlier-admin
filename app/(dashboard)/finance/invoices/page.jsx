@@ -9,6 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useMemo } from 'react';
+import config from '@/config';
 import { downloadInvoicePdfDirect } from '@/utils/invoiceDownload';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -307,8 +308,9 @@ export default function InvoicesPage() {
                     { label: 'View Details', icon: <Eye className="w-4 h-4" />, onClick: (row) => router.push(`/finance/invoices/${row.id}`) },
                     {
                         label: 'Preview HTML', icon: <Eye className="w-4 h-4" />, onClick: (row) => {
-                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                            window.open(`${apiUrl}/api/invoices/${row.id}/preview`, '_blank');
+                            const rawApiUrl = config?.apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+                            const base = rawApiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+                            window.open(`${base}/api/invoices/${row.id}/preview`, '_blank');
                         }
                     },
                     canUpdate && { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: (row) => router.push(`/finance/invoices/${row.id}/edit`) },
