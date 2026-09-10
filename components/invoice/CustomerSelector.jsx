@@ -567,8 +567,8 @@ export default function CustomerSelector({
                                         !newCustomer.billing_state_id
                                             ? 'Select state first'
                                             : citiesLoading
-                                              ? 'Loading…'
-                                              : 'Select city'
+                                                ? 'Loading…'
+                                                : 'Select city'
                                     }
                                     selectedKeys={
                                         newCustomer.billing_city_id

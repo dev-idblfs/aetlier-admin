@@ -139,41 +139,41 @@ export default function EditInvoicePage({ params }) {
 
         const linkedId = invoice.customer_id || invoice.user_id;
         reset({
-                customer_id: linkedId ? String(linkedId) : '',
-                customer_name: invoice.customer_name || '',
-                customer_email: invoice.customer_email || '',
-                customer_phone: invoice.customer_phone || '',
-                customer_address: formatCustomerAddressForForm(invoice.customer_address),
-                customer_date_of_birth: invoice.customer_date_of_birth
-                    ? String(invoice.customer_date_of_birth).slice(0, 10)
-                    : '',
-                customer_gender: invoice.customer_gender || '',
-                customer_city: invoice.customer_city || '',
-                doctor_user_id: invoice.doctor_user_id ? String(invoice.doctor_user_id) : '',
-                invoice_date: invoice.invoice_date
-                    ? String(invoice.invoice_date).slice(0, 10)
-                    : new Date().toISOString().split('T')[0],
-                due_date: invoice.due_date
-                    ? String(invoice.due_date).slice(0, 10)
-                    : new Date().toISOString().split('T')[0],
-                payment_terms: invoice.payment_terms || 'DUE_ON_RECEIPT',
-                notes: invoice.notes || '',
-                terms_conditions: invoice.terms || '',
-                discount_type: (invoice.discount_type === 'FIXED' ? 'FIXED' : 'PERCENTAGE'),
-                discount_value: invoice.discount_value || 0,
-                coins_redeemed: invoice.coins_redeemed || 0,
-                line_items: invoice.line_items
-                    ? invoice.line_items.map((item) => ({
-                        id: item.id != null ? String(item.id) : undefined,
-                        service_id: item.service_id != null ? String(item.service_id) : null,
-                        service_name: item.service_name || null,
-                        description: item.description || '',
-                        quantity: Number(item.quantity) || 1,
-                        unit_price: Number(item.unit_price) || 0,
-                        tax_rate: Number(item.tax_rate) || 0,
-                    }))
-                    : [],
-            });
+            customer_id: linkedId ? String(linkedId) : '',
+            customer_name: invoice.customer_name || '',
+            customer_email: invoice.customer_email || '',
+            customer_phone: invoice.customer_phone || '',
+            customer_address: formatCustomerAddressForForm(invoice.customer_address),
+            customer_date_of_birth: invoice.customer_date_of_birth
+                ? String(invoice.customer_date_of_birth).slice(0, 10)
+                : '',
+            customer_gender: invoice.customer_gender || '',
+            customer_city: invoice.customer_city || '',
+            doctor_user_id: invoice.doctor_user_id ? String(invoice.doctor_user_id) : '',
+            invoice_date: invoice.invoice_date
+                ? String(invoice.invoice_date).slice(0, 10)
+                : new Date().toISOString().split('T')[0],
+            due_date: invoice.due_date
+                ? String(invoice.due_date).slice(0, 10)
+                : new Date().toISOString().split('T')[0],
+            payment_terms: invoice.payment_terms || 'DUE_ON_RECEIPT',
+            notes: invoice.notes || '',
+            terms_conditions: invoice.terms || '',
+            discount_type: (invoice.discount_type === 'FIXED' ? 'FIXED' : 'PERCENTAGE'),
+            discount_value: invoice.discount_value || 0,
+            coins_redeemed: invoice.coins_redeemed || 0,
+            line_items: invoice.line_items
+                ? invoice.line_items.map((item) => ({
+                    id: item.id != null ? String(item.id) : undefined,
+                    service_id: item.service_id != null ? String(item.service_id) : null,
+                    service_name: item.service_name || null,
+                    description: item.description || '',
+                    quantity: Number(item.quantity) || 1,
+                    unit_price: Number(item.unit_price) || 0,
+                    tax_rate: Number(item.tax_rate) || 0,
+                }))
+                : [],
+        });
         if (linkedId || invoice.customer_name) {
             setSelectedCustomer({
                 id: linkedId,
@@ -402,24 +402,24 @@ export default function EditInvoicePage({ params }) {
                         },
                         ...(invoice.customer_id || invoice.user_id
                             ? [
-                                  {
-                                      label:
-                                          invoice.customer_name ||
-                                          selectedCustomer?.name ||
-                                          'Customer',
-                                      href: `/finance/customers/${invoice.customer_id || invoice.user_id}/edit`,
-                                      meta: 'Customer',
-                                  },
-                              ]
+                                {
+                                    label:
+                                        invoice.customer_name ||
+                                        selectedCustomer?.name ||
+                                        'Customer',
+                                    href: `/finance/customers/${invoice.customer_id || invoice.user_id}/edit`,
+                                    meta: 'Customer',
+                                },
+                            ]
                             : []),
                         ...(invoice.appointment_id
                             ? [
-                                  {
-                                      label: 'Appointment',
-                                      href: `/appointments/${invoice.appointment_id}`,
-                                      meta: 'Visit',
-                                  },
-                              ]
+                                {
+                                    label: 'Appointment',
+                                    href: `/appointments/${invoice.appointment_id}`,
+                                    meta: 'Visit',
+                                },
+                            ]
                             : []),
                     ]}
                 />
