@@ -13,6 +13,7 @@ import {
     useGetInvoiceQuery,
     useUpdateInvoiceMutation,
     useGetServicesQuery,
+    useGetDoctorsQuery,
     useGetUserWalletQuery,
 } from '@/redux/services/api';
 import {
@@ -24,6 +25,7 @@ import {
     InvoiceNotesFields,
     CustomerSelector,
     InvoiceCustomerBillingFields,
+    InvoiceDoctorSelect,
 } from '@/components/invoice';
 import { InvoiceSection, InvoiceAlert, InvoiceEmptyState, RelatedLinks } from '@/components/ui';
 import { calculateInvoiceTotal } from '@/utils/invoice/calculations';
@@ -43,6 +45,7 @@ export default function EditInvoicePage({ params }) {
     const { data: invoice, isLoading, error } = useGetInvoiceQuery(unwrappedParams.id);
     const [updateInvoice, { isLoading: isUpdating }] = useUpdateInvoiceMutation();
     const { data: servicesData } = useGetServicesQuery();
+    const { data: doctorsData, isLoading: isLoadingDoctors } = useGetDoctorsQuery();
     const services = servicesData || [];
     const {
         handleSearchCustomers,
@@ -53,7 +56,9 @@ export default function EditInvoicePage({ params }) {
 
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const invoiceFormSyncedId = useRef(null);
-    const customerLocked = (invoice?.amount_paid ?? 0) > 0;
+    const customerLocked =
+        Number(invoice?.amount_paid ?? 0) > 0 ||
+        Number(invoice?.coins_redeemed ?? 0) > 0;
 
     // Fetch wallet data if invoice has a user
     const { data: walletData, isLoading: isLoadingWallet } = useGetUserWalletQuery(
@@ -68,6 +73,10 @@ export default function EditInvoicePage({ params }) {
             customer_email: '',
             customer_phone: '',
             customer_address: '',
+            customer_date_of_birth: '',
+            customer_gender: '',
+            customer_city: '',
+            doctor_user_id: '',
             invoice_date: new Date().toISOString().split('T')[0],
             due_date: new Date().toISOString().split('T')[0],
             payment_terms: 'DUE_ON_RECEIPT',
@@ -103,14 +112,20 @@ export default function EditInvoicePage({ params }) {
                 setValue('customer_phone', customer.phone || '');
                 setValue(
                     'customer_address',
-                    formatCustomerAddressForForm(customer.billing_address)
+                    customer.address || formatCustomerAddressForForm(customer.billing_address)
                 );
+                setValue('customer_date_of_birth', customer.date_of_birth ? String(customer.date_of_birth).slice(0, 10) : '');
+                setValue('customer_gender', customer.gender || '');
+                setValue('customer_city', customer.city || '');
             } else {
                 setValue('customer_id', '');
                 setValue('customer_name', '');
                 setValue('customer_email', '');
                 setValue('customer_phone', '');
                 setValue('customer_address', '');
+                setValue('customer_date_of_birth', '');
+                setValue('customer_gender', '');
+                setValue('customer_city', '');
             }
         },
         [setValue]
@@ -129,6 +144,12 @@ export default function EditInvoicePage({ params }) {
                 customer_email: invoice.customer_email || '',
                 customer_phone: invoice.customer_phone || '',
                 customer_address: formatCustomerAddressForForm(invoice.customer_address),
+                customer_date_of_birth: invoice.customer_date_of_birth
+                    ? String(invoice.customer_date_of_birth).slice(0, 10)
+                    : '',
+                customer_gender: invoice.customer_gender || '',
+                customer_city: invoice.customer_city || '',
+                doctor_user_id: invoice.doctor_user_id ? String(invoice.doctor_user_id) : '',
                 invoice_date: invoice.invoice_date
                     ? String(invoice.invoice_date).slice(0, 10)
                     : new Date().toISOString().split('T')[0],
@@ -245,6 +266,10 @@ export default function EditInvoicePage({ params }) {
                 customer_address: parseCustomerAddressForPayload(
                     data.customer_address
                 ),
+                customer_date_of_birth: data.customer_date_of_birth || undefined,
+                customer_gender: data.customer_gender || undefined,
+                customer_city: data.customer_city || undefined,
+                doctor_user_id: data.doctor_user_id || undefined,
                 invoice_date: data.invoice_date,
                 due_date: data.due_date,
                 payment_terms: data.payment_terms,
@@ -429,6 +454,11 @@ export default function EditInvoicePage({ params }) {
                                 <InvoiceCustomerBillingFields
                                     nameDisabled={customerLocked}
                                     fieldsDisabled={customerLocked}
+                                />
+                                <InvoiceDoctorSelect
+                                    doctorsData={doctorsData}
+                                    isLoading={isLoadingDoctors}
+                                    disabled={customerLocked || Boolean(invoice.appointment_id)}
                                 />
                                 <div className="border-t border-gray-100 pt-3">
                                     <InvoiceDetailsFields compact />

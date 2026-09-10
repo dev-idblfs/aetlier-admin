@@ -43,6 +43,7 @@ export default function CustomerSelector({
     hideSelectedPreview = false,
     compact = false,
     placeholder = 'Search customer by name, email, or phone',
+    isRequired = true,
 }) {
     const seedCustomer = value ?? initialCustomer;
     const [searchTerm, setSearchTerm] = useState(
@@ -60,6 +61,10 @@ export default function CustomerSelector({
         display_name: '',
         email: '',
         phone: '',
+        gender: '',
+        date_of_birth: '',
+        city: '',
+        address: '',
         billing_address_line1: '',
         billing_address_line2: '',
         billing_city: '',
@@ -82,38 +87,43 @@ export default function CustomerSelector({
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const searchRequestId = useRef(0);
 
-    // Controlled: parent `value` is source of truth (never override with initialCustomer)
+    // Parent selection is the source of truth; this component retains local state
+    // only for search text and for callers that do not control `value`.
+    /* eslint-disable react-hooks/set-state-in-effect -- Syncing a controlled Autocomplete selection into its required local state. */
     useEffect(() => {
         if (value == null) return;
         const nextKey = value.id != null ? String(value.id) : null;
+        // Synchronizing an externally controlled selection into local autocomplete
+        // state is intentional. It avoids stale labels after a customer is created.
         setSelectedKey(nextKey);
         setSelectedCustomer(value);
         setSearchTerm(value.display_name || '');
-    }, [value?.id, value?.display_name, value?.email, value?.phone]);
+    }, [value]);
 
-    // One-time seed from initialCustomer before parent value is ready (edit invoice load)
     useEffect(() => {
-        if (value != null || !initialCustomer) return;
-        if (didSeedFromInitial.current) return;
+        if (value != null || !initialCustomer || didSeedFromInitial.current) return;
         didSeedFromInitial.current = true;
         const key = initialCustomer.id != null ? String(initialCustomer.id) : null;
         setSelectedKey(key);
         setSelectedCustomer(initialCustomer);
         setSearchTerm(initialCustomer.display_name || '');
     }, [initialCustomer, value]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const listItems = useMemo(() => {
-        if (!selectedCustomer?.id) return customers;
+        const searchedCustomers = debouncedSearchTerm?.trim().length >= 2
+            ? customers
+            : [];
+        if (!selectedCustomer?.id) return searchedCustomers;
         const sid = String(selectedCustomer.id);
-        if (customers.some((c) => String(c.id) === sid)) return customers;
-        return [selectedCustomer, ...customers];
-    }, [customers, selectedCustomer]);
+        if (searchedCustomers.some((c) => String(c.id) === sid)) return searchedCustomers;
+        return [selectedCustomer, ...searchedCustomers];
+    }, [customers, debouncedSearchTerm, selectedCustomer]);
 
     // Search customers when debounced term changes
     useEffect(() => {
         const term = debouncedSearchTerm?.trim() || '';
         if (term.length < 2) {
-            setCustomers([]);
             return undefined;
         }
 
@@ -193,6 +203,14 @@ export default function CustomerSelector({
 
             if (data.email?.trim()) customerData.email = data.email.trim();
             if (data.phone?.trim()) customerData.phone = data.phone.trim();
+            if (data.gender) customerData.gender = data.gender;
+            if (data.date_of_birth) customerData.date_of_birth = data.date_of_birth;
+            if (data.city?.trim()) {
+                customerData.city = data.city.trim();
+            } else if (data.billing_city?.trim()) {
+                customerData.city = data.billing_city.trim();
+            }
+            if (data.address?.trim()) customerData.address = data.address.trim();
             if (data.billing_address_line1?.trim()) {
                 customerData.billing_address_line1 = data.billing_address_line1.trim();
             }
@@ -203,6 +221,8 @@ export default function CustomerSelector({
             if (data.billing_state?.trim()) customerData.billing_state = data.billing_state.trim();
             if (data.billing_state_id) customerData.billing_state_id = data.billing_state_id;
             if (data.billing_city_id) customerData.billing_city_id = data.billing_city_id;
+            if (data.billing_state_id) customerData.state_id = data.billing_state_id;
+            if (data.billing_city_id) customerData.city_id = data.billing_city_id;
             if (data.billing_pincode?.trim()) {
                 customerData.billing_pincode = data.billing_pincode.trim();
             }
@@ -229,6 +249,10 @@ export default function CustomerSelector({
                 display_name: '',
                 email: '',
                 phone: '',
+                gender: '',
+                date_of_birth: '',
+                city: '',
+                address: '',
                 billing_address_line1: '',
                 billing_address_line2: '',
                 billing_city: '',
@@ -268,7 +292,7 @@ export default function CustomerSelector({
                             onSelectionChange={handleSelectionChange}
                             isLoading={isLoadingSearch}
                             items={listItems}
-                            isRequired
+                            isRequired={isRequired}
                             classNames={{
                                 base: 'flex-1',
                             }}
@@ -454,6 +478,38 @@ export default function CustomerSelector({
                                 errorMessage={createFieldErrors.phone}
                             />
 
+                            <div className="grid grid-cols-2 gap-3">
+                                <Select
+                                    label="Gender"
+                                    placeholder="Select gender"
+                                    selectedKeys={
+                                        newCustomer.gender ? [newCustomer.gender] : []
+                                    }
+                                    onSelectionChange={(keys) => {
+                                        const selected = Array.from(keys)[0];
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            gender: selected ? String(selected) : '',
+                                        });
+                                    }}
+                                >
+                                    <SelectItem key="female" value="female">Female</SelectItem>
+                                    <SelectItem key="male" value="male">Male</SelectItem>
+                                    <SelectItem key="other" value="other">Other</SelectItem>
+                                    <SelectItem key="prefer_not_to_say" value="prefer_not_to_say">
+                                        Prefer not to say
+                                    </SelectItem>
+                                </Select>
+                                <Input
+                                    type="date"
+                                    label="Date of birth"
+                                    value={newCustomer.date_of_birth}
+                                    onChange={(e) =>
+                                        setNewCustomer({ ...newCustomer, date_of_birth: e.target.value })
+                                    }
+                                />
+                            </div>
+
                             {/* Billing Address */}
                             <Input
                                 label="Address Line 1"
@@ -548,6 +604,16 @@ export default function CustomerSelector({
                                 onChange={(e) =>
                                     setNewCustomer({ ...newCustomer, billing_pincode: e.target.value })
                                 }
+                            />
+
+                            <Input
+                                label="Residential Address"
+                                placeholder="Optional patient address"
+                                value={newCustomer.address}
+                                onChange={(e) =>
+                                    setNewCustomer({ ...newCustomer, address: e.target.value })
+                                }
+                                startContent={<MapPin className="w-4 h-4" />}
                             />
                         </div>
                     </ModalBody>

@@ -4,6 +4,7 @@
 
 export { default as CustomerSelector } from './CustomerSelector';
 export { default as InvoiceCustomerBillingFields } from './InvoiceCustomerBillingFields';
+export { default as InvoiceDoctorSelect } from './InvoiceDoctorSelect';
 export { default as LineItemsTable } from './LineItemsTable';
 export { default as CalculationSummary } from './CalculationSummary';
 export { default as CoinsRedemption } from './CoinsRedemption';

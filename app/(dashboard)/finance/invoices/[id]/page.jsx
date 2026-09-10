@@ -70,6 +70,7 @@ export default function InvoiceDetailPage({ params }) {
         onOpen: onCancelModalOpen,
         onClose: onCancelModalClose,
     } = useDisclosure();
+    const [isDownloadingDirect, setIsDownloadingDirect] = useState(false);
 
     const { data: invoice, isLoading, error, refetch } = useGetInvoiceQuery(
         unwrappedParams.id,
@@ -140,8 +141,6 @@ export default function InvoiceDetailPage({ params }) {
         lineItems
     );
     const showBalanceDue = remainingBalance > 0 && statusAllowsPayment;
-
-    const [isDownloadingDirect, setIsDownloadingDirect] = useState(false);
 
     const handleDownloadPdf = async () => {
         if (!invoice?.id) return;

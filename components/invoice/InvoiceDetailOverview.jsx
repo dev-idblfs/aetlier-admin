@@ -25,6 +25,10 @@ export default function InvoiceDetailOverview({ invoice, isOverdue = false }) {
   const appointmentHref = invoice.appointment_id
     ? `/appointments/${invoice.appointment_id}`
     : null;
+  const doctorName = invoice.doctor_name || null;
+  const doctorSpecializations = Array.isArray(invoice.doctor_specializations)
+    ? invoice.doctor_specializations.filter(Boolean).join(', ')
+    : '';
 
   return (
     <InvoiceSection title="Overview" compact>
@@ -46,6 +50,15 @@ export default function InvoiceDetailOverview({ invoice, isOverdue = false }) {
             <EntityLink href={appointmentHref} mono>
               {invoice.appointment_id}
             </EntityLink>
+          </div>
+        )}
+        {doctorName && (
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Attending doctor</p>
+            <p className="font-medium truncate">{doctorName}</p>
+            {doctorSpecializations && (
+              <p className="text-xs text-gray-600 truncate">{doctorSpecializations}</p>
+            )}
           </div>
         )}
         <div>

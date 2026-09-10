@@ -69,6 +69,12 @@ export function mapCustomerSearchRow(row) {
         customer_type: row.customer_type,
         payment_terms: row.payment_terms,
         billing_address: row.billing_address ?? null,
+        gender: row.gender ?? '',
+        date_of_birth: row.date_of_birth ?? '',
+        city: row.city ?? '',
+        address: row.address ?? '',
+        state_id: row.state_id ?? '',
+        city_id: row.city_id ?? '',
     };
 }
 

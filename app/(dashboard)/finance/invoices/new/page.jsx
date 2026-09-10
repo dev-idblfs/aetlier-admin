@@ -14,6 +14,7 @@ import { Form } from '@/components/ui/Form';
 import {
     useCreateInvoiceMutation,
     useGetServicesQuery,
+    useGetDoctorsQuery,
     useGetInvoiceSettingsQuery,
     useCreateInvoiceFromAppointmentMutation,
 } from '@/redux/services/api';
@@ -26,6 +27,7 @@ import {
     InvoiceLayout,
     CustomerSelector,
     InvoiceCustomerBillingFields,
+    InvoiceDoctorSelect,
     LineItemsTable,
     CalculationSummary,
     InvoiceDetailsFields,
@@ -50,6 +52,7 @@ export default function NewInvoicePage() {
         keepUnusedDataFor: 600,
     });
     const { data: settings } = useGetInvoiceSettingsQuery();
+    const { data: doctorsData, isLoading: isLoadingDoctors } = useGetDoctorsQuery();
     const {
         handleSearchCustomers,
         handleCreateCustomer,
@@ -67,6 +70,10 @@ export default function NewInvoicePage() {
             customer_email: '',
             customer_phone: '',
             customer_address: '',
+            customer_date_of_birth: '',
+            customer_gender: '',
+            customer_city: '',
+            doctor_user_id: '',
             invoice_date: new Date().toISOString().split('T')[0],
             due_date: new Date().toISOString().split('T')[0],
             payment_terms: 'DUE_ON_RECEIPT',
@@ -157,14 +164,20 @@ export default function NewInvoicePage() {
             setValue('customer_phone', customer.phone || '');
             setValue(
                 'customer_address',
-                formatCustomerAddressForForm(customer.billing_address)
+                customer.address || formatCustomerAddressForForm(customer.billing_address)
             );
+            setValue('customer_date_of_birth', customer.date_of_birth ? String(customer.date_of_birth).slice(0, 10) : '');
+            setValue('customer_gender', customer.gender || '');
+            setValue('customer_city', customer.city || '');
         } else {
             setValue('customer_id', '');
             setValue('customer_name', '');
             setValue('customer_email', '');
             setValue('customer_phone', '');
             setValue('customer_address', '');
+            setValue('customer_date_of_birth', '');
+            setValue('customer_gender', '');
+            setValue('customer_city', '');
         }
     };
 
@@ -177,6 +190,10 @@ export default function NewInvoicePage() {
                 customer_email: data.customer_email || undefined,
                 customer_phone: data.customer_phone || undefined,
                 customer_address: parseCustomerAddressForPayload(data.customer_address),
+                customer_date_of_birth: data.customer_date_of_birth || undefined,
+                customer_gender: data.customer_gender || undefined,
+                customer_city: data.customer_city || undefined,
+                doctor_user_id: data.doctor_user_id || undefined,
                 invoice_date: data.invoice_date,
                 due_date: data.due_date,
                 payment_terms: data.payment_terms,
@@ -262,8 +279,14 @@ export default function NewInvoicePage() {
                                     isLoadingCreate={isCreatingCustomer}
                                     hideSelectedPreview
                                     compact
+                                    isRequired={false}
+                                    placeholder="Find an existing customer, or enter a walk-in below"
                                 />
                                 <InvoiceCustomerBillingFields />
+                                <InvoiceDoctorSelect
+                                    doctorsData={doctorsData}
+                                    isLoading={isLoadingDoctors}
+                                />
                                 <div className="border-t border-gray-100 pt-3">
                                     <InvoiceDetailsFields compact />
                                 </div>
