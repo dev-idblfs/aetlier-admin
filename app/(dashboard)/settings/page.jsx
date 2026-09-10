@@ -72,6 +72,7 @@ export default function SettingsPage() {
             clinicEmail: '',
             clinicPhone: '',
             clinicAddress: '',
+            documentTagline: '',
             emailNotifications: true,
             appointmentReminders: true,
             marketingEmails: false,
@@ -109,6 +110,7 @@ export default function SettingsPage() {
                 clinicEmail: invoiceSettings?.business_email || '',
                 clinicPhone: invoiceSettings?.business_phone || '',
                 clinicAddress: invoiceSettings?.business_address || '',
+                documentTagline: invoiceSettings?.document_tagline || 'Transform Your Beauty Journey',
 
                 emailNotifications: userPreferences?.email_notifications ?? true,
                 appointmentReminders: userPreferences?.appointment_reminders ?? true,
@@ -151,6 +153,7 @@ export default function SettingsPage() {
                 business_email: data.clinicEmail,
                 business_phone: data.clinicPhone,
                 business_address: data.clinicAddress,
+                document_tagline: data.documentTagline,
                 invoice_prefix: data.invoicePrefix,
                 next_invoice_seq: parseInt(data.invoiceStartNumber, 10) || undefined,
                 default_tax_rate: parseFloat(data.defaultTaxRate),
@@ -282,6 +285,12 @@ export default function SettingsPage() {
                                             <FormInput name="clinicEmail" label="Email" type="email" />
                                             <FormInput name="clinicPhone" label="Phone" />
                                             <FormInput name="clinicAddress" label="Address" />
+                                            <FormInput
+                                                name="documentTagline"
+                                                label="Document Tagline"
+                                                placeholder="e.g., Transform Your Beauty Journey"
+                                                description="Centered below the clinic logo on invoices, prescriptions, and transactional emails"
+                                            />
                                         </div>
                                         <div className="mt-5 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
                                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
