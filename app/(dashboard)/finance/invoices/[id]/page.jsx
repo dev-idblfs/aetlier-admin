@@ -8,8 +8,10 @@ export const dynamic = 'force-dynamic';
 
 import { use, useState } from 'react';
 import Link from 'next/link';
-import config from '@/config';
-import { downloadInvoicePdfDirect } from '@/utils/invoiceDownload';
+import {
+    downloadInvoicePdfDirect,
+    openInvoiceHtmlPreview,
+} from '@/utils/invoiceDownload';
 import {
     Edit,
     Download,
@@ -59,6 +61,7 @@ export default function InvoiceDetailPage({ params }) {
     const [getPdfUrl, { isLoading: isDownloading }] = useLazyGetInvoicePdfUrlQuery();
     const [recordPayment, { isLoading: isRecordingPayment }] =
         useRecordInvoicePaymentMutation();
+    const [isOpeningPreview, setIsOpeningPreview] = useState(false);
 
     const {
         isOpen: isPaymentModalOpen,
@@ -157,11 +160,16 @@ export default function InvoiceDetailPage({ params }) {
         }
     };
 
-    const handleViewInvoice = () => {
+    const handleViewInvoice = async () => {
         if (!invoice?.id) return;
-        const rawApiUrl = config?.apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-        const base = rawApiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
-        window.open(`${base}/api/invoices/${invoice.id}/preview`, '_blank');
+        setIsOpeningPreview(true);
+        try {
+            await openInvoiceHtmlPreview(invoice.id);
+        } catch (err) {
+            toast.error(err?.message || 'Failed to open invoice preview');
+        } finally {
+            setIsOpeningPreview(false);
+        }
     };
 
     const handleSendEmail = async () => {
@@ -220,6 +228,7 @@ export default function InvoiceDetailPage({ params }) {
         variant: 'bordered',
         icon: <Eye className="w-4 h-4" />,
         onClick: handleViewInvoice,
+        loading: isOpeningPreview,
     });
     actions.push({
         label: 'PDF',
