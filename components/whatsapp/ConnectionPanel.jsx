@@ -46,20 +46,58 @@ export default function ConnectionPanel({ canUpdate }) {
     } catch (e) { methods.setError('root', { message: getApiErrorMessage(e, 'Could not save setup') }); }
   };
 
+  const loadFacebookSdk = () => new Promise((resolve, reject) => {
+    if (window.FB) {
+      resolve();
+      return;
+    }
+
+    const scriptId = 'whatsapp-facebook-sdk';
+    const existing = document.getElementById(scriptId);
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      if (window.fbAsyncInit === onReady) delete window.fbAsyncInit;
+      if (error) reject(error);
+      else resolve();
+    };
+    const onReady = () => {
+      if (window.FB) finish();
+      else finish(new Error('Facebook SDK loaded without exposing the FB object.'));
+    };
+    const timeout = window.setTimeout(() => finish(new Error(
+      'Facebook SDK timed out. Check browser extensions, firewall rules, and allow connect.facebook.net.'
+    )), 15000);
+    window.fbAsyncInit = onReady;
+
+    if (existing) {
+      existing.addEventListener('load', onReady, { once: true });
+      existing.addEventListener('error', () => finish(new Error(
+        'Facebook SDK was blocked. Allow https://connect.facebook.net/en_US/sdk.js in the browser or network policy.'
+      )), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.async = true;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+    script.src = 'https://connect.facebook.net/en_US/sdk.js';
+    script.onload = onReady;
+    script.onerror = () => finish(new Error(
+      'Facebook SDK was blocked. Allow https://connect.facebook.net/en_US/sdk.js in the browser or network policy.'
+    ));
+    document.head.appendChild(script);
+  });
+
   const prepare = async () => {
     setConnecting(true); setMessage(''); setPrepared(null);
     try {
       const session = await mutate({ resource: 'coexistence/sessions' }).unwrap();
-      if (!window.FB) {
-        await new Promise((resolve, reject) => {
-          const existing = document.getElementById('whatsapp-facebook-sdk');
-          existing?.remove();
-          const script = document.createElement('script');
-          script.id = 'whatsapp-facebook-sdk'; script.src = 'https://connect.facebook.net/en_US/sdk.js';
-          script.onload = resolve; script.onerror = () => reject(new Error('Could not load the Meta signup window'));
-          document.head.appendChild(script);
-        });
-      }
+      await loadFacebookSdk();
       window.FB.init({ appId: session.app_id, version: session.graph_version, xfbml: false, cookie: false });
       setPrepared(session);
       setMessage('Ready. Choose Connect Business app to open Meta signup.');
@@ -101,6 +139,7 @@ export default function ConnectionPanel({ canUpdate }) {
         <p className="text-sm text-gray-600">Use an eligible Meta app and an Embedded Signup configuration supporting coexistence. Save the app secret in integration settings below. Meta account ownership, verification, permissions, and template approval must be completed in Meta.</p>
         <p className="text-sm">{data?.connected ? 'Connected through Embedded Signup' : 'Embedded Signup connection pending'}{data?.last_sync_at ? ` · Last sync event: ${new Date(`${data.last_sync_at}Z`).toLocaleString()}` : ''}</p>
         {error && <p role="alert" className="text-danger">Could not load connection settings.</p>}
+        {!data?.has_app_secret && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Save the Meta App Secret in the WhatsApp integration settings below before preparing the connection.</p>}
         <Form methods={methods} onSubmit={save} className="space-y-4">
           <FormErrorSummary error={methods.formState.errors.root?.message} />
           <div className="grid gap-4 sm:grid-cols-2">

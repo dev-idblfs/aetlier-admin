@@ -986,7 +986,7 @@ export const api = createApi({
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["Integration"],
+      invalidatesTags: ["Integration", "WhatsApp"],
     }),
 
     testWhatsAppIntegration: builder.mutation({
