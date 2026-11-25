@@ -222,7 +222,7 @@ export default function WhatsAppIntegrationsPanel() {
             placeholder={
               data?.whatsapp_app_secret
                 ? '•••• saved — enter new value to replace'
-                : 'Optional app secret'
+                : 'Required for webhook signature verification'
             }
             isDisabled={!canUpdate}
           />

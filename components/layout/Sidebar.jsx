@@ -32,6 +32,7 @@ import {
     X,
     AlertCircle,
     Target,
+    MessageSquare,
 } from '@/lib/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/redux/slices/authSlice';
@@ -53,6 +54,7 @@ import { useSidebar } from './AdminLayout';
  * If you skip this step, the sidebar silently falls back to LayoutDashboard.
  */
 const ICON_MAP = {
+    MessageSquare,
     LayoutDashboard,
     Calendar,
     Users,

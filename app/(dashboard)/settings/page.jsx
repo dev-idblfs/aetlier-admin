@@ -31,6 +31,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
+import { hasPermission, PERMISSIONS } from '@/utils/permissions';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { settingsSchema } from '@/lib/validation';
@@ -332,6 +333,12 @@ export default function SettingsPage() {
                                     </SettingsCard>
 
                                     <SettingsCard title="Quick Links">
+                                        {hasPermission(user, PERMISSIONS.WHATSAPP_READ) && (
+                                            <Link href="/whatsapp" className="block p-4 mb-3 rounded-lg border border-gray-200 hover:bg-primary-50">
+                                                <p className="font-medium">WhatsApp automation</p>
+                                                <p className="text-sm text-gray-500">Follow-ups, review requests, campaigns, and conversations</p>
+                                            </Link>
+                                        )}
                                         <Link
                                             href="/settings/mobile-home"
                                             className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"

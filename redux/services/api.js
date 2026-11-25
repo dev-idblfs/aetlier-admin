@@ -89,6 +89,7 @@ export const api = createApi({
   // Optimize cache behavior for smooth navigation without refetching
   refetchOnReconnect: true, // Refetch when internet connection is restored
   tagTypes: [
+    "WhatsApp",
     "Appointment",
     "User",
     "Doctor",
@@ -118,6 +119,14 @@ export const api = createApi({
   ],
 
   endpoints: (builder) => ({
+    getWhatsAppWorkspace: builder.query({
+      query: ({ resource, ...params }) => ({ url: `/admin/whatsapp/${resource}`, params }),
+      providesTags: ["WhatsApp"],
+    }),
+    mutateWhatsAppWorkspace: builder.mutation({
+      query: ({ resource, method = "POST", body }) => ({ url: `/admin/whatsapp/${resource}`, method, body }),
+      invalidatesTags: ["WhatsApp"],
+    }),
     // =========================================================================
     // AUTH ENDPOINTS
     // =========================================================================
@@ -1849,4 +1858,7 @@ export const {
   useBulkCancelInvoicesMutation,
   useBulkCancelAppointmentsMutation,
   useBulkDeletePackagesMutation,
+  useGetWhatsAppWorkspaceQuery,
+  useLazyGetWhatsAppWorkspaceQuery,
+  useMutateWhatsAppWorkspaceMutation,
 } = api;

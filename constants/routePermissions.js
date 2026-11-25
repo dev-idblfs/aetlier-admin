@@ -5,6 +5,7 @@
 import { PERMISSIONS } from '@/utils/permissions';
 
 export const ADMIN_ROUTE_RULES = [
+  { prefix: '/whatsapp', any: [PERMISSIONS.WHATSAPP_READ] },
   { prefix: '/finance/invoices', any: [PERMISSIONS.INVOICE_VIEW_ANY] },
   { prefix: '/finance/expenses', any: [PERMISSIONS.EXPENSE_VIEW_ANY] },
   { prefix: '/finance/customers', any: [PERMISSIONS.CUSTOMER_VIEW_ANY] },
